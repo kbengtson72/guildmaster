@@ -5144,8 +5144,8 @@ function tickMissions(){
   log("A new day in the hall.");
   save();
   render();
+  showDayReport();
   nextDoorQueue();
-  setTimeout(()=>{ showDayReport(); }, 40);
 }
 
 function writChoiceBlock(){
@@ -5165,6 +5165,7 @@ function afterFind(){
   if((S.pendingLoot||[]).filter(it=>!itemWorn(it)).length){ showFindsPopup(); return; }
   const wrap = document.getElementById("finds");
   if(wrap) wrap.style.display="none";
+  if(S.hallEvent && S.hallEvent.id){ openHallEvent(); return; }
   closeModal();
 }
 function showFindsPopup(){
@@ -5631,6 +5632,7 @@ function tickRival(){
       if(ahead){ r.renown = Math.max(0, them0-1); rivalNote(r, "Lost the guild contest. Renown -1, now "+r.renown+"."); }
       S.gold = (S.gold||0) + them0;
       S.hallEvent = S.hallEvent || {id:"rival_contest_done", win:true, name:r.name, them:r.renown, us:S.renown, pwr, theirs, gain, gold:them0};
+      stampHallEvent();
     } else {
       ids.forEach(id=>{
         const p=(S.people||[]).find(x=>x.id===id);
@@ -5645,6 +5647,7 @@ function tickRival(){
       if(ahead) S.renown = Math.max(0, us0-1);
       r.gold = (r.gold||0) + us0;
       S.hallEvent = S.hallEvent || {id:"rival_contest_done", win:false, name:r.name, them:r.renown, us:S.renown, gain, gold:us0};
+      stampHallEvent();
     }
   }
   if(!r.nextWrit) r.nextWrit = S.day+8;
@@ -6059,14 +6062,45 @@ function openSeasonSheet(){
   const no=document.getElementById("szNo");
   if(no) no.onclick=()=>{ S.seasonAsk=null; save(); closeModal(); nextDoorQueue(); render(); };
 }
+const HALL_EVENT_IDS = {fallen:1,dry_tap:1,kin_ill:1,king_purse:1,drills:1,leaky_roof:1,tithe_day:1,cook:1,glut:1,double_mark:1,writ_shame:1,desertion:1,rats:1,taxman:1,fever:1,broke_strap:1,quiet_mass:1,mouse_scare:1,praise:1,night_watch:1,rain_board:1,broke_blade:1,brawl:1,poach:1,found_purse:1,empty_bunk:1,peddle_weapon:1,peddle_armor:1,peddle_food:1,old_wound:1,levy:1,contest_warn:1,featured:1,rival_writ:1,rival_contest_done:1,rival_contest:1,season_turn:1};
+function stampHallEvent(){
+  if(S.hallEvent && S.hallEvent.id && S.hallEvent.day==null) S.hallEvent.day = S.day;
+}
+function healHallEvent(fromLoad){
+  const e = S.hallEvent;
+  if(!e) return null;
+  if(!e.id || !HALL_EVENT_IDS[e.id]){ S.hallEvent=null; return null; }
+  if(fromLoad){
+    if(e.day==null || (S.day||1)-(e.day||0)>2){ S.hallEvent=null; return null; }
+    return e;
+  }
+  if(e.day==null) e.day = S.day;
+  if((S.day||1)-e.day>2){ S.hallEvent=null; return null; }
+  return e;
+}
+function showHallEvent(){
+  stampHallEvent();
+  if(!S.hallEvent) return;
+  try { return openHallEvent(); }
+  catch(err){ S.hallEvent=null; }
+}
+function hallEventIsOpen(){
+  const modal=document.getElementById("modal");
+  const sheet=document.getElementById("sheet");
+  if(!modal||!sheet) return false;
+  const on = modal.classList.contains("show") && getComputedStyle(modal).display!=="none";
+  if(!on) return false;
+  return !!(S.hallEvent && S.hallEvent.id);
+}
 function nextDoorQueue(){
+  healHallEvent();
   if(S.contestDue && !S.contestAsk){
     S.contestAsk = {id:"rival_contest", name:(S.rival&&S.rival.name)||"the other hall"};
   }
   if((S.contestAsk || S.contestDue) && !(S.contestUntil>S.day)){ S.contestAsk=null; return openContestSheet(); }
   S.contestAsk=null;
   if(S.seasonAsk){ return openSeasonSheet(); }
-  if(S.contestWarn && !(S.contestUntil>S.day) && !S.contestDue){ S.hallEvent = S.contestWarn; S.contestWarn = null; return openHallEvent(); }
+  if(S.contestWarn && !(S.contestUntil>S.day) && !S.contestDue){ S.hallEvent = S.contestWarn; S.contestWarn = null; stampHallEvent(); return showHallEvent(); }
   S.contestWarn = null;
   if((S.graveAsk||[]).length) return openGraveAsk();
   if((S.saintAsk||[]).length) return openSaintAsk();
@@ -6074,8 +6108,11 @@ function nextDoorQueue(){
   if((S.quitAsk||[]).length) return openQuitAsk();
   if((S.restlessAsk||[]).length) return openRestlessAsk();
   if(S.seekers && S.seekers.length) return openSeekers();
-  if(S.rivalWritAsk){ S.hallEvent = S.rivalWritAsk; S.rivalWritAsk = null; return openHallEvent(); }
-  if(S.hallEvent) return openHallEvent();
+  if(S.rivalWritAsk){ S.hallEvent = S.rivalWritAsk; S.rivalWritAsk = null; stampHallEvent(); return showHallEvent(); }
+  if(S.hallEvent){
+    if(!hallEventIsOpen()) return showHallEvent();
+    return;
+  }
   if(S.featAsk){ S.featBadge = true; S.featAsk = null; }
   closeModal();
 }
@@ -6108,6 +6145,7 @@ function letRestless(id){
 
 
 function tickHallEvent(){
+  healHallEvent();
   if(S.hallEvent) return;
   if(Math.random() >= 0.08) return;
   const pool = [];
@@ -6264,6 +6302,7 @@ function tickHallEvent(){
     ppl.homeWhy = "levy";
     S.hallEvent = {id:"levy", days:5, name:ppl.name};
   }
+  stampHallEvent();
 }
 
 function seasonBtns(e){
@@ -6527,7 +6566,7 @@ function openHallEvent(){
   if(!/button/i.test(extra||"")) extra = (extra||"") + `<button type="button" class="act" id="hallEvOk" style="width:100%;margin-top:10px">Done</button>`;
   body += eventSeerHtml(e, extra);
   sheet.innerHTML = body + extra;
-  modal.classList.add("show"); modal.style.display="flex";
+  modal.classList.add("show"); modal.style.display="flex"; modal.style.zIndex="10100";
   const ok = document.getElementById("hallEvOk");
   if(ok) ok.onclick=()=>{ S.hallEvent=null; save(); closeModal(); nextDoorQueue(); render(); };
   const fallOk = document.getElementById("fallOk");
@@ -8343,6 +8382,7 @@ function postRecovery(p, m){
   S.missions.push(rec);
   const gear=gearNames(p);
   S.hallEvent={id:"fallen", name:p.name, job:m.t||"a job", diff:m.diff||1, rec:diff, gear, portrait:portrait(p), cls:p.cls};
+  stampHallEvent();
 }
 function bury(id){
   const p = S.people.find(x=>x.id===id);
@@ -8486,6 +8526,7 @@ function applySnap(d){
     }
   } catch(e){}
   try { retuneEpic(); } catch(e){}
+  try { healHallEvent(true); } catch(e){}
   return true;
 }
 function hallLived(d){
@@ -8574,6 +8615,7 @@ function load(){
         Object.assign(S, o);
         if(!S.people) S.people = [];
         if((S.people||[]).length){
+          try { healHallEvent(true); } catch(e){}
           SLOTS.list[SLOTS.current].data = snapshot();
           writeSlots();
           return true;
@@ -10474,6 +10516,7 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-10", t:"Hall events can no longer stick unseen and block every new one. The night report no longer covers the event, a leftover note is shown again or dropped after two days, and an old save with a stuck event starts getting them again."},
   {d:"2026-11-10", t:"Rival Barracks work like yours: 2 bunks per level up to 12, same cost, same build days. They start building when one bed is left."},
   {d:"2026-11-10", t:"Barracks hold 2 more per level: Lv1 4, Lv2 6, Lv3 8, Lv4 10, Lv5 12."},
   {d:"2026-11-10", t:"Contest text now shows the real stakes for your Renown standing. Refusing from the night report counts as a loss, same as the contest sheet."},
@@ -11663,6 +11706,7 @@ function askRestart(){
 }
 function newGame(){
   S.day = 1; S.gold = 40; S.renown = 0; S.nextFeat = 8; S.featItem = null; S.season="spring"; S.seasonLeft=30; S.loan=0; S.rival=null;
+  S.hallEvent=null; S.seasonAsk=null; S.contestAsk=null; S.contestDue=null; S.contestWarn=null; S.contestWarned=false; S.contestUntil=null; S.contestParty=null; S.rivalWritAsk=null;
   S.buildings = {barracks:1, armory:1, infirmary:1, grounds:0, alley:0, sanctum:0, chapel:0, tavern:1, bank:1, racks:0, board:0, bell:0, briefs:0, seer:0, stables:0};
   S.deposit = 40;
   S.people = []; S.missions = []; S.shop = []; S.vault = []; S.pendingLoot = []; S.hire = []; S.log = []; S.selected = null;
