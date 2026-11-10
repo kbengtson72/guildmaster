@@ -5933,6 +5933,29 @@ function openRivalFace(i){
     <button type="button" class="ghost" id="rfaceBack" style="width:100%;margin-top:8px">Back</button>`;
   document.getElementById("rfaceBack").onclick=()=>openContestSheet();
 }
+function contestTerms(){
+  const r = ensureRival();
+  const us=S.renown||0, them=r.renown||0, gap=Math.abs(us-them);
+  const winGain = us>=them ? 5 : Math.max(5, Math.floor(gap/2));
+  const loseGain = them>=us ? 5 : Math.max(5, Math.floor(gap/2));
+  return `Send two ready faces for four days. <b>Win:</b> you +${winGain} Renown${us>=them?", they −1":""}, and you take ${gp(them)}. <b>Lose:</b> your two come home wounded, they +${loseGain} Renown${them>=us?", you −1":""}. <b>Refuse:</b> counts as a loss, but no one is hurt.`;
+}
+function refuseContest(){
+  const r = ensureRival();
+  S.contestDue=null; S.contestAsk=null;
+  const us0=S.renown||0, them0=r.renown||0, gap=Math.abs(us0-them0);
+  const ahead=them0>=us0;
+  const gain=ahead?5:Math.max(5,Math.floor(gap/2));
+  r.renown=them0+gain;
+  if(ahead) S.renown=Math.max(0,us0-1);
+  r.gold=(r.gold||0)+us0;
+  log("Refused the contest. Counted as a loss. "+r.name+" +"+gain+" renown"+(ahead?" · you -1":"")+".");
+  return gain;
+}
+function contestRefuseGain(){
+  const r=ensureRival(); const us=S.renown||0, them=r.renown||0;
+  return them>=us ? 5 : Math.max(5, Math.floor(Math.abs(us-them)/2));
+}
 function openContestSheet(){
   const r = ensureRival();
   const ready = livingRoster().filter(x=>x.status==="ready");
@@ -5948,17 +5971,17 @@ function openContestSheet(){
   const ratio = yourP/Math.max(1,theirP);
   const word = ratio>=1.15?"they walk it":ratio>=1?"good chance":ratio>=0.9?"even":ratio>=0.75?"bloody":"grave";
   const bar = seer>=2 ? `<div style="height:8px;border-radius:4px;background:#3a2a1a;overflow:hidden;margin:6px 0"><div style="height:100%;width:${Math.min(100,Math.round(ratio*50))}%;background:${ratio>=1?"#7dcea0":"#e74c3c"}"></div></div>` : "";
-  const cmp = seer>=1 ? `<p>${word}${seer>=3?" · your "+yourP+" / their "+theirP:""}${seer>=4?" · blessing +4":""}</p>${bar}` : `<p class="tiny">Seer Lv1 would read the odds.</p>`;
+  const cmp = seer>=1 ? `<p>Odds: <b>${word}</b>${seer>=3?" · your "+yourP+" / their "+theirP:""}${seer>=4?" · blessing +4":""}</p>${bar}` : `<p class="tiny">Seer Lv1 would read the odds.</p>`;
   const faces = seer>=2 ? their.map((f,i)=>`<button type="button" class="ghost" data-rface="${i}" style="width:100%;text-align:left;margin-top:6px">${CLASSES[f.cls].icon} ${f.cls} ${f.lv} · PWR ${rivalPower(f)} · ${f.status||"ready"}</button>`).join("") : "";
   sheet.innerHTML = `<h3>Contest ${r.name}</h3>
-    <p>Send two ready faces for four days. Win: +1 Renown, they −1. Lose: your two come home wounded, they +2. Stand aside and they +1.</p>
+    <p>${contestTerms()}</p>
     <p class="tiny">Them ${r.renown||0} · you ${S.renown||0}. Ready ${ready.length}.</p>
     ${cmp}${faces}
     ${seer>=3?`<p class="tiny">Pick two. Gold edge is the strongest pair.</p>`+byPower(ready).map((p,i)=>`<button type="button" class="ghost" data-cpick="${p.id}" style="width:100%;text-align:left;margin-top:6px;${i<2?"border-color:#e0b84a":""}">${CLASSES[p.cls].icon} ${p.name.split(" ")[0]} · PWR ${pwrOf(p)}</button>`).join(""):""}
     <button type="button" class="ghost" id="conShop" style="width:100%;margin-top:8px">Buy from Merchant</button>
     <button type="button" class="ghost" id="conArm" style="width:100%;margin-top:6px">Open Armory</button>
     <button type="button" class="act" id="conYes" ${ready.length<2?"disabled":""} style="width:100%;margin-top:10px;${ready.length<2?"opacity:.45":""}">${ready.length<2?"Not enough adventurers available":"Contest · two faces, four days"}</button>
-    <button type="button" class="ghost" id="conNo" style="width:100%;margin-top:6px">Refuse · they gain ${((S.renown||0)<=(r.renown||0))?5:Math.max(5,Math.floor(Math.abs((S.renown||0)-(r.renown||0))/2))} renown</button>`;
+    <button type="button" class="ghost" id="conNo" style="width:100%;margin-top:6px">Refuse · they gain ${contestRefuseGain()} renown${(r.renown||0)>=(S.renown||0)?", you −1":""}</button>`;
   modal.classList.add("show"); modal.style.display="flex"; modal.style.zIndex="10100";
   S._contestPick = byPower(ready).slice(0,2).map(p=>p.id);
   sheet.querySelectorAll("[data-cpick]").forEach(b=>b.onclick=()=>{
@@ -5989,14 +6012,7 @@ function openContestSheet(){
   };
   const cn=document.getElementById("conNo");
   if(cn) cn.onclick=()=>{
-    S.contestDue=null; S.contestAsk=null;
-    const us0=S.renown||0, them0=r.renown||0, gap=Math.abs(us0-them0);
-    const ahead=them0>=us0;
-    const gain=ahead?5:Math.max(5,Math.floor(gap/2));
-    r.renown=them0+gain;
-    if(ahead) S.renown=Math.max(0,us0-1);
-    r.gold=(r.gold||0)+us0;
-    log("Refused the contest. Counted as a loss. "+r.name+" +"+gain+" renown"+(ahead?" · you -1":"")+" and "+us0+" gold.");
+    refuseContest();
     save(); closeModal(); nextDoorQueue(); render();
   };
 }
@@ -6279,6 +6295,7 @@ function openHallEvent(){
   } else {
     body = `<h3>Word from town</h3><p>Something moved.</p>`;
   }
+  const contestReady = livingRoster().filter(x=>x.status==="ready").length;
   const extra = e.id==="contest_warn" ? `
     <button type="button" class="act" id="warnOk" style="width:100%;margin-top:10px">Understood</button>` : e.id==="featured" ? `
     <button type="button" class="act" id="featBuy" style="width:100%;margin-top:10px">Buy it</button>
@@ -6286,7 +6303,7 @@ function openHallEvent(){
     <button type="button" class="act" id="rivOk" style="width:100%;margin-top:10px">Understood</button>` : e.id==="rival_contest_done" ? `
     <button type="button" class="act" id="rivOk" style="width:100%;margin-top:10px">So be it</button>` : e.id==="rival_contest" ? `
     <button type="button" class="act" id="conYes" ${contestReady<2?"disabled":""} style="width:100%;margin-top:10px;${contestReady<2?"opacity:.45":""}">${contestReady<2?"Not enough adventurers available":"Contest · two faces, four days"}</button>
-    <button type="button" class="ghost" id="conNo" style="width:100%;margin-top:6px">Stand aside · they gain 1 Renown</button>` : e.id==="season_turn" ? seasonBtns(e) : e.id==="writ_shame" ? `
+    <button type="button" class="ghost" id="conNo" style="width:100%;margin-top:6px">Refuse · they gain ${contestRefuseGain()} renown${((ensureRival().renown||0)>=(S.renown||0))?", you −1":""}</button>` : e.id==="season_turn" ? seasonBtns(e) : e.id==="writ_shame" ? `
     <button type="button" class="act" id="shameRen" style="width:100%;margin-top:10px">Burn 1 Renown</button>
     <button type="button" class="ghost" id="shameTime" style="width:100%;margin-top:6px">Due 2 days sooner</button>
     ${(e.have||0)>=1?`<button type="button" class="ghost" id="shameMark" style="width:100%;margin-top:6px">Lose 1 mark</button>`:""}` : e.id==="desertion" ? `
@@ -6402,7 +6419,7 @@ function openHallEvent(){
   if(e.id==="contest_warn"){
     body = `<h3>Season ends in 5 days</h3>
       <p>${e.name} will call a contest when the season turns. Have two ready faces if you mean to answer.</p>
-      <p class="tiny">Them ${e.them} · you ${e.us}. Stand aside and they gain 1 Renown.</p>`;
+      <p class="tiny">Them ${e.them} · you ${e.us}. Refusing counts as a loss.</p>`;
   }
   if(e.id==="rival_writ"){
     const ahead = (e.them||0)>(e.us||0);
@@ -6414,7 +6431,7 @@ function openHallEvent(){
     const r=ensureRival();
     const faces=(r.faces||[]).map(f=>f.cls+" "+f.lv).join(" · ");
     body = `<h3>Contest ${r.name}</h3>
-      <p>Send two ready faces for four days. Win: +1 Renown, they −1. Lose: your two come home wounded, they +2. Stand aside and they +1 with no fight.</p>
+      <p>${contestTerms()}</p>
       <p class="tiny">Their chairs: ${faces||"unknown"}. Them ${r.renown} · you ${S.renown||0}.</p>`;
   }
   if(e.id==="rival_contest_done"){
@@ -6593,10 +6610,8 @@ function openHallEvent(){
   };
   const cn = document.getElementById("conNo");
   if(cn) cn.onclick=()=>{
-    S.contestDue = null;
-    ensureRival().renown=(ensureRival().renown||0)+1;
+    refuseContest();
     S.hallEvent=null;
-    log((S.rival.name)+" gained Renown unopposed.");
     save(); closeModal(); nextDoorQueue(); render();
   };
   const szy = document.getElementById("szYes");
@@ -10448,6 +10463,7 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-10", t:"Contest text now shows the real stakes for your Renown standing. Refusing from the night report counts as a loss, same as the contest sheet."},
   {d:"2026-11-10", t:"App always loads the newest version when you have signal; the old cached copy is cleared."},
   {d:"2026-11-10", t:"Save and Load moved off the bottom bar into the 👤 Halls menu. Tavern and End Day are full size again."},
   {d:"2026-11-10", t:"Save and Load buttons on the bottom bar. Save backs up a file to Files or Notes; Load restores a file or pasted code after a confirm."},
