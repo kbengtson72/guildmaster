@@ -5503,7 +5503,7 @@ function openRivalHall(){
   const faces = (r.faces||[]).map(f=>`<p>${CLASSES[f.cls]?CLASSES[f.cls].icon:"•"} ${f.name||f.cls} · Lv${f.lv||1} · ${f.status||"ready"} · PWR ${rivalPower(f)}${f.away?" · out "+(f.left||0)+"d":""}</p>`).join("") || "<p class='tiny'>No faces.</p>";
   const log = (r.log||[]).slice(0,20).map(x=>`<p class="tiny">${x}</p>`).join("") || "<p class='tiny'>No log yet. End a day.</p>";
   sheet.innerHTML = `<h3>${r.name||"Rival"}</h3>
-    <p>Renown ${r.renown||0} · Gold ${r.gold||0} · Bunks ${r.bunks||0} · Faces ${(r.faces||[]).length}</p>
+    <p>Renown ${r.renown||0} · Gold ${r.gold||0} · Barracks Lv ${r.blv||1}${r.braise?" (→"+r.braise.to+", "+r.braise.left+"d)":""} · Bunks ${r.bunks||0} · Faces ${(r.faces||[]).length}</p>
     <h4>Roster</h4>${faces}
     <h4>Daily log</h4>${log}
     <button class="ghost" id="btnCloseRival" style="margin-top:8px">Close</button>`;
@@ -5547,7 +5547,16 @@ function rivalClear(m){
 function rivalPlay(){
   const r = ensureRival();
   if(r.gold==null) r.gold = 40;
-  if(!r.bunks) r.bunks = 2;
+  if(!r.blv){ r.blv = Math.max(1, Math.min(BUILDINGS.barracks.max, Math.ceil(((r.bunks||2)-2)/2))); }
+  if(r.braise && r.braise.left>0){
+    r.braise.left -= 1;
+    if(r.braise.left<=0){
+      r.blv = r.braise.to; r.braise = null;
+      rivalNote(r, "Barracks reached Lv "+r.blv+" ("+(2+2*r.blv)+" bunks).");
+      note(r.name+" finished Barracks Lv "+r.blv+".", "info");
+    }
+  }
+  r.bunks = 2 + 2*r.blv;
   if(!r.faces) r.faces = [];
   fleshRival(r);
   const wageBill = r.faces.reduce((n,f)=>n+(f&&f.status!=="dead"?dayFee(f):0),0);
@@ -5578,11 +5587,13 @@ function rivalPlay(){
     rivalNote(r, "Hired "+(nf.name||nf.cls)+" for "+hire+" gold. Gold left "+r.gold+".");
     note(r.name+" hired from the Tap.", "info");
   }
-  const bunkCost = 40 * (r.bunks||2);
-  if(r.faces.length>=r.bunks && r.gold-bunkCost>=reserve && r.bunks<8){
-    r.gold -= bunkCost; r.bunks += 1;
-    rivalNote(r, "Raised barracks to "+r.bunks+" for "+bunkCost+" gold. Gold left "+r.gold+".");
-    note(r.name+" raised Barracks to "+r.bunks+".", "info");
+  const nextLv = (r.blv||1)+1;
+  const bunkCost = BUILDINGS.barracks.base * nextLv;
+  if(!r.braise && r.faces.length>=r.bunks-1 && r.gold-bunkCost>=reserve && nextLv<=BUILDINGS.barracks.max){
+    r.gold -= bunkCost;
+    r.braise = {to:nextLv, left:raiseDays(nextLv)};
+    rivalNote(r, "Started Barracks Lv "+nextLv+" for "+bunkCost+" gold, "+raiseDays(nextLv)+" days. Gold left "+r.gold+".");
+    note(r.name+" started raising Barracks to Lv "+nextLv+".", "info");
   }
 }
 function tickRival(){
@@ -10287,7 +10298,7 @@ function helpPage(id){
   if(id==="rival") return `
     <p class="tiny">The other hall runs off-screen. You see a night-report line, not their board.</p>
     <p class="tiny">They start with two faces, a class, a level, traits, a quirk, and a job specialty. They wear a weapon and armor. No food. No kit.</p>
-    <p class="tiny">They do not run their own board. When you finish a job, they gain Renown equal to that job's difficulty, with no bonuses, and they roll their own gold and gear as if they had done it. A better weapon or armor replaces what they wear. They pay wages, buy Barracks, and hire when a bunk is free.</p>
+    <p class="tiny">They do not run their own board. When you finish a job, they gain Renown equal to that job's difficulty, with no bonuses, and they roll their own gold and gear as if they had done it. A better weapon or armor replaces what they wear. They pay wages, buy Barracks the same way you do (2 bunks per level, same cost and build days, up to 12), and hire when a bunk is free.</p>
     <p class="tiny">The contest uses their two best faces, even if one is out. If you are ahead and win: you +5, they −1, and you take gold equal to their Renown. If you are behind and win: you gain half the gap (at least 5). Lose: your two come home wounded and they gain as if it were your loss. Refuse: it counts as your loss. Seer reads it: Lv1 power comparison, Lv2 their sheets, Lv3 you pick your two, Lv4 +4 on the score.</p>
   `;
   if(id==="play") return `
@@ -10463,6 +10474,7 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-10", t:"Rival Barracks work like yours: 2 bunks per level up to 12, same cost, same build days. They start building when one bed is left."},
   {d:"2026-11-10", t:"Barracks hold 2 more per level: Lv1 4, Lv2 6, Lv3 8, Lv4 10, Lv5 12."},
   {d:"2026-11-10", t:"Contest text now shows the real stakes for your Renown standing. Refusing from the night report counts as a loss, same as the contest sheet."},
   {d:"2026-11-10", t:"App always loads the newest version when you have signal; the old cached copy is cleared."},
