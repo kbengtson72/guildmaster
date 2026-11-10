@@ -10448,6 +10448,7 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-10", t:"App always loads the newest version when you have signal; the old cached copy is cleared."},
   {d:"2026-11-10", t:"Save and Load moved off the bottom bar into the 👤 Halls menu. Tavern and End Day are full size again."},
   {d:"2026-11-10", t:"Save and Load buttons on the bottom bar. Save backs up a file to Files or Notes; Load restores a file or pasted code after a confirm."},
   {d:"2026-11-10", t:"Installable app: permanent home on GitHub Pages, Add to Home Screen icon, works offline, asks the phone to keep the save."},
@@ -11704,6 +11705,6 @@ window.addEventListener("freeze", function(){ try{ save(true); }catch(e){} });
 </script>
 <script>
 try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
-try{ if("serviceWorker" in navigator && /github\.io$/.test(location.hostname)) navigator.serviceWorker.register("sw.js"); }catch(e){}
+try{ if("serviceWorker" in navigator && /github\.io$/.test(location.hostname)) navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>{ try{ r.update(); }catch(e){} document.addEventListener("visibilitychange",()=>{ if(!document.hidden) try{ r.update(); }catch(e){} }); }); }catch(e){}
 </script>
 </html>
