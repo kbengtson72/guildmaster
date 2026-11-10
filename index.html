@@ -430,8 +430,10 @@
 <div id="report" style="display:none;z-index:40;position:fixed;left:8px;right:8px;top:16vh;background:#2a231c;border:2px solid var(--gold);border-radius:12px;overflow:hidden;"></div>
 <main id="view"></main>
 <footer>
+  <button class="ghost" id="btnSaveGame" style="flex:0 0 auto;padding-left:10px;padding-right:10px">💾 Save</button>
   <button class="ghost" id="btnRecruit">Tavern</button>
   <button class="act" id="btnDay">End Day</button>
+  <button class="ghost" id="btnLoadGame" style="flex:0 0 auto;padding-left:10px;padding-right:10px">📂 Load</button>
 </footer>
 <div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
 <div id="finds" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.78);align-items:center;justify-content:center;padding:16px;pointer-events:auto"><div id="findsBox" style="background:#2a231c;width:100%;max-width:520px;border-radius:16px;padding:16px;max-height:80vh;overflow:auto;border:2px solid var(--gold);pointer-events:auto"></div></div>
@@ -8673,6 +8675,62 @@ function openProfiles(){
   document.querySelectorAll("[data-delprof]").forEach(b=>b.onclick=()=>deleteProfile(b.dataset.delprof));
   document.querySelectorAll("[data-lookprof]").forEach(b=>b.onclick=()=>openPerson(b.dataset.lookprof));
 }
+
+function openSaveSheet(){
+  S._wipeOk = true; save(true); S._wipeOk = false;
+  const t = new Date().toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+  document.getElementById("sheet").innerHTML = `<h3>💾 Saved</h3>
+    <p>${profileName()} · Day ${S.day} · ${gp(S.gold||0)} · saved at ${t}.</p>
+    <p class="tiny">This save lives on this phone. For a backup that survives a wipe or a new phone, save a copy to Files or Notes.</p>
+    <button type="button" class="act" id="svBackup" style="width:100%;margin-top:8px">Back up a copy to Files / Notes</button>
+    <button type="button" class="ghost" id="svClose" style="width:100%;margin-top:8px">Done</button>`;
+  const modal=document.getElementById("modal"); modal.classList.add("show"); modal.style.display="flex";
+  document.getElementById("svBackup").onclick=()=>{
+    const text = hallCode();
+    const name = "guildmaster-day"+S.day+".txt";
+    try {
+      const file = new File([text], name, {type:"text/plain"});
+      if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){ navigator.share({files:[file], title:"Guildmaster save"}).catch(()=>{}); return; }
+    } catch(e){}
+    try { const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([text],{type:"text/plain"})); a.download=name; document.body.appendChild(a); a.click(); a.remove(); toast("Backup downloaded."); }
+    catch(e){ copyHallCode(); }
+  };
+  document.getElementById("svClose").onclick=closeModal;
+}
+function confirmLoadCode(raw){
+  let o=null;
+  try { o = JSON.parse(String(raw||"").trim()); } catch(e){ return toast("That is not a Guildmaster save."); }
+  if(!o || typeof o!=="object" || !Array.isArray(o.people)) return toast("That save has no roster.");
+  const alive=(o.people||[]).filter(p=>p.status!=="dead").length;
+  document.getElementById("sheet").innerHTML = `<h3>📂 Load this save?</h3>
+    <p>Backup: Day ${o.day||1} · ${gp(o.gold||0)} · ${alive} adventurers.</p>
+    <p class="tiny" style="color:var(--bad)">It replaces ${profileName()} (Day ${S.day}). Save a backup first if you want to keep it.</p>
+    <div style="display:flex;gap:8px;margin-top:8px"><button type="button" class="ghost" id="ldNo" style="flex:1">Cancel</button><button type="button" class="act" id="ldYes" style="flex:1">Load Day ${o.day||1}</button></div>`;
+  document.getElementById("ldNo").onclick=openLoadSheet;
+  document.getElementById("ldYes").onclick=()=>applyHallCode(raw);
+}
+function openLoadSheet(){
+  document.getElementById("sheet").innerHTML = `<h3>📂 Load game</h3>
+    <p class="tiny">Your game already loads itself every time you open it. Use this to restore a backup you saved to Files or Notes.</p>
+    <label class="act" style="display:block;text-align:center;width:100%;margin-top:8px;cursor:pointer;box-sizing:border-box">Choose backup file
+      <input type="file" id="ldFile" accept=".txt,.json,text/plain,application/json" style="display:none"></label>
+    <p class="tiny" style="margin-top:12px">Or paste a save code:</p>
+    <textarea id="ldCode" rows="4" style="width:100%;box-sizing:border-box;font-size:16px;background:#1a1612;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px"></textarea>
+    <button type="button" class="ghost" id="ldPaste" style="width:100%;margin-top:8px">Paste from clipboard</button>
+    <button type="button" class="act" id="ldApply" style="width:100%;margin-top:8px">Load pasted code</button>
+    <button type="button" class="ghost" id="ldClose" style="width:100%;margin-top:8px">Close</button>`;
+  const modal=document.getElementById("modal"); modal.classList.add("show"); modal.style.display="flex";
+  document.getElementById("ldFile").onchange=e=>{
+    const f=e.target.files&&e.target.files[0]; if(!f) return;
+    const rd=new FileReader(); rd.onload=()=>confirmLoadCode(rd.result); rd.onerror=()=>toast("Could not read that file."); rd.readAsText(f);
+  };
+  document.getElementById("ldPaste").onclick=async()=>{
+    try { const t=await navigator.clipboard.readText(); if(t){ document.getElementById("ldCode").value=t; confirmLoadCode(t); } else toast("Clipboard was empty."); }
+    catch(e){ toast("Phone blocked the paste. Hold in the box and choose Paste."); }
+  };
+  document.getElementById("ldApply").onclick=()=>confirmLoadCode(document.getElementById("ldCode").value);
+  document.getElementById("ldClose").onclick=closeModal;
+}
 function switchProfile(id){
   if(!SLOTS.list[id] || id===SLOTS.current) return;
   save();
@@ -10218,6 +10276,7 @@ function helpPage(id){
   `;
   if(id==="play") return `
     <p class="tiny">You do not fight. You hire, outfit, and send people. They come back with gold — or they do not.</p>
+    <p class="tiny"><b>💾 Save / 📂 Load</b> — the game saves itself as you play. Save also lets you back up a copy to Files or Notes; Load restores one (it asks before replacing your hall).</p>
     <h4>The loop</h4>
     <p class="tiny"><b>Tavern</b> — hire named faces. Price rises with level (1–5). Renown raises the cap and adds extra drinkers. Flawed through Gifted only.</p>
     <p class="tiny"><b>At the door</b> — every 7–14 days three faces knock. New halls start with Bank Lv1. <b>No Bank, no knock.</b> Take one at 65% of Tap price. The other two leave. Vault pays first; purse covers a shortfall. Roster icons at the top are class + level of everyone already in the hall.</p>
@@ -10388,6 +10447,7 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-10", t:"Save and Load buttons on the bottom bar. Save backs up a file to Files or Notes; Load restores a file or pasted code after a confirm."},
   {d:"2026-11-10", t:"Installable app: permanent home on GitHub Pages, Add to Home Screen icon, works offline, asks the phone to keep the save."},
   {d:"2026-11-10", t:"Tapping the build ring opens a Builds window: current build, the queue, days for each, and the day it all finishes."},
   {d:"2026-11-10", t:"Halting a build now asks first and shows the gold you get back. A helper on the build comes home."},
@@ -11522,6 +11582,8 @@ function dbgBumpUpgrade(){
 
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{tab=b.dataset.tab; render();});
 document.getElementById("btnRecruit").onclick=recruit;
+document.getElementById("btnSaveGame").onclick=openSaveSheet;
+document.getElementById("btnLoadGame").onclick=openLoadSheet;
 document.getElementById("btnLog").onclick=()=>{ tab="log"; render(); };
 document.getElementById("btnProf").onclick=openProfiles;
 const _rivBtn = document.getElementById("btnRival");
