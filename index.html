@@ -430,10 +430,8 @@
 <div id="report" style="display:none;z-index:40;position:fixed;left:8px;right:8px;top:16vh;background:#2a231c;border:2px solid var(--gold);border-radius:12px;overflow:hidden;"></div>
 <main id="view"></main>
 <footer>
-  <button class="ghost" id="btnSaveGame" style="flex:0 0 auto;padding-left:10px;padding-right:10px">💾 Save</button>
   <button class="ghost" id="btnRecruit">Tavern</button>
   <button class="act" id="btnDay">End Day</button>
-  <button class="ghost" id="btnLoadGame" style="flex:0 0 auto;padding-left:10px;padding-right:10px">📂 Load</button>
 </footer>
 <div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
 <div id="finds" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.78);align-items:center;justify-content:center;padding:16px;pointer-events:auto"><div id="findsBox" style="background:#2a231c;width:100%;max-width:520px;border-radius:16px;padding:16px;max-height:80vh;overflow:auto;border:2px solid var(--gold);pointer-events:auto"></div></div>
@@ -8636,6 +8634,7 @@ function openProfiles(){
   document.getElementById("sheet").innerHTML = `
     <h3>👤 Halls</h3>
     <p class="tiny">Each hall is its own save. Same phone, same link.</p>
+    <div style="display:flex;gap:8px;margin:8px 0"><button type="button" class="act" id="btnProfSave" style="flex:1">💾 Save game</button><button type="button" class="act" id="btnProfLoad" style="flex:1">📂 Load game</button></div>
     ${rows}
     ${roster}
     <h3 style="margin-top:14px">Save code</h3>
@@ -8654,6 +8653,8 @@ function openProfiles(){
   const box=document.getElementById("hallCode");
   if(box) box.value = hallCode();
   document.getElementById("btnCopyHall").onclick=copyHallCode;
+  document.getElementById("btnProfSave").onclick=openSaveSheet;
+  document.getElementById("btnProfLoad").onclick=openLoadSheet;
   const pasteBtn=document.getElementById("btnPasteHall");
   if(pasteBtn) pasteBtn.onclick=async()=>{
     try {
@@ -10276,7 +10277,7 @@ function helpPage(id){
   `;
   if(id==="play") return `
     <p class="tiny">You do not fight. You hire, outfit, and send people. They come back with gold — or they do not.</p>
-    <p class="tiny"><b>💾 Save / 📂 Load</b> — the game saves itself as you play. Save also lets you back up a copy to Files or Notes; Load restores one (it asks before replacing your hall).</p>
+    <p class="tiny"><b>💾 Save / 📂 Load</b> (under 👤) — the game saves itself as you play. Save also lets you back up a copy to Files or Notes; Load restores one (it asks before replacing your hall).</p>
     <h4>The loop</h4>
     <p class="tiny"><b>Tavern</b> — hire named faces. Price rises with level (1–5). Renown raises the cap and adds extra drinkers. Flawed through Gifted only.</p>
     <p class="tiny"><b>At the door</b> — every 7–14 days three faces knock. New halls start with Bank Lv1. <b>No Bank, no knock.</b> Take one at 65% of Tap price. The other two leave. Vault pays first; purse covers a shortfall. Roster icons at the top are class + level of everyone already in the hall.</p>
@@ -10447,6 +10448,7 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-10", t:"Save and Load moved off the bottom bar into the 👤 Halls menu. Tavern and End Day are full size again."},
   {d:"2026-11-10", t:"Save and Load buttons on the bottom bar. Save backs up a file to Files or Notes; Load restores a file or pasted code after a confirm."},
   {d:"2026-11-10", t:"Installable app: permanent home on GitHub Pages, Add to Home Screen icon, works offline, asks the phone to keep the save."},
   {d:"2026-11-10", t:"Tapping the build ring opens a Builds window: current build, the queue, days for each, and the day it all finishes."},
@@ -11582,8 +11584,6 @@ function dbgBumpUpgrade(){
 
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{tab=b.dataset.tab; render();});
 document.getElementById("btnRecruit").onclick=recruit;
-document.getElementById("btnSaveGame").onclick=openSaveSheet;
-document.getElementById("btnLoadGame").onclick=openLoadSheet;
 document.getElementById("btnLog").onclick=()=>{ tab="log"; render(); };
 document.getElementById("btnProf").onclick=openProfiles;
 const _rivBtn = document.getElementById("btnRival");
