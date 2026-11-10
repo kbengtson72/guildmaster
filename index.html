@@ -1327,7 +1327,7 @@ const FOODS = [
   {id:"wayloaf", n:"The Way-King's Loaf", icon:"👑", cost:20, heal:16, pwr:4, xp:3, r:"epic", unique:true, road:true, smithStar:true, desc:"+16 HP · +4 PWR · +3 XP. Only this stall."}
 ];
 const BUILDINGS = {
-  barracks: {n:"Barracks", desc:"+1 roster slot per level", base:40, max:5},
+  barracks: {n:"Barracks", desc:"+2 roster slots per level (Lv1 = 4)", base:40, max:5},
   armory: {n:"Outfitter", desc:"Better gear in the merchant's stock", base:50, max:4},
   infirmary: {n:"Infirmary", desc:"Faster recovery from wounds", base:35, max:4},
   yard: {n:"Training Grounds", desc:"All classes: +XP and a little power on jobs", base:45, max:4},
@@ -1340,7 +1340,7 @@ const BUILDINGS = {
   stables: {n:"Courier Stable", desc:"Jobs finish 1 day sooner per level (minimum 1 day).", base:50, max:4}
 };
 const BUILD_HELP = {
-  barracks: {how:"Each level adds one bed. Cap is 2 + Barracks level (you start with Barracks 1, so 3 people).", lv:["Lv1 — 3 roster slots (the hall you start with).","Lv2 — 4 slots.","Lv3 — 5 slots.","Lv4 — 6 slots.","Lv5 — 7 slots."]},
+  barracks: {how:"Each level adds two beds. Cap is 2 + 2 × Barracks level (you start with Barracks 1, so 4 people).", lv:["Lv1 — 4 roster slots (the hall you start with).","Lv2 — 6 slots.","Lv3 — 8 slots.","Lv4 — 10 slots.","Lv5 — 12 slots."]},
   armory: {how:"Called Outfitter. Merchant stocks a handful of items at or under its rarity cap: Lv1 junk+common, Lv2 uncommon, Lv3 rare, Lv4 epic. Gold artifacts never sit on the stall.", lv:["Lv1 — cheap iron and cloaks. You start here.","Lv2 — mid gear (bows, mail, better food).","Lv3 — heavy list prices start showing.","Lv4 — top shop gear. Named loot still only drops on jobs."]},
   infirmary: {how:"Wounded people heal 3 + 2×level HP each End Day. They stand up again at 75% HP. If a job would kill someone, each Infirmary level adds 10% chance they are dragged home at 1 HP instead (base 35%). Ready people still only mend 2 HP/day.", lv:["Lv0 — 3 HP/day if wounded, 35% last-breath save.","Lv1 — 5 HP/day, 45% save. You start here.","Lv2 — 7 HP/day, 55% save.","Lv3 — 9 HP/day, 65% save.","Lv4 — 11 HP/day, 75% save."]},
   grounds: {how:"Warrior school. Each level adds +1 power on jobs for every Warrior and +1 XP when a Warrior returns from a success.", lv:["Lv1 — +1 PWR and +1 XP for Warriors.","Lv2 — +2 / +2.","Lv3 — +3 / +3.","Lv4 — +4 / +4."]},
@@ -1389,7 +1389,7 @@ const S = {
 function rng(a,b){ return a + Math.floor(Math.random()*(b-a+1)); }
 function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function uid(){ return Math.random().toString(36).slice(2,9); }
-function cap(){ return 2 + S.buildings.barracks; }
+function cap(){ return 2 + 2*(S.buildings.barracks||0); }
 function bankLv(){ return S.buildings.bank||0; }
 function bankCap(){ return 150 * bankLv(); }
 function bankInterest(){
@@ -2732,7 +2732,7 @@ function openRescueOffer(guest, m, party, after, diff){
         </div></div>
       </div>
       <p>They will sit the Copper Hall if you have a bed. Epic, scaled to Diff ${diff||"?"}.</p>
-      ${full && next?`<p class="tiny">Barracks full. Next level is ${gp(next)} and opens one bed.</p>
+      ${full && next?`<p class="tiny">Barracks full. Next level is ${gp(next)} and opens two beds.</p>
         <button type="button" class="act" id="resBarracks" style="width:100%;margin-top:8px">Buy Barracks Lv ${(S.buildings.barracks||0)+1} · ${gp(next)}</button>`:""}
       ${full && !next?`<p class="tiny">Barracks are maxed. There is no bed left in the hall.</p>`:""}
       <button type="button" class="act" id="resJoin" ${full?"disabled":""} style="width:100%;margin-top:8px">${full?"Need a bed first":"Take them in"}</button>
@@ -10463,6 +10463,7 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-10", t:"Barracks hold 2 more per level: Lv1 4, Lv2 6, Lv3 8, Lv4 10, Lv5 12."},
   {d:"2026-11-10", t:"Contest text now shows the real stakes for your Renown standing. Refusing from the night report counts as a loss, same as the contest sheet."},
   {d:"2026-11-10", t:"App always loads the newest version when you have signal; the old cached copy is cleared."},
   {d:"2026-11-10", t:"Save and Load moved off the bottom bar into the 👤 Halls menu. Tavern and End Day are full size again."},
