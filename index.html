@@ -10692,6 +10692,11 @@ function unequip(pid, slot){
   save();
   openPerson(pid);
 }
+function offStatText(p){
+  const o = WEAPONS.find(x=>x.id===p.offhand) || {};
+  if(o.fam==="shield") return " — +"+(o.def||0)+" DEF";
+  return " — +"+Math.floor((o.atk||0)/2)+" ATK (half of +"+(o.atk||0)+")";
+}
 function gearLine(p){
   const w = WEAPONS.find(x=>x.id===p.weapon) || WEAPONS[0];
   const a = ARMORS.find(x=>x.id===p.armor) || ARMORS[0];
@@ -10699,7 +10704,7 @@ function gearLine(p){
   const slots = ["head","chest","arms","legs","feet","hands"];
   const slotBtns = slots.map(s=>p.slots&&p.slots[s]?`<button class="ghost" data-off="${s}" style="margin:2px">${s}</button>`:"").join("");
   return `<p><b>Weapon</b> ${p.weapon?itemNameHtml(w)+" — +"+w.atk+" ATK":"empty"} ${p.weapon?`<button class="ghost" data-off="weapon">to armory</button>`:""}</p>
-    <p><b>Offhand</b> ${p.offhand?itemNameHtml(catalog("weapon", p.offhand)):"empty"} ${p.offhand?`<button class="ghost" data-off="offhand">to armory</button>`:""}</p>
+    <p><b>Offhand</b> ${p.offhand?itemNameHtml(catalog("weapon", p.offhand))+offStatText(p):"empty"} ${p.offhand?`<button class="ghost" data-off="offhand">to armory</button>`:""}</p>
     <p><b>Armor</b> +${wornArmor(p).reduce((n,x)=>n+(x.def||0),0)} DEF ${slotBtns}</p>
     <p class="tiny">${ARMOR_SLOTS.map(s=>{ const it=catalog("armor",(p.slots||{})[s]); return s+": "+(it?itemNameHtml(it)+" +"+it.def:"empty"); }).join("<br>")}</p>
     <p><b>Food</b> ${f?foodBlurb(f)+(p.foodEaten?" · used, bonus waits":""):"empty slot"}</p>
@@ -11130,6 +11135,7 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-11", t:"The character sheet shows the offhand's stats: half attack for a weapon, defense for a shield."},
   {d:"2026-11-11", t:"A face on a fever lock gets a 🤒 countdown ring, no longer counts as ready in the header, and the Seer box names anyone held back and why."},
   {d:"2026-11-11", t:"The Continue button on a road result can no longer stick. A leftover shop button was stealing the tap, and a hall note could cover it. Closing the app mid-road now brings the result back, or clears it so you can go on."},
   {d:"2026-11-11", t:"Hall events show up again even if you closed the app, a find was waiting, or the rival sealed a writ the same day. A note you have not seen comes back the next day instead of vanishing. 🐞 Debug and Help show the last hall event and any note still pending."},
