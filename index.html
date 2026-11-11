@@ -8156,6 +8156,7 @@ function lootLabel(it){
   const name = itemNameHtml(it);
   if(it.kind==="loot") return name+" · salvage · sell "+gp(sellPrice(it));
   if(it.kind==="food") return foodBlurb(catalog("food", it.id)||it)+" · sell "+gp(sellPrice(it));
+  if(isShield(it)) return name+" · offhand only · sell "+gp(sellPrice(it));
   if(it.atk) return name+" · weapon +"+it.atk+" ATK · sell "+gp(sellPrice(it));
   if(it.kind==="armor" || it.slot) return name+" · armor +"+(it.def||0)+" DEF · sell "+gp(sellPrice(it));
   return name+" · sell "+gp(sellPrice(it));
@@ -11162,6 +11163,7 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-11", t:"Loot lines for shields no longer claim a weapon attack bonus. A shield only adds defense, from the offhand."},
   {d:"2026-11-11", t:"Offhand weapons now add an exact half of their attack instead of rounding down, so a +1 offhand adds +0.5."},
   {d:"2026-11-11", t:"The Job power breakdown splits attack and armor into its parts: class base, level, weapon, offhand, traits, role, and each defense source at 70%."},
   {d:"2026-11-11", t:"The character sheet shows the offhand's stats: half attack for a weapon, defense for a shield."},
