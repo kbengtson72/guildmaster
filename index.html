@@ -4307,6 +4307,31 @@ function fmtPwrPart(n, signed){
   if(!signed && !neg) return body;
   return (neg?"−":"+")+body;
 }
+function bodyParts(p, who){
+  expandGear(); ensureSlots(p);
+  const out=[]; const add=(l,n)=>{ if(n) out.push({label:who+l, n}); };
+  const w = WEAPONS.find(x=>x.id===p.weapon) || WEAPONS[0];
+  const off = p.offhand ? (WEAPONS.find(x=>x.id===p.offhand)||{}) : {};
+  const shield = off.fam==="shield";
+  const r = roleDef(p); const em = emult(p);
+  add("Base attack ("+p.cls+")", CLASSES[p.cls].atk);
+  add("Level "+p.lv+" attack", p.lv);
+  add("Weapon ("+(p.weapon?(w.n||"weapon"):"bare hands")+")", w.atk);
+  if(!shield) add("Offhand ("+(off.n||"offhand")+", half)", Math.floor((off.atk||0)/2));
+  if(hasTrait(p,"Brave")) add((em>1?"Epic ":"")+"Brave", 2*em);
+  if(hasTrait(p,"Craven")) add("Craven", -2);
+  if(r&&r.atk) add(r.n+" role attack", r.atk);
+  const k=0.7, D=" DEF ×0.7";
+  add("Base defense ("+(CLASSES[p.cls].def)+D+")", CLASSES[p.cls].def*k);
+  add("Level defense ("+Math.floor(p.lv/2)+D+")", Math.floor(p.lv/2)*k);
+  const ad = wornArmor(p).reduce((n,a)=>n+(a.def||0),0);
+  add("Armor ("+ad+D+")", ad*k);
+  if(shield) add("Shield ("+(off.n||"shield")+", "+(off.def||0)+D+")", (off.def||0)*k);
+  if(hasTrait(p,"Tough")) add((em>1?"Epic ":"")+"Tough ("+(2*em)+D+")", 2*em*k);
+  if(hasTrait(p,"Fragile")) add("Fragile (−2"+D+")", -2*k);
+  if(r&&r.def) add(r.n+" role defense ("+r.def+D+")", r.def*k);
+  return out;
+}
 function power(party, m, detail){
   const parts = [];
   let pwr = 0;
@@ -4317,7 +4342,9 @@ function power(party, m, detail){
     const epic = isEpic(p);
     const body = atkOf(p) + defOf(p)*0.7;
     pwr += body;
-    parts.push({label: who+"Attack and armor", n: body, base:true});
+    const bp = bodyParts(p, who);
+    if(Math.abs(bp.reduce((n,x)=>n+x.n,0)-body)<1e-6 && bp.length){ bp[0].base=true; bp.forEach(x=>parts.push(x)); }
+    else parts.push({label: who+"Attack and armor", n: body, base:true});
     if(m && m.tags && m.tags.includes(p.cls)) pwr += pwrPart(parts, who+"Favored class ("+p.cls+")", 4);
     if(hasTrait(p,"Night Owl") && isDarkMission(m)){
       if(p.cls==="Cleric") pwr += pwrPart(parts, who+(epic?"Epic ":"")+"Night Owl Cleric on Dark", epic?8:4);
@@ -4392,7 +4419,7 @@ function paintJobPowerSheet(p, m, onBack){
   const needExact = Math.abs(exact - d.shown) >= 1e-9;
   sheet.classList.add("tall");
   sheet.innerHTML = `<h3>Job power</h3>
-    <p class="tiny">${escHtml((p.name||"This face"))} on ${escHtml(m.t||"this job")}. Sheet PWR is ${sheetN}. That number also counts a flat bonus for level, health, and gift. Job power starts from attack and armor on this card, then adds what this job does.</p>
+    <p class="tiny">${escHtml((p.name||"This face"))} on ${escHtml(m.t||"this job")}. Sheet PWR is ${sheetN}. That number also counts a flat bonus for level, health, and gift. Job power starts from attack plus 70% of defense, then adds what this job does.</p>
     <div class="job-pwr-rows">${rows||`<div class="job-pwr-row"><span>Nothing to count</span><span>0</span></div>`}
       ${needExact?`<div class="job-pwr-row"><span>Exact total</span><span>${fmtPwrPart(exact,false)}</span></div>`:""}
       <div class="job-pwr-row total"><span>Job power</span><span>${d.shown}</span></div>
@@ -11135,6 +11162,7 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-11", t:"The Job power breakdown splits attack and armor into its parts: class base, level, weapon, offhand, traits, role, and each defense source at 70%."},
   {d:"2026-11-11", t:"The character sheet shows the offhand's stats: half attack for a weapon, defense for a shield."},
   {d:"2026-11-11", t:"A face on a fever lock gets a 🤒 countdown ring, no longer counts as ready in the header, and the Seer box names anyone held back and why."},
   {d:"2026-11-11", t:"The Continue button on a road result can no longer stick. A leftover shop button was stealing the tap, and a hall note could cover it. Closing the app mid-road now brings the result back, or clears it so you can go on."},
