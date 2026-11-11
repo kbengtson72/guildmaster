@@ -5719,6 +5719,7 @@ function rivalPlay(){
   }
 }
 function tickRival(){
+  try { healContest(); } catch(e){}
   try { rivalPlay(); } catch(e){}
   const r = ensureRival();
   if(S.contestUntil && S.day>=S.contestUntil){
@@ -8624,7 +8625,15 @@ function snapshot(){
     writ:S.writ||null, writWins:S.writWins||0, writFails:S.writFails||0, writChoice:S.writChoice||null,
     epicWins:S.epicWins||0,
     nextSeek:S.nextSeek||null, seekers:S.seekers||null, quitAsk:S.quitAsk||null, restlessAsk:S.restlessAsk||null, raise:S.raise||null,
-    seasonAsk:S.seasonAsk||null, contestAsk:S.contestAsk||null, contestDue:S.contestDue||null, contestWarn:S.contestWarn||null, contestWarned:!!S.contestWarned, hallEvent:S.hallEvent||null, season:S.season||"spring", seasonLeft:S.seasonLeft
+    seasonAsk:S.seasonAsk||null, contestAsk:S.contestAsk||null, contestDue:S.contestDue||null, contestWarn:S.contestWarn||null, contestWarned:!!S.contestWarned, hallEvent:S.hallEvent||null, season:S.season||"spring", seasonLeft:S.seasonLeft,
+    contestUntil:S.contestUntil||null, contestParty:S.contestParty||null, contestTheir:S.contestTheir!=null?S.contestTheir:null,
+    rival:S.rival||null, rivalWritAsk:S.rivalWritAsk||null, raiseQ:S.raiseQ||[], loan:S.loan||0,
+    plant:!!S.plant, shade:!!S.shade, grain:!!S.grain, firewood:!!S.firewood,
+    cookUntil:S.cookUntil||0, glutUntil:S.glutUntil||0, tapDry:S.tapDry||0, roofTax:S.roofTax||0,
+    nextFeat:S.nextFeat||null, featItem:S.featItem||null, featAsk:S.featAsk||null, featBadge:!!S.featBadge,
+    bloodAsk:S.bloodAsk||null, saintAsk:S.saintAsk||null, graveAsk:S.graveAsk||null,
+    bonusInterest:S.bonusInterest||0, doubleWrit:!!S.doubleWrit, dawnSing:S.dawnSing||null,
+    poached:S.poached||null, gameOver:!!S.gameOver, lastHero:S.lastHero||null, forceSeek:!!S.forceSeek, writPing:!!S.writPing
   }));
 }
 function applySnap(d){
@@ -8633,6 +8642,14 @@ function applySnap(d){
   if(d.season) S.season=d.season;
   if(d.seasonLeft!=null) S.seasonLeft=d.seasonLeft;
   S.seasonAsk=d.seasonAsk||null; S.contestAsk=d.contestAsk||null; S.contestDue=d.contestDue||null; S.contestWarn=d.contestWarn||null; S.contestWarned=!!d.contestWarned; S.hallEvent=d.hallEvent||null;
+  S.contestUntil=d.contestUntil||null; S.contestParty=d.contestParty||null; S.contestTheir=d.contestTheir!=null?d.contestTheir:null;
+  S.rival=d.rival||null; S.rivalWritAsk=d.rivalWritAsk||null; S.raiseQ=d.raiseQ||[]; S.loan=d.loan||0;
+  S.plant=!!d.plant; S.shade=!!d.shade; S.grain=!!d.grain; S.firewood=!!d.firewood;
+  S.cookUntil=d.cookUntil||0; S.glutUntil=d.glutUntil||0; S.tapDry=d.tapDry||0; S.roofTax=d.roofTax||0;
+  if(d.nextFeat!=null) S.nextFeat=d.nextFeat; S.featItem=d.featItem||null; S.featAsk=d.featAsk||null; S.featBadge=!!d.featBadge;
+  S.bloodAsk=d.bloodAsk||null; S.saintAsk=d.saintAsk||null; S.graveAsk=d.graveAsk||null;
+  S.bonusInterest=d.bonusInterest||0; S.doubleWrit=!!d.doubleWrit; if(d.dawnSing!=null) S.dawnSing=d.dawnSing;
+  S.poached=d.poached||null; S.gameOver=!!d.gameOver; if(d.lastHero!=null) S.lastHero=d.lastHero; S.forceSeek=!!d.forceSeek; S.writPing=!!d.writPing;
   S.buildings=Object.assign({barracks:1,armory:1,infirmary:1,grounds:0,alley:0,sanctum:0,chapel:0,tavern:1,bank:0,racks:0,board:0,bell:0,briefs:0,seer:0,stables:0}, d.buildings||{});
   S.nextSeek=d.nextSeek||null; S.seekers=d.seekers||null; S.quitAsk=d.quitAsk||null; S.restlessAsk=d.restlessAsk||null; S.raise=d.raise||null;
   S.people=d.people||[]; S.missions=d.missions||[]; S.shop=d.shop||[]; S.vault=d.vault||[];
@@ -8652,8 +8669,31 @@ function applySnap(d){
     }
   } catch(e){}
   try { retuneEpic(); } catch(e){}
+  try { fillFromFullSave(); } catch(e){}
+  try { healContest(); } catch(e){}
   try { healHallEvent(true); } catch(e){}
   return true;
+}
+function fillFromFullSave(){
+  const bags = [];
+  try { if(_idbMem && _idbMem["guildmaster_v1"]) bags.push(JSON.parse(_idbMem["guildmaster_v1"])); } catch(e){}
+  try { const raw=storeGet("guildmaster_v1"); if(raw) bags.push(JSON.parse(raw)); } catch(e){}
+  bags.forEach(src=>{
+    if(!src || typeof src!=="object") return;
+    if((src.day||0)!==(S.day||0)) return;
+    const ids=(S.people||[]).map(p=>p.id).filter(Boolean).sort().join(",");
+    const oids=(src.people||[]).map(p=>p.id).filter(Boolean).sort().join(",");
+    if(ids && oids && ids!==oids) return;
+    function missing(v){
+      return v==null || v==="" || (Array.isArray(v)&&!v.length);
+    }
+    ["contestUntil","contestParty","contestTheir","rival","rivalWritAsk","raiseQ","featItem","featAsk","bloodAsk","saintAsk","graveAsk","poached","dawnSing","nextFeat","cookUntil","glutUntil","tapDry","roofTax","loan","lastHero"].forEach(k=>{
+      if(missing(S[k]) && src[k]!=null && !missing(src[k])) S[k]=src[k];
+    });
+    ["plant","shade","grain","firewood","doubleWrit","featBadge","gameOver","forceSeek","writPing"].forEach(k=>{
+      if(!S[k] && src[k]) S[k]=src[k];
+    });
+  });
 }
 function hallLived(d){
   if(!d) return false;
@@ -8819,8 +8859,8 @@ function openProfiles(){
     ${alive.map(p=>`<div class="card cls-${CLASSES[p.cls].tag}${p.hero?" hero":""}${isFlawedOnly(p)?" flawed":isElite(p)?" elite":isGifted(p)?" gifted":""}" data-lookprof="${p.id}" style="margin:6px 0">
       <div class="row">
         <div class="who">${face(p)}<div class="names">${nameHtml(p)}${mottoHtml(p)}
-        <div class="tiny">PWR ${pwrOf(p)} · ${p.status}${p.status==="away"&&p.mission?" · "+p.mission:""}</div></div></div>
-        <span class="tag">${p.status}</span>
+        <div class="tiny">PWR ${pwrOf(p)} · ${awayReason(p)}${p.status==="away"&&p.mission?" · "+p.mission:""}</div></div></div>
+        <span class="tag">${awayReason(p)}</span>
       </div>
       <div class="tiny" style="margin-top:4px">${traitText(p)||"No traits"}</div>
     </div>`).join("")||`<p class="muted">No one on the books.</p>`}
@@ -8989,17 +9029,98 @@ let shopCat = "weapon";
 
 
 
+function awayReason(p){
+  if(!p) return "";
+  if(p.status!=="away") return p.status||"";
+  if(p.mission==="contest") return "contest";
+  if(p.mission==="build") return "build";
+  if(p.homeWhy==="levy") return "levy";
+  if(p.homeWhy==="watch") return "watch";
+  if(p.homeWhy==="kin" || (p.kinUntil && S.day < p.kinUntil)) return "kin";
+  if(p.graveWith) return "grave";
+  return "away";
+}
+function awayLeft(p){
+  if(!p || p.status!=="away") return 0;
+  if(p.mission==="contest" && S.contestUntil>S.day) return Math.max(1, S.contestUntil-S.day);
+  if(p.kinUntil && S.day < p.kinUntil) return Math.max(1, p.kinUntil-S.day);
+  if(p.mission==="build" && S.raise) return Math.max(1, S.raise.left||p.daysOut||1);
+  if(p.graveWith) return 0;
+  return Math.max(0, +p.daysOut||0);
+}
+function awayOutLine(p){
+  if(!p || p.status!=="away") return "";
+  const why = awayReason(p);
+  if(why==="grave") return " · OUT: grave · with the body";
+  const label = (why==="away" && p.mission) ? p.mission : why;
+  const left = awayLeft(p);
+  if(label && left) return " · OUT: "+label+" · "+left+"d left";
+  if(label) return " · OUT: "+label;
+  return "";
+}
+function healContest(){
+  const away = (S.people||[]).filter(p=>p && p.status==="away" && p.mission==="contest");
+  if(!away.length) return;
+  const ids = away.map(p=>p.id);
+  const party = (S.contestParty||[]).filter(id=>ids.indexOf(id)>=0);
+  ids.forEach(id=>{ if(party.indexOf(id)<0) party.push(id); });
+  S.contestParty = party;
+  if(!S.contestUntil){
+    const left = Math.max(1, ...away.map(p=>Math.max(1, +p.daysOut||1)));
+    S.contestUntil = S.day + left;
+  }
+  if(S.contestUntil>S.day){
+    const left = Math.max(1, S.contestUntil - S.day);
+    away.forEach(p=>{ p.daysOut = left; });
+  }
+}
 function contestJob(){
+  try { healContest(); } catch(e){}
   if(!S.contestUntil || S.day>=S.contestUntil || !(S.contestParty||[]).length) return null;
   const left = Math.max(1, S.contestUntil - S.day);
+  const rname = (S.rival && S.rival.name) || "";
   return {
     id:"contest",
-    t:"Guild contest",
+    t:"Contest",
     party:S.contestParty.slice(),
     left,
     span:4,
-    epic:false
+    epic:false,
+    contest:true,
+    rival:rname
   };
+}
+function openContestStatus(){
+  try { healContest(); } catch(e){}
+  const job = contestJob();
+  const r = S.rival || null;
+  const sheet = document.getElementById("sheet");
+  const modal = document.getElementById("modal");
+  if(!sheet||!modal){
+    if(typeof openRivalHall==="function") openRivalHall();
+    return;
+  }
+  if(!job){
+    if(typeof openRivalHall==="function") return openRivalHall();
+    return;
+  }
+  const names = (job.party||[]).map(id=>{
+    const p=(S.people||[]).find(x=>x.id===id);
+    return p?p.name:"";
+  }).filter(Boolean);
+  let who = names.join(", ");
+  if(names.length===2) who = names[0]+" and "+names[1];
+  const hall = (r && r.name) || "the other hall";
+  sheet.innerHTML = `<h3>Contest · ${hall}</h3>
+    <p>${who||"Your pair"} ${names.length===1?"is":"are"} out for ${job.left} more day${job.left===1?"":"s"}.</p>
+    <p class="tiny">They return when the contest is scored. Them ${r? (r.renown||0) : "?"} · you ${S.renown||0}.</p>
+    <button type="button" class="act" id="conStatHall" style="width:100%;margin-top:10px">Other hall</button>
+    <button type="button" class="ghost" id="conStatClose" style="width:100%;margin-top:6px">Close</button>`;
+  modal.classList.add("show"); modal.style.display="flex";
+  const bh=document.getElementById("conStatHall");
+  if(bh) bh.onclick=()=>{ if(typeof openRivalHall==="function") openRivalHall(); };
+  const bc=document.getElementById("conStatClose");
+  if(bc) bc.onclick=()=>{ modal.classList.remove("show"); modal.style.display="none"; };
 }
 function fieldJobs(){
   const jobs = (S.missions||[]).filter(m=>m.party && m.party.length);
@@ -9029,26 +9150,36 @@ function paintOathChips(){
   });
 }
 function eventAwayChips(){
-  const icons = {kin:"🏠", levy:"⚖️", watch:"🛡️"};
-  const spans = {kin:4, levy:5, watch:2};
-  return (S.people||[]).filter(p=>p && p.status==="away" && p.kinUntil && S.day < p.kinUntil && !p.mission).map(p=>{
-    const left = Math.max(1, p.kinUntil - S.day);
-    const span = Math.max(left, spans[p.homeWhy]||left);
-    const pct = Math.max(0, Math.min(1, (span-left)/span));
+  const covered = {};
+  (typeof fieldJobs==="function"?fieldJobs():[]).forEach(m=>(m.party||[]).forEach(id=>covered[id]=1));
+  const icons = {kin:"🏠", levy:"⚖️", watch:"🛡️", build:"🔨", grave:"🪦", contest:"🏴", away:"🚶"};
+  const spans = {kin:4, levy:5, watch:2, build:1, contest:4};
+  const labels = {kin:"Home", levy:"Levy", watch:"Watch", build:"Build", grave:"Grave", contest:"Contest", away:"Away"};
+  return (S.people||[]).filter(p=>p && p.status==="away" && !covered[p.id]).map(p=>{
+    const why = p.mission==="contest"?"contest":p.mission==="build"?"build":p.graveWith?"grave":(p.homeWhy||(p.mission?"away":"away"));
+    let left = awayLeft(p);
+    let span = Math.max(left||1, spans[why]||left||1);
+    if(why==="build" && S.raise && S.raise.span) span = Math.max(span, S.raise.span);
+    if(why==="grave"){ left = 0; span = 1; }
+    if(why!=="grave" && left<1) left = Math.max(1, +p.daysOut||1);
+    const pct = why==="grave" ? 0 : Math.max(0, Math.min(1, (span-left)/span));
     const dash = (94.2*(1-pct)).toFixed(1);
-    const icon = icons[p.homeWhy]||"🚶";
-    const why = p.homeWhy==="levy"?"Levy":p.homeWhy==="watch"?"Watch":"Home";
+    const icon = icons[why]||"🚶";
     const nm = (p.name||"").split(" ")[0];
+    const label = (why==="kin"||why==="levy"||why==="watch") ? nm : (labels[why]||"Away");
+    const title = why==="grave" ? (nm+" · Grave · with the body") : (nm+" · "+(labels[why]||why)+(left?" · "+left+"d":""));
+    const attr = why==="contest" ? 'data-contest="1"' : 'data-awayid="'+p.id+'"';
+    const mark = why==="grave" ? "" : String(left);
     return `<div class="meter">
-      <button type="button" class="meterChip on fieldChip" title="${nm} · ${why} · ${left}d">
+      <button type="button" class="meterChip on fieldChip" ${attr} title="${title}">
         <svg viewBox="0 0 36 36" aria-hidden="true">
           <circle class="rg-bg" cx="18" cy="18" r="15"></circle>
           <circle class="rg-fg" cx="18" cy="18" r="15" style="stroke-dashoffset:${dash}"></circle>
         </svg>
         <span class="fieldIco">${icon}</span>
-        <span class="fieldMark">${left}</span>
+        ${mark?`<span class="fieldMark">${mark}</span>`:""}
       </button>
-      <div class="meterLbl">${nm}</div>
+      <div class="meterLbl">${label}</div>
     </div>`;
   }).join("");
 }
@@ -9061,10 +9192,12 @@ function paintFieldChips(){
     const span = Math.max(1, m.span||left||1);
     const pct = Math.max(0, Math.min(1, (span-left)/span));
     const dash = (94.2*(1-pct)).toFixed(1);
-    const icon = (typeof MISSION_ICON==="object" && MISSION_ICON[m.t]) || "⚔";
+    const icon = m.contest ? "🏴" : ((typeof MISSION_ICON==="object" && MISSION_ICON[m.t]) || "⚔");
     const name = m.t || "Quest";
+    const go = m.contest ? 'data-contest="1"' : 'data-gotoboard="1"';
+    const title = m.contest && m.rival ? (name+" · "+m.rival+" · "+left+"d") : (name+" · "+left+"d");
     return `<div class="meter">
-      <button type="button" class="meterChip on fieldChip" data-gotoboard="1" title="${name} · ${left}d">
+      <button type="button" class="meterChip on fieldChip" ${go} title="${title}">
         <svg viewBox="0 0 36 36" aria-hidden="true">
           <circle class="rg-bg" cx="18" cy="18" r="15"></circle>
           <circle class="rg-fg" cx="18" cy="18" r="15" style="stroke-dashoffset:${dash}"></circle>
@@ -9076,6 +9209,8 @@ function paintFieldChips(){
     </div>`;
   }).join("") + eventAwayChips();
   box.querySelectorAll("[data-gotoboard]").forEach(b=>b.onclick=()=>{ tab="board"; render(); });
+  box.querySelectorAll("[data-contest]").forEach(b=>b.onclick=()=>openContestStatus());
+  box.querySelectorAll("[data-awayid]").forEach(b=>b.onclick=()=>openPerson(b.dataset.awayid));
 }
 
 
@@ -9503,10 +9638,10 @@ function personLine(p){
       <div class="who">${face(p)}<div class="names">${nameHtml(p)}${mottoHtml(p)}
         <div class="tiny">${roleLine(p)} · ${specLine(p)} · ${quirkLine(p)}</div>
         <div class="tiny">${traitText(p)}</div></div></div>
-      <span class="tag ${c.tag}">${p.status}</span>
+      <span class="tag ${c.tag}">${awayReason(p)}</span>
     </div>
-    <div class="tiny">${w} / ${a}${foodOf(p)?" · "+(foodOf(p).icon||"🍖")+" "+itemNameHtml(foodOf(p))+(p.foodEaten?" (used)":""):""}${p.status==="away" && p.mission?` · OUT: ${p.mission} · ${p.daysOut}d left`:""}</div>
-    ${p.status==="away" && p.daysOut!=null?`<div class="cdbar"><i style="width:${Math.max(8, 100*(p.daysOut)/Math.max(1,(S.missions.find(mm=>mm.party&&mm.party.includes(p.id))||{span:p.daysOut,left:p.daysOut}).span||p.daysOut))}%"></i></div>`:""}
+    <div class="tiny">${w} / ${a}${foodOf(p)?" · "+(foodOf(p).icon||"🍖")+" "+itemNameHtml(foodOf(p))+(p.foodEaten?" (used)":""):""}${awayOutLine(p)}</div>
+    ${p.status==="away" && awayLeft(p)>0?`<div class="cdbar"><i style="width:${Math.max(8, 100*(awayLeft(p))/Math.max(1,(S.missions.find(mm=>mm.party&&mm.party.includes(p.id))||{span:p.daysOut,left:p.daysOut}).span||awayLeft(p)))}%"></i></div>`:""}
     ${hpBar(p)}${xpBar(p)}
     ${(p.idleDays||0)>=7 && canBecomeRestless(p)?`<div class="tiny" style="color:#e0a050;font-weight:700">becoming restless · ${p.idleDays}d on the bench</div>`:""}
     <div class="tiny">PWR ${pwrOf(p)} · HP ${p.hp}/${p.maxhp} · ATK ${atkOf(p)} DEF ${defOf(p)} · XP ${p.xp}/${xpNeed(p)}${isFlawedOnly(p)?" (flawed)":isElite(p)?" (elite)":isGifted(p)?" (gifted)":""} · Loyalty ${loyOf(p)}</div>
@@ -10573,7 +10708,7 @@ function helpGearBody(){
   }
   if(id==="hall") return `
     <p class="tiny">Upgrade on the Hall tab. Cost is base × next level. Pay now; it raises for 5 days × the level you are buying (Lv1 = 5d, Lv2 = 10d, Lv3 = 15d, Lv4 = 20d). You can queue the next raise. Tap the build ring up top to see the current build, the queue, and when each finishes. Halting a raise asks first, then returns half the cost. A finished job pays Renown equal to its difficulty. Charming +1, Sour −1. Charter is gone. Renown is prestige, not coin.</p>
-    <p class="tiny"><b>The other hall</b> starts with two faces, traits, quirks, and a specialty. No food, no kit. They do not run a board. When you finish a job they gain Renown equal to its difficulty and roll their own rewards. They pay wages, buy Barracks, and hire from the Tap. Contest uses their two best faces even if one is out.</p>
+    <p class="tiny"><b>The other hall</b> starts with two faces, traits, quirks, and a specialty. No food, no kit. They do not run a board. When you finish a job they gain Renown equal to its difficulty and roll their own rewards. They pay wages, buy Barracks, and hire from the Tap. Contest uses their two best faces even if one is out. While your pair is out, a Contest ring sits with the quest rings and counts the days left. Tap it to see who went and to open the other hall.</p>
     <p class="tiny">Sealed Briefs: each level adds 2 jobs on the board, and you can pay to replace one open job. Renown still raises hire level and extra faces, and sets the door band.</p>
     <h4>🏦 Bank and the door</h4>
     <p class="tiny">Park gold in the vault. Wages do not touch parked coin. Dawn interest is small. The real reason to build it: the door only knocks if a Bank stands.</p>
@@ -10619,7 +10754,7 @@ function helpGearBody(){
     <h4>The board</h4>
     <p class="tiny">Usually 4 open jobs (up to 6 later). After you send someone, the hall tries to keep at least one job your people can actually walk (comfort cap from level, day, and Renown). Harder work still appears; it should not be the whole board.</p>
     <p class="tiny">If Assign party says a card has left the board, the list was stale. You can refresh it, or post a fresh contract of about the same difficulty in that slot. That does not redraw a quest that is still live.</p>
-    <p class="tiny">A green ⚔ line in the header and on the night report is how many parties are still out.</p>
+    <p class="tiny">A green ⚔ line in the header and on the night report is how many parties are still out. Quest, contest, kin, levy, watch, and build absences each get a countdown ring in the upper left. Tap a quest ring to open the board, or the Contest ring for the other hall.</p>
     <h4>✉️ Break the seal</h4>
     <p class="tiny">That button is <b>Sealed Briefs</b> on the Hall. Pay gold to throw out one <b>open</b> job and draw a different contract in that slot. You cannot seal-break a job that already has a party.</p>
     <p class="tiny">Cost is 24g minus 4g per Briefs level, minimum 8g. Right now: ${seal}. The redraw is a random unused title from the pool — it can be harder, easier, or Dark.</p>
@@ -10644,7 +10779,7 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
-  {d:"2026-11-10", t:"A road or quest find no longer disappears if someone already wears the same kind of gear. The keep-or-sell window always opens for it, hall events wait until you finish, and leftover finds come back until you take or sell them."},
+  {d:"2026-11-10", t:"The guild contest keeps its countdown ring after you reopen the app, and the pair still comes home. The Contest ring sits with the quest rings; tap it for who's out and the other hall. The away badge now names the reason (contest, levy, kin, watch, build, grave)."},
   {d:"2026-11-10", t:"Assign party failed on some writ-posted quests because they had no id. Those briefs work now, and a leftover card offers a same-difficulty replacement instead of a toast."},
   {d:"2026-11-10", t:"Hall events can no longer stick unseen and block every new one. The night report no longer covers the event, a leftover note is shown again or dropped after two days, and an old save with a stuck event starts getting them again."},
   {d:"2026-11-10", t:"Rival Barracks work like yours: 2 bunks per level up to 12, same cost, same build days. They start building when one bed is left."},
