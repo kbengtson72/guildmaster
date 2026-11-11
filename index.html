@@ -3162,7 +3162,7 @@ function roadCombatLoot(diff){
   if(!it) return null;
   const kind = WEAPONS.some(x=>x.id===it.id) ? "weapon" : "armor";
   if(!S.pendingLoot) S.pendingLoot = [];
-  S.pendingLoot.push({uid:uid(), kind, id:it.id, n:it.n, atk:it.atk||0, def:it.def||0, cost:it.cost||0, r:it.r||"common"});
+  S.pendingLoot.push({uid:uid(), kind, id:it.id, n:it.n, atk:it.atk||0, def:it.def||0, cost:it.cost||0, r:it.r||"common", from:"the road"});
   return it;
 }
 function roadLootPick(diff){
@@ -3175,7 +3175,7 @@ function grantRoadLoot(it){
   if(!it) return null;
   const kind = WEAPONS.some(x=>x.id===it.id) ? "weapon" : "armor";
   if(!S.pendingLoot) S.pendingLoot = [];
-  S.pendingLoot.push({uid:uid(), kind, id:it.id, n:it.n, atk:it.atk||0, def:it.def||0, cost:it.cost||0, r:it.r||"common"});
+  S.pendingLoot.push({uid:uid(), kind, id:it.id, n:it.n, atk:it.atk||0, def:it.def||0, cost:it.cost||0, r:it.r||"common", from:"the road"});
   return it;
 }
 function roadSeerRoll(enc, party, m){
@@ -4775,7 +4775,7 @@ function showQuestResults(){
     <p>${r.story}</p>
     <p class="tiny">${r.line}</p>
   </div>`).join("")+`<button type="button" class="act" id="qresDone" style="width:100%;margin-top:8px">Continue</button>`;
-  document.getElementById("qresDone").onclick=()=>{ wrap.style.display="none"; showFindsPopup(); };
+  document.getElementById("qresDone").onclick=()=>{ wrap.style.display="none"; if(!showFindsPopup()) finishFinds(); };
   return true;
 }
 function resolveMission(m){
@@ -5240,20 +5240,61 @@ function itemWorn(it){
   if(!it || !it.id) return false;
   return (S.people||[]).some(p=>p && p.status!=="dead" && (p.weapon===it.id || p.offhand===it.id || p.armor===it.id || p.food===it.id || (p.slots && Object.values(p.slots).indexOf(it.id)>=0)));
 }
-function afterFind(){
-  if((S.pendingLoot||[]).filter(it=>!itemWorn(it)).length){ showFindsPopup(); return; }
+function findsUiLocked(){
   const wrap = document.getElementById("finds");
-  if(wrap) wrap.style.display="none";
-  if(S.hallEvent && S.hallEvent.id){ openHallEvent(); return; }
-  closeModal();
+  if(!wrap) return false;
+  const on = wrap.style.display==="flex" || (wrap.style.display!=="none" && wrap.offsetParent!==null && getComputedStyle(wrap).display!=="none");
+  if(!on) return false;
+  return !!(document.getElementById("roadDone") || document.getElementById("encA") || document.getElementById("encB") || document.getElementById("encSkip") || document.getElementById("qresDone") || document.getElementById("eqFindCancel") || document.getElementById("findsDone"));
+}
+function stashPendingQuiet(){
+  const left = (S.pendingLoot||[]).slice();
+  for(const it of left){
+    if(typeof vaultFull==="function" && vaultFull()) break;
+    const ix = (S.pendingLoot||[]).findIndex(x=>x.uid===it.uid);
+    if(ix<0) continue;
+    const piece = S.pendingLoot[ix];
+    try{
+      if(piece.kind==="loot") stashRaw(piece);
+      else if(piece.kind==="food") stashPush("food", piece.id) || stashRaw(Object.assign({}, piece, {kind:"food"}));
+      else stashPush(piece.kind, piece.id);
+      S.pendingLoot.splice(ix,1);
+    }catch(e){ break; }
+  }
+}
+function finishFinds(){
+  const wrap = document.getElementById("finds");
+  if(wrap && !document.getElementById("roadDone") && !document.getElementById("encA") && !document.getElementById("qresDone")) wrap.style.display="none";
+  if(finishFinds._busy) return;
+  finishFinds._busy = true;
+  try { nextDoorQueue(); }
+  finally { finishFinds._busy = false; }
+}
+function resumePendingFinds(){
+  try{
+    if(typeof ENC_BUSY!=="undefined" && ENC_BUSY) return;
+    if(findsUiLocked()) return;
+    if((S._questResults||[]).length){ showQuestResults(); return; }
+    if((S.pendingLoot||[]).length) showFindsPopup();
+  }catch(e){}
+}
+function afterFind(){
+  if((S.pendingLoot||[]).length){ showFindsPopup(); return; }
+  finishFinds();
 }
 function showFindsPopup(){
+  const list = S.pendingLoot||[];
+  if(!list.length){
+    const wrap = document.getElementById("finds");
+    if(wrap && !document.getElementById("roadDone") && !document.getElementById("encA") && !document.getElementById("qresDone")) wrap.style.display="none";
+    return false;
+  }
   const box = document.getElementById("findsBox");
   const wrap = document.getElementById("finds");
-  if(!box || !wrap) return;
-  if(S.pendingLoot) S.pendingLoot = S.pendingLoot.filter(it=>!itemWorn(it));
-  const list = S.pendingLoot||[];
-  if(!list.length){ wrap.style.display="none"; return; }
+  if(!box || !wrap){
+    stashPendingQuiet();
+    return false;
+  }
   wrap.style.display="flex";
   box.innerHTML = `<h3>Finds</h3>
     <p class="tiny">Armory ${(S.vault||[]).length}/${vaultCap()}. Equip puts it on someone. Keep racks it. Sell is half price.</p>
@@ -5269,8 +5310,8 @@ function showFindsPopup(){
     <button type="button" class="act" id="findsDone" style="width:100%;margin-top:8px">Done</button>`;
   function go(act, uid){
     if(act==="eq"){ openEquipFind(uid); return; }
-    if(act==="keep"){ keepPending(uid); if(!(S.pendingLoot||[]).some(x=>x.uid===uid)) showFindsPopup(); return; }
-    if(act==="sell"){ sellPending(uid); showFindsPopup(); return; }
+    if(act==="keep"){ keepPending(uid); if(!(S.pendingLoot||[]).some(x=>x.uid===uid)){ if(!showFindsPopup()) finishFinds(); } return; }
+    if(act==="sell"){ sellPending(uid); if(!showFindsPopup()) finishFinds(); return; }
   }
   box.querySelectorAll("[data-fact]").forEach(b=>{
     b.onclick=(e)=>{ e.preventDefault(); e.stopPropagation(); go(b.dataset.fact, b.dataset.uid); };
@@ -5282,12 +5323,12 @@ function showFindsPopup(){
       if(vaultFull()){ openMakeSpace(it.uid); return; }
       keepPending(it.uid);
     }
-    wrap.style.display="none";
+    finishFinds();
   };
+  return true;
 }
 
 function pendingBlock(){
-  if(S.pendingLoot) S.pendingLoot = S.pendingLoot.filter(it=>!itemWorn(it));
   const list = S.pendingLoot||[];
   if(!list.length) return "";
   return `<div class="card" style="margin-top:8px"><h3>Finds</h3>
@@ -5342,6 +5383,7 @@ function paintDayReport(){
     ${cheer}
     ${quiet?`<p class="muted" style="font-size:1.05rem">Nothing happened.</p>`:""}
     <div class="log">${lines}</div>
+    ${loot?`<p class="ok">${loot} find${loot>1?"s":""} waiting. Keep, sell, or equip them in the Finds window.</p>`:""}
     ${writChoiceBlock()}`;
   const box = document.getElementById("report");
   if(box){
@@ -6173,6 +6215,10 @@ function hallEventIsOpen(){
 }
 function nextDoorQueue(){
   healHallEvent();
+  if(typeof ENC_BUSY!=="undefined" && ENC_BUSY) return;
+  if(findsUiLocked()) return;
+  if((S._questResults||[]).length){ showQuestResults(); return; }
+  if((S.pendingLoot||[]).length){ if(showFindsPopup()) return; }
   if(S.contestDue && !S.contestAsk){
     S.contestAsk = {id:"rival_contest", name:(S.rival&&S.rival.name)||"the other hall"};
   }
@@ -7888,7 +7934,7 @@ function equipPending(findUid, pid, hand){
           <button type="button" class="ghost" id="shNo" style="width:100%;margin-top:6px">Cancel</button>`;
         modal.classList.add("show"); modal.style.display="flex";
         document.getElementById("shYes").onclick=()=>{ stashPush("weapon", p.weapon); p.weapon=null; if(p.offhand) stashPush("weapon", p.offhand); p.offhand=it.id; save(); closeModal(); paintDayReport(); render(); afterFind(); };
-        document.getElementById("shNo").onclick=()=>{ closeModal(); };
+        document.getElementById("shNo").onclick=()=>{ if(!(S.pendingLoot||[]).some(x=>x.uid===it.uid)) (S.pendingLoot=S.pendingLoot||[]).push(it); closeModal(); showFindsPopup(); };
         return;
       }
       if(p.offhand) stashPush("weapon", p.offhand);
@@ -9651,7 +9697,7 @@ function bindCards(){
   document.querySelectorAll("[data-cancelraise]").forEach(b=>b.onclick=cancelRaise);
   document.querySelectorAll("[data-bhelp]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openBldHelp(b.dataset.bhelp); });
   document.querySelectorAll("[data-writpick]").forEach(b=>b.onclick=()=>pickWritHall(b.dataset.writpick));
-  document.querySelectorAll("[data-finds]").forEach(b=>b.onclick=()=>paintDayReport());
+  document.querySelectorAll("[data-finds]").forEach(b=>b.onclick=()=>showFindsPopup());
   document.querySelectorAll("[data-dep]").forEach(b=>b.onclick=()=>{
     const v=b.dataset.dep;
     bankDeposit(v==="all"?S.gold: +v);
@@ -10435,7 +10481,7 @@ function helpPage(id){
     <p class="tiny"><b>Quests</b> — assign ready people. Favored classes show a mark. Extra bodies past the needed seats cut gold 25% each. Jobs take days; Courier Stable shortens them.</p>
     <p class="tiny"><b>Merchant</b> — Weapons, Armor, Consumables. Buys go to the Armory.</p>
     <p class="tiny"><b>Armory</b> — 4 slots to start. Equip someone home; old gear returns here. Sell at half list. Racks add +3 slots per level. Jobs and the road can drop salvage, gear, or food.</p>
-    <p class="tiny"><b>End Day</b> — wages, healing, returns, night report (who is still in the field and days left). Parties still out may hit a road event (⚙ slider, default 10%). The road can be a fight, a merchant, a healer, a priest, a beggar, or a rescue. Combat can give XP, gold, Renown, or −1 day — or wound people and add a day. Forced-fight slider is the chance you cannot skip a fight (default 50%).</p>
+    <p class="tiny"><b>End Day</b> — wages, healing, returns, night report (who is still in the field and days left). Parties still out may hit a road event (⚙ slider, default 10%). The road can be a fight, a merchant, a healer, a priest, a beggar, or a rescue. Combat can give XP, gold, Renown, or −1 day — or wound people and add a day. Gear from a fight or a finished quest opens a Finds window to keep, sell, or equip. Unclaimed finds stay and come back until you deal with them. Forced-fight slider is the chance you cannot skip a fight (default 50%).</p>
     <h4>Money and people</h4>
     <p class="tiny"><b>Wages</b> — half the listed wage, rounded down, paid to people at the hall (ready or wounded). Away and dead are not paid. Each Renown cuts hire price and wages 1%, cap 50% at 50 Renown.</p>
     <p class="tiny"><b>Loyalty</b> — starts 1–5, max 10. +1 on a successful job. −1 if wounded. −1 if unpaid. At 0 they pack. A popup lets you pay their daily fee from the Bank vault to keep them at loyalty 1, or let them walk. A walkout costs Renown: 1 common/flawed, 2 Gifted, 3 Elite, +1 if level 5+. Dismiss does not. After 7 days idle a face who can leave reads becoming restless. Each further day they may demand current Tap price or leave (same Renown hit).</p>
@@ -10598,6 +10644,7 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-10", t:"A road or quest find no longer disappears if someone already wears the same kind of gear. The keep-or-sell window always opens for it, hall events wait until you finish, and leftover finds come back until you take or sell them."},
   {d:"2026-11-10", t:"Assign party failed on some writ-posted quests because they had no id. Those briefs work now, and a leftover card offers a same-difficulty replacement instead of a toast."},
   {d:"2026-11-10", t:"Hall events can no longer stick unseen and block every new one. The night report no longer covers the event, a leftover note is shown again or dropped after two days, and an old save with a stuck event starts getting them again."},
   {d:"2026-11-10", t:"Rival Barracks work like yours: 2 bunks per level up to 12, same cost, same build days. They start building when one bed is left."},
@@ -11826,10 +11873,10 @@ function newGame(){
 
 function bootHall(tries){
   tries = tries||0;
-  if(load()){ render(); return; }
+  if(load()){ render(); resumePendingFinds(); return; }
   const kept = storedHall();
   if(kept && hallLived(kept)){
-    applySnap(kept); render(); return;
+    applySnap(kept); render(); resumePendingFinds(); return;
   }
   if(tries<8){ setTimeout(()=>bootHall(tries+1), 200*(tries+1)); return; }
   newGame();
@@ -11839,8 +11886,10 @@ function recoverHall(){
   const now = snapshot();
   if(kept && hallLived(kept) && hallScore(kept) > hallScore(now)){
     applySnap(kept); render();
+    resumePendingFinds();
     return true;
   }
+  resumePendingFinds();
   return false;
 }
 applyFont();
