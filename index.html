@@ -5295,14 +5295,9 @@ function tickMissions(){
   refreshMissions();
   const after = S.missions.filter(m=>!m.party || !m.party.length).length;
   restockHire();
-  tickRaise();
-  tickWrit();
-  tickRestless();
-  tickSeekers();
-  tickSeason();
-  tickRival();
-  tickHallEvent();
-  tickFeatured();
+  [tickRaise, tickWrit, tickRestless, tickSeekers, tickSeason, tickRival, tickHallEvent, tickFeatured].forEach(fn=>{
+    try { if(typeof fn==="function") fn(); } catch(e){}
+  });
   log("A new day in the hall.");
   save();
   render();
@@ -5838,6 +5833,7 @@ function tickRival(){
       S.gold = (S.gold||0) + them0;
       S.hallEvent = S.hallEvent || {id:"rival_contest_done", win:true, name:r.name, them:r.renown, us:S.renown, pwr, theirs, gain, gold:them0};
       stampHallEvent();
+      if(S.hallEvent) recordHallEvent(S.hallEvent, "roll");
     } else {
       ids.forEach(id=>{
         const p=(S.people||[]).find(x=>x.id===id);
@@ -5853,6 +5849,7 @@ function tickRival(){
       r.gold = (r.gold||0) + us0;
       S.hallEvent = S.hallEvent || {id:"rival_contest_done", win:false, name:r.name, them:r.renown, us:S.renown, gain, gold:us0};
       stampHallEvent();
+      if(S.hallEvent) recordHallEvent(S.hallEvent, "roll");
     }
   }
   if(!r.nextWrit) r.nextWrit = S.day+8;
@@ -5967,6 +5964,7 @@ function canBecomeRestless(p){
 stripHallCat();
 function tickRestless(){
   if(!S.restlessAsk) S.restlessAsk = [];
+  if(!S.quitAsk) S.quitAsk = [];
   livingRoster().forEach(p=>{
     if(p.status==="away" || p.status==="dead") return;
     p.idleDays = (p.idleDays||0) + 1;
@@ -6271,23 +6269,41 @@ const HALL_EVENT_IDS = {fallen:1,dry_tap:1,kin_ill:1,king_purse:1,drills:1,leaky
 function stampHallEvent(){
   if(S.hallEvent && S.hallEvent.id && S.hallEvent.day==null) S.hallEvent.day = S.day;
 }
+function recordHallEvent(e, why){
+  if(!S.hallEventLog) S.hallEventLog = {};
+  if(e && e.id){
+    if(why==="roll" || why==="show"){
+      S.hallEventLog.lastDay = e.day!=null ? e.day : S.day;
+      S.hallEventLog.lastId = e.id;
+    }
+  }
+}
+function hallEventDiagText(){
+  const log = S.hallEventLog || {};
+  const last = log.lastId ? ("Day "+log.lastDay+" ("+log.lastId+")") : "none yet";
+  const pending = (S.hallEvent && S.hallEvent.id)
+    ? ("Day "+(S.hallEvent.day!=null?S.hallEvent.day:"?")+" ("+S.hallEvent.id+")")
+    : "none";
+  return {last, pending};
+}
 function healHallEvent(fromLoad){
   const e = S.hallEvent;
   if(!e) return null;
   if(!e.id || !HALL_EVENT_IDS[e.id]){ S.hallEvent=null; return null; }
-  if(fromLoad){
-    if(e.day==null || (S.day||1)-(e.day||0)>2){ S.hallEvent=null; return null; }
-    return e;
-  }
   if(e.day==null) e.day = S.day;
-  if((S.day||1)-e.day>2){ S.hallEvent=null; return null; }
   return e;
+}
+function hallEventOverdue(){
+  const e = S.hallEvent;
+  if(!e || !e.id) return false;
+  if(e.shown) return false;
+  return (S.day||1) > (e.day!=null ? e.day : S.day);
 }
 function showHallEvent(){
   stampHallEvent();
   if(!S.hallEvent) return;
   try { return openHallEvent(); }
-  catch(err){ S.hallEvent=null; }
+  catch(err){}
 }
 function hallEventIsOpen(){
   const modal=document.getElementById("modal");
@@ -6295,29 +6311,69 @@ function hallEventIsOpen(){
   if(!modal||!sheet) return false;
   const on = modal.classList.contains("show") && getComputedStyle(modal).display!=="none";
   if(!on) return false;
-  return !!(S.hallEvent && S.hallEvent.id);
+  if(!S.hallEvent || !S.hallEvent.id) return false;
+  return sheet.getAttribute("data-hallevent")===S.hallEvent.id;
+}
+function hasLiveRoadUi(){
+  return !!(document.getElementById("encA") || document.getElementById("encB") || document.getElementById("encSkip") || document.getElementById("roadDone"));
+}
+function clearStaleDoorLocks(){
+  if(typeof ENC_BUSY!=="undefined" && ENC_BUSY && !hasLiveRoadUi()) ENC_BUSY = false;
+  if(!(typeof findsUiLocked==="function" && findsUiLocked())) return false;
+  const real = hasLiveRoadUi() || !!(document.getElementById("eqFindCancel")) || (S._questResults||[]).length || (S.pendingLoot||[]).length;
+  if(!real){
+    const wrap=document.getElementById("finds");
+    if(wrap) wrap.style.display="none";
+    return false;
+  }
+  return true;
 }
 function nextDoorQueue(){
   healHallEvent();
-  if(typeof ENC_BUSY!=="undefined" && ENC_BUSY) return;
-  if(findsUiLocked()) return;
+  if(typeof ENC_BUSY!=="undefined" && ENC_BUSY){
+    if(hasLiveRoadUi()) return;
+    ENC_BUSY = false;
+  }
+  if(S.hallEvent && !S.hallEvent.shown && hallEventOverdue()) return showHallEvent();
+  if(clearStaleDoorLocks()){
+    if(S.hallEvent && !S.hallEvent.shown && hallEventOverdue()) return showHallEvent();
+    return;
+  }
   if((S._questResults||[]).length){ showQuestResults(); return; }
-  if((S.pendingLoot||[]).length){ if(showFindsPopup()) return; }
+  if((S.pendingLoot||[]).length){
+    if(S.hallEvent && !S.hallEvent.shown && hallEventOverdue()) return showHallEvent();
+    if(showFindsPopup()) return;
+  }
   if(S.contestDue && !S.contestAsk){
     S.contestAsk = {id:"rival_contest", name:(S.rival&&S.rival.name)||"the other hall"};
   }
-  if((S.contestAsk || S.contestDue) && !(S.contestUntil>S.day)){ S.contestAsk=null; return openContestSheet(); }
+  if((S.contestAsk || S.contestDue) && !(S.contestUntil>S.day)){
+    if(S.hallEvent && !S.hallEvent.shown && hallEventOverdue()) return showHallEvent();
+    S.contestAsk=null; return openContestSheet();
+  }
   S.contestAsk=null;
-  if(S.seasonAsk){ return openSeasonSheet(); }
-  if(S.contestWarn && !(S.contestUntil>S.day) && !S.contestDue){ S.hallEvent = S.contestWarn; S.contestWarn = null; stampHallEvent(); return showHallEvent(); }
-  S.contestWarn = null;
+  if(S.seasonAsk){
+    if(S.hallEvent && !S.hallEvent.shown && hallEventOverdue()) return showHallEvent();
+    return openSeasonSheet();
+  }
+  if(S.contestWarn && !(S.contestUntil>S.day) && !S.contestDue){
+    if(S.hallEvent) return showHallEvent();
+    S.hallEvent = S.contestWarn; S.contestWarn = null; stampHallEvent(); recordHallEvent(S.hallEvent, "roll"); return showHallEvent();
+  }
+  if(S.contestWarn && ((S.contestUntil>S.day) || S.contestDue)) S.contestWarn = null;
   if((S.graveAsk||[]).length) return openGraveAsk();
   if((S.saintAsk||[]).length) return openSaintAsk();
   if((S.bloodAsk||[]).length) return openBloodAsk();
   if((S.quitAsk||[]).length) return openQuitAsk();
   if((S.restlessAsk||[]).length) return openRestlessAsk();
-  if(S.seekers && S.seekers.length) return openSeekers();
-  if(S.rivalWritAsk){ S.hallEvent = S.rivalWritAsk; S.rivalWritAsk = null; stampHallEvent(); return showHallEvent(); }
+  if(S.seekers && S.seekers.length){
+    if(S.hallEvent && !S.hallEvent.shown && hallEventOverdue()) return showHallEvent();
+    return openSeekers();
+  }
+  if(S.rivalWritAsk){
+    if(S.hallEvent) return showHallEvent();
+    S.hallEvent = S.rivalWritAsk; S.rivalWritAsk = null; stampHallEvent(); recordHallEvent(S.hallEvent, "roll"); return showHallEvent();
+  }
   if(S.hallEvent){
     if(!hallEventIsOpen()) return showHallEvent();
     return;
@@ -6512,6 +6568,7 @@ function tickHallEvent(){
     S.hallEvent = {id:"levy", days:5, name:ppl.name};
   }
   stampHallEvent();
+  if(S.hallEvent) recordHallEvent(S.hallEvent, "roll");
 }
 
 function seasonBtns(e){
@@ -6528,7 +6585,7 @@ function openHallEvent(){
   if(!e || !e.id){ S.hallEvent=null; return; }
   const sheet = document.getElementById("sheet");
   const modal = document.getElementById("modal");
-  if(!sheet||!modal){ S.hallEvent=null; return; }
+  if(!sheet||!modal) return;
   let body = "";
   if(e.id==="fallen"){
     const gear=e.gear&&e.gear.length?e.gear.join(", "):"";
@@ -6775,7 +6832,10 @@ function openHallEvent(){
   if(!/button/i.test(extra||"")) extra = (extra||"") + `<button type="button" class="act" id="hallEvOk" style="width:100%;margin-top:10px">Done</button>`;
   body += eventSeerHtml(e, extra);
   sheet.innerHTML = body + extra;
+  sheet.setAttribute("data-hallevent", e.id);
   modal.classList.add("show"); modal.style.display="flex"; modal.style.zIndex="10100";
+  e.shown = true;
+  recordHallEvent(e, "show");
   const ok = document.getElementById("hallEvOk");
   if(ok) ok.onclick=()=>{ S.hallEvent=null; save(); closeModal(); nextDoorQueue(); render(); };
   const fallOk = document.getElementById("fallOk");
@@ -8735,7 +8795,8 @@ function snapshot(){
     nextFeat:S.nextFeat||null, featItem:S.featItem||null, featAsk:S.featAsk||null, featBadge:!!S.featBadge,
     bloodAsk:S.bloodAsk||null, saintAsk:S.saintAsk||null, graveAsk:S.graveAsk||null,
     bonusInterest:S.bonusInterest||0, doubleWrit:!!S.doubleWrit, dawnSing:S.dawnSing||null,
-    poached:S.poached||null, gameOver:!!S.gameOver, lastHero:S.lastHero||null, forceSeek:!!S.forceSeek, writPing:!!S.writPing
+    poached:S.poached||null, gameOver:!!S.gameOver, lastHero:S.lastHero||null, forceSeek:!!S.forceSeek, writPing:!!S.writPing,
+    hallEventLog:S.hallEventLog||null
   }));
 }
 function applySnap(d){
@@ -8752,6 +8813,7 @@ function applySnap(d){
   S.bloodAsk=d.bloodAsk||null; S.saintAsk=d.saintAsk||null; S.graveAsk=d.graveAsk||null;
   S.bonusInterest=d.bonusInterest||0; S.doubleWrit=!!d.doubleWrit; if(d.dawnSing!=null) S.dawnSing=d.dawnSing;
   S.poached=d.poached||null; S.gameOver=!!d.gameOver; if(d.lastHero!=null) S.lastHero=d.lastHero; S.forceSeek=!!d.forceSeek; S.writPing=!!d.writPing;
+  S.hallEventLog=d.hallEventLog||null;
   S.buildings=Object.assign({barracks:1,armory:1,infirmary:1,grounds:0,alley:0,sanctum:0,chapel:0,tavern:1,bank:0,racks:0,board:0,bell:0,briefs:0,seer:0,stables:0}, d.buildings||{});
   S.nextSeek=d.nextSeek||null; S.seekers=d.seekers||null; S.quitAsk=d.quitAsk||null; S.restlessAsk=d.restlessAsk||null; S.raise=d.raise||null;
   S.people=d.people||[]; S.missions=d.missions||[]; S.shop=d.shop||[]; S.vault=d.vault||[];
@@ -8789,7 +8851,7 @@ function fillFromFullSave(){
     function missing(v){
       return v==null || v==="" || (Array.isArray(v)&&!v.length);
     }
-    ["contestUntil","contestParty","contestTheir","rival","rivalWritAsk","raiseQ","featItem","featAsk","bloodAsk","saintAsk","graveAsk","poached","dawnSing","nextFeat","cookUntil","glutUntil","tapDry","roofTax","loan","lastHero"].forEach(k=>{
+    ["contestUntil","contestParty","contestTheir","rival","rivalWritAsk","raiseQ","featItem","featAsk","bloodAsk","saintAsk","graveAsk","poached","dawnSing","nextFeat","cookUntil","glutUntil","tapDry","roofTax","loan","lastHero","hallEvent","hallEventLog"].forEach(k=>{
       if(missing(S[k]) && src[k]!=null && !missing(src[k])) S[k]=src[k];
     });
     ["plant","shade","grain","firewood","doubleWrit","featBadge","gameOver","forceSeek","writPing"].forEach(k=>{
@@ -10730,6 +10792,7 @@ function helpPage(id){
     <p class="tiny"><b>Merchant</b> — Weapons, Armor, Consumables. Buys go to the Armory.</p>
     <p class="tiny"><b>Armory</b> — 4 slots to start. Equip someone home; old gear returns here. Sell at half list. Racks add +3 slots per level. Jobs and the road can drop salvage, gear, or food.</p>
     <p class="tiny"><b>End Day</b> — wages, healing, returns, night report (who is still in the field and days left). Parties still out may hit a road event (⚙ slider, default 10%). The road can be a fight, a merchant, a healer, a priest, a beggar, or a rescue. Combat can give XP, gold, Renown, or −1 day — or wound people and add a day. Gear from a fight or a finished quest opens a Finds window to keep, sell, or equip. Unclaimed finds stay and come back until you deal with them. Forced-fight slider is the chance you cannot skip a fight (default 50%).</p>
+    <p class="tiny"><b>Hall events</b> — each dawn has an 8% chance of a hall note (a leak, a levy, a purse, a peddler, and the like). A note you have not seen yet comes back the next day until you close it, and it is not thrown away by a writ, a contest warning, or reopening the app. Last hall event: ${(typeof hallEventDiagText==="function"?hallEventDiagText().last:"none yet")}. Pending: ${(typeof hallEventDiagText==="function"?hallEventDiagText().pending:"none")}.</p>
     <h4>Money and people</h4>
     <p class="tiny"><b>Wages</b> — half the listed wage, rounded down, paid to people at the hall (ready or wounded). Away and dead are not paid. Each Renown cuts hire price and wages 1%, cap 50% at 50 Renown.</p>
     <p class="tiny"><b>Loyalty</b> — starts 1–5, max 10. +1 on a successful job. −1 if wounded. −1 if unpaid. At 0 they pack. A popup lets you pay their daily fee from the Bank vault to keep them at loyalty 1, or let them walk. A walkout costs Renown: 1 common/flawed, 2 Gifted, 3 Elite, +1 if level 5+. Dismiss does not. After 7 days idle a face who can leave reads becoming restless. Each further day they may demand current Tap price or leave (same Renown hit).</p>
@@ -10892,6 +10955,7 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-11", t:"Hall events show up again even if you closed the app, a find was waiting, or the rival sealed a writ the same day. A note you have not seen comes back the next day instead of vanishing. 🐞 Debug and Help show the last hall event and any note still pending."},
   {d:"2026-11-11", t:"Choosing Use it when sending a face heals them right away. Power, gold, and XP still land on that job. Send all no longer loses the heal."},
   {d:"2026-11-11", t:"On Assign, the Job power pill sits under the portrait. Tap it to see the calculation for that card."},
   {d:"2026-11-10", t:"The guild contest keeps its countdown ring after you reopen the app, and the pair still comes home. The Contest ring sits with the quest rings; tap it for who's out and the other hall. The away badge now names the reason (contest, levy, kin, watch, build, grave)."},
@@ -11889,6 +11953,7 @@ function openDbg(keepUp){
   sheet.innerHTML = `
     <h3>🐞 Debug</h3>
     <p class="tiny">Test tools. Not part of the game. Delete the 🐞 button and this block to strip them.</p>
+    <p class="tiny">Last hall event: ${hallEventDiagText().last}<br>Pending: ${hallEventDiagText().pending}</p>
     <button type="button" class="act" id="dbgRival" style="width:100%;margin-top:8px">Open rival hall</button>
     <button type="button" class="act" id="dbgGold" style="width:100%;margin-top:8px">+1000 gold · on hand ${gp(S.gold)}</button>
     <button type="button" class="act" id="dbgRen" style="width:100%;margin-top:6px">+5 Renown</button>
@@ -12086,7 +12151,7 @@ function askRestart(){
 }
 function newGame(){
   S.day = 1; S.gold = 40; S.renown = 0; S.nextFeat = 8; S.featItem = null; S.season="spring"; S.seasonLeft=30; S.loan=0; S.rival=null;
-  S.hallEvent=null; S.seasonAsk=null; S.contestAsk=null; S.contestDue=null; S.contestWarn=null; S.contestWarned=false; S.contestUntil=null; S.contestParty=null; S.rivalWritAsk=null;
+  S.hallEvent=null; S.hallEventLog=null; S.seasonAsk=null; S.contestAsk=null; S.contestDue=null; S.contestWarn=null; S.contestWarned=false; S.contestUntil=null; S.contestParty=null; S.rivalWritAsk=null;
   S.buildings = {barracks:1, armory:1, infirmary:1, grounds:0, alley:0, sanctum:0, chapel:0, tavern:1, bank:1, racks:0, board:0, bell:0, briefs:0, seer:0, stables:0};
   S.deposit = 40;
   S.people = []; S.missions = []; S.shop = []; S.vault = []; S.pendingLoot = []; S.hire = []; S.log = []; S.selected = null;
@@ -12123,23 +12188,40 @@ function newGame(){
 
 function bootHall(tries){
   tries = tries||0;
-  if(load()){ render(); resumePendingFinds(); return; }
+  if(load()){ render(); resumeDoorQueue(); return; }
   const kept = storedHall();
   if(kept && hallLived(kept)){
-    applySnap(kept); render(); resumePendingFinds(); return;
+    applySnap(kept); render(); resumeDoorQueue(); return;
   }
   if(tries<8){ setTimeout(()=>bootHall(tries+1), 200*(tries+1)); return; }
   newGame();
+}
+function doorQueueWaiting(){
+  const e = S.hallEvent;
+  if(e && e.id && !hallEventIsOpen()) return true;
+  if((S.pendingLoot||[]).length || (S._questResults||[]).length) return true;
+  if(S.seekers && S.seekers.length) return true;
+  if(S.seasonAsk || S.contestDue || S.contestAsk || S.rivalWritAsk) return true;
+  if(S.contestWarn && !(S.contestUntil>S.day) && !S.contestDue) return true;
+  if((S.graveAsk||[]).length || (S.saintAsk||[]).length || (S.bloodAsk||[]).length) return true;
+  if((S.quitAsk||[]).length || (S.restlessAsk||[]).length) return true;
+  return false;
+}
+function resumeDoorQueue(){
+  try{
+    resumePendingFinds();
+    if(doorQueueWaiting()) nextDoorQueue();
+  }catch(e){}
 }
 function recoverHall(){
   const kept = storedHall();
   const now = snapshot();
   if(kept && hallLived(kept) && hallScore(kept) > hallScore(now)){
     applySnap(kept); render();
-    resumePendingFinds();
+    resumeDoorQueue();
     return true;
   }
-  resumePendingFinds();
+  resumeDoorQueue();
   return false;
 }
 applyFont();
