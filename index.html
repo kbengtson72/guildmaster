@@ -1389,6 +1389,84 @@ const S = {
 function rng(a,b){ return a + Math.floor(Math.random()*(b-a+1)); }
 function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function uid(){ return Math.random().toString(36).slice(2,9); }
+function missionIdEq(a,b){ return a!=null && b!=null && String(a)===String(b); }
+function findMission(mid){
+  const list = S.missions||[];
+  if(mid!=null && mid!=="" && mid!=="undefined"){
+    const hit = list.find(x=>x && missionIdEq(x.id, mid));
+    if(hit) return hit;
+  }
+  if(mid==null || mid==="" || mid==="undefined"){
+    const bare = list.find(x=>x && (x.id==null || x.id===""));
+    if(bare){ bare.id = uid(); return bare; }
+  }
+  return null;
+}
+function findMissionIndex(mid){
+  const m = findMission(mid);
+  return m ? (S.missions||[]).indexOf(m) : -1;
+}
+function ensureMissionIds(){
+  if(!S.missions) S.missions = [];
+  const used = {};
+  S.missions.forEach(m=>{
+    if(!m) return;
+    if(m.id==null || m.id==="") m.id = uid();
+    else m.id = String(m.id);
+    while(used[m.id]) m.id = uid();
+    used[m.id] = true;
+  });
+}
+function offerMissingQuest(mid, hint){
+  hint = hint||{};
+  const sheet = document.getElementById("sheet");
+  const modal = document.getElementById("modal");
+  const name = hint.t ? hint.t : "That quest";
+  if(!sheet || !modal){ closeModal(); render(); return; }
+  sheet.classList.remove("tall");
+  sheet.innerHTML = `<h3>Quest left the board</h3>
+    <p>${escHtml(name)} is not on the board anymore. The list was stale.</p>
+    <p class="tiny">You can post a fresh contract of about the same difficulty in that slot. This does not redraw a quest that is still live.</p>
+    <button type="button" class="act" id="missReplace" style="width:100%;margin-top:10px">Post a replacement</button>
+    <button type="button" class="ghost" id="missOk" style="width:100%;margin-top:6px">Just refresh the list</button>`;
+  modal.classList.add("show"); modal.style.display="flex";
+  const go = document.getElementById("missReplace");
+  if(go) go.onclick=()=>replaceMissingQuest(hint);
+  const ok = document.getElementById("missOk");
+  if(ok) ok.onclick=()=>{ closeModal(); render(); };
+}
+function replaceMissingQuest(hint){
+  hint = hint||{};
+  const want = 5 + Math.min(2, Math.floor((S.renown||0)/15)) + 2*(S.buildings.briefs||0);
+  const openN = (S.missions||[]).filter(m=>m && !m.epic && !(m.party&&m.party.length)).length;
+  if(openN >= want){
+    closeModal(); render();
+    toast("The list is refreshed.");
+    return;
+  }
+  const wantDiff = Math.max(1, +hint.diff || hallComfort() || 3);
+  const taken = {};
+  (S.missions||[]).forEach(x=>{ if(x && x.t) taken[x.t]=true; });
+  const pool = missionPool().filter(src=>{
+    if(taken[src.t]) return false;
+    const probe = hardenDark(Object.assign({}, src));
+    return canPost(probe);
+  });
+  if(!pool.length){
+    closeModal(); render();
+    toast("The list is refreshed. No new contract was available.");
+    return;
+  }
+  pool.sort((a,b)=>Math.abs((a.diff||1)-wantDiff)-Math.abs((b.diff||1)-wantDiff));
+  const m = hardenDark(Object.assign({}, pool[0]));
+  m.id = uid();
+  m.party = [];
+  if(!S.missions) S.missions = [];
+  S.missions.push(m);
+  log("Posted a replacement brief: "+m.t+".");
+  save(); closeModal(); render();
+  toast("New brief: "+m.t+".");
+}
 function cap(){ return 2 + 2*(S.buildings.barracks||0); }
 function bankLv(){ return S.buildings.bank||0; }
 function bankCap(){ return 150 * bankLv(); }
@@ -2059,6 +2137,7 @@ function ensureWritJob(){
     });
     if(pool.length){
       const add = hardenDark(Object.assign({}, pool[Math.floor(Math.random()*pool.length)]));
+      add.id = uid();
       add.party = [];
       S.missions.push(add);
     }
@@ -3775,7 +3854,7 @@ function thiefBtn(m){
 }
 function doThiefSwap(pid, mid){
   const p = (S.people||[]).find(x=>x.id===pid);
-  const ix = (S.missions||[]).findIndex(x=>x.id===mid);
+  const ix = findMissionIndex(mid);
   if(ix<0 || !p) return;
   const old = S.missions[ix];
   if(old.epic || (old.party&&old.party.length)) return toast("Cannot swap that.");
@@ -3798,7 +3877,7 @@ function redrawJob(mid){
   if(!lv) return toast("Build Sealed Briefs on the Hall first.");
   const cost = briefCost();
   if(funds() < cost) return toast("Need "+gp(cost)+".");
-  const ix = (S.missions||[]).findIndex(x=>x.id===mid);
+  const ix = findMissionIndex(mid);
   if(ix<0) return;
   const old = S.missions[ix];
   if(old.epic) return toast("An epic quest cannot have its seal broken.");
@@ -7154,7 +7233,7 @@ function knockGap(){
   return has ? rng(5,10) : rng(7,14);
 }
 function recallQuest(mid){
-  const m=(S.missions||[]).find(x=>x.id===mid);
+  const m=findMission(mid);
   if(!m || !(m.party||[]).length) return;
   const names=m.party.map(id=>{const p=S.people.find(x=>x.id===id); return p?p.name:"";}).filter(Boolean);
   const fee=3*Math.max(1,m.diff||1);
@@ -7188,7 +7267,7 @@ function postWinBack(ppl, bump){
   note("A quest to win "+ppl.name+" back is on the board.","info");
 }
 function send(mid, ids){
-  const m = S.missions.find(x=>x.id===mid);
+  const m = findMission(mid);
   if(!m) return;
   if(m.recovery){
     const party=(ids||[]).map(id=>S.people.find(p=>p.id===id)).filter(Boolean);
@@ -8511,6 +8590,7 @@ function applySnap(d){
   S.buildings=Object.assign({barracks:1,armory:1,infirmary:1,grounds:0,alley:0,sanctum:0,chapel:0,tavern:1,bank:0,racks:0,board:0,bell:0,briefs:0,seer:0,stables:0}, d.buildings||{});
   S.nextSeek=d.nextSeek||null; S.seekers=d.seekers||null; S.quitAsk=d.quitAsk||null; S.restlessAsk=d.restlessAsk||null; S.raise=d.raise||null;
   S.people=d.people||[]; S.missions=d.missions||[]; S.shop=d.shop||[]; S.vault=d.vault||[];
+  try { ensureMissionIds(); } catch(e){}
   S.hire=d.hire||[]; S.log=d.log||[]; S.deposit=d.deposit||0; S.pendingLoot=d.pendingLoot||[];
   S.writ=d.writ||null; S.writWins=d.writWins||0; S.writFails=d.writFails||0; S.writChoice=d.writChoice||null;
   S.epicWins=d.epicWins||0;
@@ -9262,6 +9342,7 @@ function render(){ (S.people||[]).forEach(fixTwoHand);
   try { dedupeMissions(); } catch(e){}
   try { ensureEpicQuest(); } catch(e){}
   try { ensureWritJob(); } catch(e){}
+  try { ensureMissionIds(); } catch(e){}
   ensureFoodStock();
   S.people.forEach(p=>{
     if((p.cls==="Cleric" || p.cls==="Mage") && isBladedWeapon(p.weapon)) p.weapon = p.cls==="Mage" ? "wand1" : "staff";
@@ -9443,11 +9524,11 @@ function boardView(){
       ${m.epic?`<p class="tiny">Pinned. ${missionDays(m)} days in the field. Reward: a gold artifact and extra loot.</p>`:""}
       ${seerText(m)}
       ${m.epic?"":`<p class="tiny">Favors ${favorMarks(m)}</p>`}
-      <button class="act" data-send="${m.id}">Assign party</button>
+      <button class="act" data-send="${m.id}" data-title="${escHtml(m.t||"")}" data-diff="${m.diff||1}">Assign party</button>
       ${(S.buildings.briefs||0)&&!m.epic?`<button class="ghost" data-redraw="${m.id}" style="width:100%;margin-top:6px">Break the seal · ${gp(briefCost())}</button>`:""}
       ${thiefBtn(m)}`}
     </div>`;
-   } catch(e){ const stk=String(e&&e.stack||"").split("\n").slice(0,3).join(" | "); return `<div class="card"><p class="tiny">This quest could not be drawn.</p><p class="tiny">${String((e&&e.message)||e)}</p><p class="tiny">${stk}</p><button class="ghost" data-send="${m.id}">Open</button></div>`; }
+   } catch(e){ const stk=String(e&&e.stack||"").split("\n").slice(0,3).join(" | "); return `<div class="card"><p class="tiny">This quest could not be drawn.</p><p class="tiny">${String((e&&e.message)||e)}</p><p class="tiny">${stk}</p><button class="ghost" data-send="${m.id}" data-title="${escHtml(m.t||"")}" data-diff="${m.diff||1}">Open</button></div>`; }
   }).join("");
 }
 
@@ -9579,9 +9660,9 @@ function bindCards(){
     const v=b.dataset.wd;
     bankWithdraw(v==="all"?(S.deposit||0): +v);
   });
-  document.querySelectorAll("[data-send]").forEach(b=>b.onclick=()=>openSend(b.dataset.send));
+  document.querySelectorAll("[data-send]").forEach(b=>b.onclick=()=>openSend(b.dataset.send, {t:b.dataset.title, diff:b.dataset.diff}));
   document.querySelectorAll("[data-quick]").forEach(b=>b.onclick=()=>{
-    const m = S.missions.find(x=>x.id===b.dataset.quick) || S.missions.find(x=>x.t===b.dataset.title);
+    const m = findMission(b.dataset.quick) || (S.missions||[]).find(x=>x && x.t===b.dataset.title);
     const slot = chainSlot(m);
     if(!slot) return;
     const added = ((S._chainAdds||{})[m.id]||[]);
@@ -9729,7 +9810,7 @@ function askArmoryFood(mid, ids, foods){
   document.getElementById("afSkip").onclick=()=>{ closeModal(); const m=S.missions.find(x=>x.id===mid); if(m) doSend(m, ids); };
 }
 function finishSendGate(mid, ids){
-  const m = S.missions.find(x=>x.id===mid);
+  const m = findMission(mid);
   const packed = ids.map(id=>S.people.find(p=>p.id===id)).filter(p=>p && p.food && !p.foodEaten);
   if(packed.length){ askFoodUse(mid, ids, packed, 0); return; }
   const loose = (S.vault||[]).filter(it=>it.kind==="food");
@@ -9827,10 +9908,10 @@ function pickArmoryEater(mid, ids, food){
   document.getElementById("armFoodSkip2").onclick=()=>finishSendGate(mid, ids);
 }
 function askFoodUse(mid, ids, packed, ix){
-  const m = S.missions.find(x=>x.id===mid);
+  const m = findMission(mid);
   const p = packed[ix];
   if(!p){
-    const job = S.missions.find(x=>x.id===mid);
+    const job = findMission(mid);
     if(job && job.epic){
       const names = ids.map(id=>(S.people.find(x=>x.id===id)||{}).name).filter(Boolean);
       let who = names.join(", ");
@@ -9892,13 +9973,13 @@ function askFoodUse(mid, ids, packed, ix){
   };
   document.getElementById("foodCancel").onclick=()=>openSend(mid);
 }
-function openSend(mid){
-  try { openSendReal(mid); }
+function openSend(mid, hint){
+  try { openSendReal(mid, hint); }
   catch(err){ const sheet=document.getElementById("sheet"); const modal=document.getElementById("modal"); if(sheet&&modal){ modal.classList.add("show"); modal.style.display="flex"; sheet.innerHTML=`<h3>Could not open</h3><p class="tiny">${(err&&err.message)||err}</p><button class="act" id="errClose" style="width:100%">OK</button>`; const c=document.getElementById("errClose"); if(c) c.onclick=()=>{closeModal();render();}; } else { toast(String(err&&err.message||err)); } }
 }
-function openSendReal(mid){
-  const m = S.missions.find(x=>x.id===mid);
-  if(!m){ closeModal(); render(); toast("That quest left the board. The list is refreshed."); return; }
+function openSendReal(mid, hint){
+  const m = findMission(mid);
+  if(!m){ offerMissingQuest(mid, hint); return; }
   closeModal();
   S.tapCloseSheet = false;
   const sheet0 = document.getElementById("sheet");
@@ -10491,6 +10572,7 @@ function helpGearBody(){
     <p class="tiny">Difficulty is set when the card pins: the hall's best two (or three) power times the Epic power mark in Settings (default 125%). Gear up before you send. Fail and the same card stays. Succeed and you get a gold artifact weapon or armor — the only way those drop — plus gold and extra loot. Then a new epic pins. The road does not stop an epic party.</p>
     <h4>The board</h4>
     <p class="tiny">Usually 4 open jobs (up to 6 later). After you send someone, the hall tries to keep at least one job your people can actually walk (comfort cap from level, day, and Renown). Harder work still appears; it should not be the whole board.</p>
+    <p class="tiny">If Assign party says a card has left the board, the list was stale. You can refresh it, or post a fresh contract of about the same difficulty in that slot. That does not redraw a quest that is still live.</p>
     <p class="tiny">A green ⚔ line in the header and on the night report is how many parties are still out.</p>
     <h4>✉️ Break the seal</h4>
     <p class="tiny">That button is <b>Sealed Briefs</b> on the Hall. Pay gold to throw out one <b>open</b> job and draw a different contract in that slot. You cannot seal-break a job that already has a party.</p>
@@ -10516,6 +10598,7 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-10", t:"Assign party failed on some writ-posted quests because they had no id. Those briefs work now, and a leftover card offers a same-difficulty replacement instead of a toast."},
   {d:"2026-11-10", t:"Hall events can no longer stick unseen and block every new one. The night report no longer covers the event, a leftover note is shown again or dropped after two days, and an old save with a stuck event starts getting them again."},
   {d:"2026-11-10", t:"Rival Barracks work like yours: 2 bunks per level up to 12, same cost, same build days. They start building when one bed is left."},
   {d:"2026-11-10", t:"Barracks hold 2 more per level: Lv1 4, Lv2 6, Lv3 8, Lv4 10, Lv5 12."},
