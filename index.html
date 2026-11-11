@@ -141,10 +141,28 @@
     padding: 8px 10px; font: inherit; font-size: 0.9rem;
   }
   button.act:disabled { opacity: .4; }
-  button.ghost {
+  button.ghost, div.ghost {
     background: var(--panel2); color: var(--ink); border: 1px solid var(--line);
     border-radius: 8px; padding: 7px 10px; font: inherit; font-size: 0.9rem;
   }
+  .pick-left { display:flex; flex-direction:column; align-items:stretch; gap:6px; flex:0 0 auto; }
+  .pick-body { min-width:0; flex:1; }
+  .pick-body .pname { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
+  .job-pwr {
+    display:flex; align-items:center; justify-content:center;
+    min-height:44px; width:100%; margin:0; padding:6px 8px;
+    border:0; border-radius:999px; cursor:pointer;
+    font:800 15px/1.1 Georgia, "Times New Roman", serif;
+    letter-spacing:.02em;
+    -webkit-appearance:none; appearance:none;
+    -webkit-user-select:none; user-select:none;
+    touch-action:manipulation;
+  }
+  .job-pwr-rows { margin:8px 0 12px; }
+  .job-pwr-row { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; padding:6px 0; border-bottom:1px solid var(--line); font-size:0.95rem; line-height:1.3; }
+  .job-pwr-row span:first-child { min-width:0; flex:1; }
+  .job-pwr-row span:last-child { font-weight:700; flex:0 0 auto; font-variant-numeric:tabular-nums; }
+  .job-pwr-row.total { border-bottom:0; border-top:2px solid var(--gold); margin-top:6px; padding-top:8px; color:var(--gold); font-weight:700; }
   .tag { display: inline-block; background: #43362b; color: var(--ink); font-size: 0.75rem; padding: 2px 6px; border-radius: 99px; margin: 1px; }
   .tag.w { background: #5a3a2a; } .tag.r { background: #2a3a2a; } .tag.m { background: #2a3348; } .tag.c { background: #3a3348; }
   .bar { height: 6px; background: #1a1410; border-radius: 99px; overflow: hidden; margin-top: 4px; }
@@ -653,22 +671,25 @@ function repTier(n){
   if(n>=3) return {n:"known", bonus:3};
   return {n:"green", bonus:0};
 }
-function rolePwr(p, m, party){
+function rolePwrParts(p, m, party){
   const r = roleDef(p);
-  if(!r) return 0;
-  let n = 0;
+  const parts = [];
+  if(!r) return parts;
   const typ = jobTypeOf(m);
   if(r.types && r.types.length){
-    if(typ && r.types.indexOf(typ)>=0) n += 4;
-    else n -= 4;
+    if(typ && r.types.indexOf(typ)>=0) parts.push({label:(r.n||"Role")+" role on "+typ, n:4});
+    else parts.push({label:(r.n||"Role")+" role off-type", n:-4});
   }
-  if(r.dark && m && isDarkMission(m)) n += r.dark;
+  if(r.dark && m && isDarkMission(m)) parts.push({label:(r.n||"Role")+" role on Dark", n:r.dark});
   if(r.lead && party){
     const peers = party.filter(x=>x && x.cls===p.cls);
     const best = Math.max.apply(null, peers.map(x=>x.lv||1));
-    if((p.lv||1)>=best) n += 3;
+    if((p.lv||1)>=best) parts.push({label:(r.n||"Sergeant")+" leads the "+(p.cls||"")+"s", n:3});
   }
-  return n;
+  return parts;
+}
+function rolePwr(p, m, party){
+  return rolePwrParts(p, m, party).reduce((s,x)=>s+x.n, 0);
 }
 function chemDelta(party){
   if(!party || party.length<2) return 0;
@@ -713,35 +734,46 @@ function tickBonds(party, success){
   });
 }
 
-function quirkPwr(p, m, party){
+function quirkPwrParts(p, m, party){
   const q = quirkDef(p);
-  if(!q) return 0;
+  const parts = [];
+  if(!q) return parts;
   const typ = jobTypeOf(m);
-  let n = 0;
-  if(q.id==="night_step" && m) n += isDarkMission(m) ? 5 : -5;
-  if(q.id==="no_dark" && m && isDarkMission(m)) n -= 5;
+  const qn = q.n || "Quirk";
+  if(q.id==="night_step" && m) parts.push({label:isDarkMission(m) ? qn+" on Dark" : qn+" off Dark", n: isDarkMission(m) ? 5 : -5});
+  if(q.id==="no_dark" && m && isDarkMission(m)) parts.push({label:qn, n:-5});
   if(q.id==="oath_kin" && p.kinId && party){
-    n += party.some(x=>x && x.id===p.kinId) ? 3 : -5;
+    const kin = party.some(x=>x && x.id===p.kinId);
+    const kn = ((S.people||[]).find(x=>x.id===p.kinId)||{}).name;
+    const who = kn ? kn.split(" ")[0] : "their bond";
+    parts.push({label: kin ? qn+" with "+who : qn+" without "+who, n: kin ? 3 : -5});
   }
   if(q.id==="bitter"){
-    if(p.bitterId && party && party.some(x=>x && x.id===p.bitterId)) n -= 6;
-    else n += 2;
+    const hit = p.bitterId && party && party.some(x=>x && x.id===p.bitterId);
+    const bn = hit ? (((S.people||[]).find(x=>x.id===p.bitterId)||{}).name||"").split(" ")[0] : "";
+    parts.push({label: hit ? qn+", sent with "+bn : qn, n: hit ? -6 : 2});
   }
-  if(q.id==="lone_hand") n += (party && party.length===1) ? 3 : (party && party.length>1 ? -2 : 0);
+  if(q.id==="lone_hand"){
+    if(party && party.length===1) parts.push({label:qn+" (solo)", n:3});
+    else if(party && party.length>1) parts.push({label:qn+" (in a party)", n:-2});
+  }
   if(q.id==="soft_hands"){
-    if(typ==="Assault"||typ==="Extermination") n -= 3;
-    if(typ==="Gathering"||typ==="Recovery") n += 2;
+    if(typ==="Assault"||typ==="Extermination") parts.push({label:qn+" on "+typ, n:-3});
+    if(typ==="Gathering"||typ==="Recovery") parts.push({label:qn+" on "+typ, n:2});
   }
   if(q.id==="loud_step"){
-    if(typ==="Search"||typ==="Mystery") n -= 2;
-    if(typ==="Escort"||typ==="Assault") n += 2;
+    if(typ==="Search"||typ==="Mystery") parts.push({label:qn+" on "+typ, n:-2});
+    if(typ==="Escort"||typ==="Assault") parts.push({label:qn+" on "+typ, n:2});
   }
   if((q.id==="short_road" || q.id==="long_strider") && m){
     const d = missionDays(m);
-    if(d<4) n += q.id==="short_road" ? 5 : -5;
-    if(d>4) n += q.id==="short_road" ? -5 : 5;
+    if(d<4) parts.push({label:qn+" on a short road", n: q.id==="short_road" ? 5 : -5});
+    if(d>4) parts.push({label:qn+" on a long road", n: q.id==="short_road" ? -5 : 5});
   }
-  return n;
+  return parts;
+}
+function quirkPwr(p, m, party){
+  return quirkPwrParts(p, m, party).reduce((s,x)=>s+x.n, 0);
 }
 function roleLine(p){
   const r = roleDef(p);
@@ -4135,62 +4167,113 @@ function ensureFoodStock(){
   restockShop();
 }
 
-function power(party, m){
-  let pwr = (S.buildings&&S.buildings.seer||0)>=4 ? 2 : 0;
-  if(m && m.recovery && m.watcherId) pwr += 10;
-  party.forEach(p=>{
-    pwr += atkOf(p) + defOf(p)*0.7;
-    if(m.tags && m.tags.includes(p.cls)) pwr += 4;
+function pwrPart(parts, label, n){
+  if(!n) return 0;
+  parts.push({label, n});
+  return n;
+}
+function fmtPwrPart(n, signed){
+  const neg = n<0;
+  const abs = Math.abs(n);
+  const whole = Math.abs(abs - Math.round(abs)) < 1e-9;
+  const body = whole ? String(Math.round(abs)) : (Math.round(abs*10)/10).toFixed(1);
+  if(n===0) return "0";
+  if(!signed && !neg) return body;
+  return (neg?"−":"+")+body;
+}
+function power(party, m, detail){
+  const parts = [];
+  let pwr = 0;
+  const seer = (S.buildings&&S.buildings.seer||0);
+  if(m && m.recovery && m.watcherId) pwr += pwrPart(parts, "Grave-watcher recovery", 10);
+  (party||[]).forEach(p=>{
+    const who = (party && party.length>1) ? ((p.name||"They").split(" ")[0]+": ") : "";
+    const epic = isEpic(p);
+    const body = atkOf(p) + defOf(p)*0.7;
+    pwr += body;
+    parts.push({label: who+"Attack and armor", n: body, base:true});
+    if(m && m.tags && m.tags.includes(p.cls)) pwr += pwrPart(parts, who+"Favored class ("+p.cls+")", 4);
     if(hasTrait(p,"Night Owl") && isDarkMission(m)){
-      if(p.cls==="Cleric") pwr += isEpic(p)?8:4;
-      else if(isEpic(p)) pwr += 4;
+      if(p.cls==="Cleric") pwr += pwrPart(parts, who+(epic?"Epic ":"")+"Night Owl Cleric on Dark", epic?8:4);
+      else if(epic) pwr += pwrPart(parts, who+"Epic Night Owl on Dark", 4);
     }
     if(hasTrait(p,"Daywalker") && isHolyMission(m)){
-      if(p.cls==="Cleric") pwr += isEpic(p)?8:4;
-      else if(isEpic(p)) pwr += 4;
+      if(p.cls==="Cleric") pwr += pwrPart(parts, who+(epic?"Epic ":"")+"Daywalker Cleric on Holy", epic?8:4);
+      else if(epic) pwr += pwrPart(parts, who+"Epic Daywalker on Holy", 4);
     }
-    if(hasTrait(p,"Lucky")) pwr += 2*emult(p);
-    if(hasTrait(p,"Unlucky")) pwr -= 2;
-    if(hasTrait(p,"Eagle Eye") && m.t.match(/Lost|Trace|Herb|Wood|Trail|Shepherd|Ledger/)) pwr += 3*emult(p);
-    if(hasTrait(p,"Near-sighted") && m.t.match(/Lost|Trace|Herb|Wood|Trail|Shepherd|Ledger/)) pwr -= 3;
-    
-    if(hasTrait(p,"Cautious")) pwr += 1*emult(p);
-    if(hasTrait(p,"Hardened") && m.diff>=6) pwr += 2*emult(p);
-    if(hasTrait(p,"Shaky") && m.diff>=6) pwr -= 2;
-    if(hasTrait(p,"Keen") && m.diff<=3) pwr += 2*emult(p);
-    if(hasTrait(p,"Slack") && m.diff<=3) pwr -= 2;
+    if(hasTrait(p,"Lucky")) pwr += pwrPart(parts, who+(epic?"Epic ":"")+"Lucky", 2*emult(p));
+    if(hasTrait(p,"Unlucky")) pwr += pwrPart(parts, who+"Unlucky", -2);
+    if(hasTrait(p,"Eagle Eye") && m && m.t && m.t.match(/Lost|Trace|Herb|Wood|Trail|Shepherd|Ledger/)) pwr += pwrPart(parts, who+(epic?"Epic ":"")+"Eagle Eye on this job", 3*emult(p));
+    if(hasTrait(p,"Near-sighted") && m && m.t && m.t.match(/Lost|Trace|Herb|Wood|Trail|Shepherd|Ledger/)) pwr += pwrPart(parts, who+"Near-sighted on this job", -3);
+    if(hasTrait(p,"Cautious")) pwr += pwrPart(parts, who+(epic?"Epic ":"")+"Cautious", 1*emult(p));
+    if(hasTrait(p,"Hardened") && m && m.diff>=6) pwr += pwrPart(parts, who+(epic?"Epic ":"")+"Hardened on a hard job", 2*emult(p));
+    if(hasTrait(p,"Shaky") && m && m.diff>=6) pwr += pwrPart(parts, who+"Shaky on a hard job", -2);
+    if(hasTrait(p,"Keen") && m && m.diff<=3) pwr += pwrPart(parts, who+(epic?"Epic ":"")+"Keen on an easy job", 2*emult(p));
+    if(hasTrait(p,"Slack") && m && m.diff<=3) pwr += pwrPart(parts, who+"Slack on an easy job", -2);
     const days = missionDays(m);
-    if(hasTrait(p,"Stayer") && days>=4) pwr += 2*emult(p);
-    if(hasTrait(p,"Sprinter") && days<=3) pwr += 2*emult(p);
-    if(hasTrait(p,"Pack leader") && party.length>=3) pwr += 2*emult(p);
-    if(hasTrait(p,"Lone wolf")) pwr += party.length<=1 ? 2*emult(p) : -2;
-    const mt = (MISSION_TYPE[m.t]||{}).type;
+    if(hasTrait(p,"Stayer") && days>=4) pwr += pwrPart(parts, who+(epic?"Epic ":"")+"Stayer on a long job", 2*emult(p));
+    if(hasTrait(p,"Sprinter") && days<=3) pwr += pwrPart(parts, who+(epic?"Epic ":"")+"Sprinter on a short job", 2*emult(p));
+    if(hasTrait(p,"Pack leader") && party && party.length>=3) pwr += pwrPart(parts, who+(epic?"Epic ":"")+"Pack leader", 2*emult(p));
+    if(hasTrait(p,"Lone wolf")) pwr += pwrPart(parts, who+"Lone wolf"+(party && party.length<=1?" (solo)":" (in a party)"), party && party.length<=1 ? 2*emult(p) : -2);
+    const mt = (MISSION_TYPE[m&&m.t]||{}).type;
     const spec = mt && TYPE_TRAIT[mt];
-    if(spec && specOf(p)===spec) pwr += 4*emult(p);
+    if(spec && specOf(p)===spec) pwr += pwrPart(parts, who+(epic?"Epic ":"")+(specOf(p))+" on "+mt, 4*emult(p));
     const sch = CLASS_SCHOOL[p.cls];
-    if(sch) pwr += (S.buildings[sch]||0);
-    if(seasonOf()==="summer" && !S.shade && missionDays(m)>=4) pwr -= 1;
-    pwr += foodPwr(p, m);
+    if(sch) pwr += pwrPart(parts, who+((BUILDINGS[sch]&&BUILDINGS[sch].n)||"Training Grounds"), (S.buildings[sch]||0));
+    if(seasonOf()==="summer" && !S.shade && missionDays(m)>=4) pwr += pwrPart(parts, who+"Summer heat", -1);
+    const foodN = foodPwr(p, m);
+    if(foodN){
+      const fd = foodOf(p);
+      const darkBit = fd && fd.dark && m && isDarkMission(m);
+      pwr += pwrPart(parts, who+"Food ("+((fd&&fd.n)||"packed")+")"+ (darkBit?" on Dark":""), foodN);
+    }
     const kk = kitOf(p);
     if(kk){
-      if(kk.pwr) pwr += kk.pwr;
-      if(kk.job && jobTypeOf(m)===kk.job) pwr += (kk.jobp||0);
+      if(kk.pwr) pwr += pwrPart(parts, who+"Kit ("+(kk.n||"kit")+")", kk.pwr);
+      if(kk.job && jobTypeOf(m)===kk.job) pwr += pwrPart(parts, who+"Kit ("+(kk.n||"kit")+") on "+kk.job, kk.jobp||0);
     }
     if(p.quirk==="cup_bearer" && party){
+      let cup = 0;
       party.forEach(o=>{
-        if(o && o.id!==p.id && !o.foodSkip) pwr += Math.floor(foodPwr(o, m)/2);
+        if(o && o.id!==p.id && !o.foodSkip) cup += Math.floor(foodPwr(o, m)/2);
       });
+      pwr += pwrPart(parts, who+"Cup-bearer (half of the party's food)", cup);
     }
-    pwr += rolePwr(p, m, party);
+    rolePwrParts(p, m, party).forEach(x=>{ pwr += pwrPart(parts, who+x.label, x.n); });
     const typ = jobTypeOf(m);
-    pwr += repTier(repMarks(p, typ)).bonus;
-    pwr += quirkPwr(p, m, party);
+    const rep = repTier(repMarks(p, typ));
+    if(rep && rep.bonus) pwr += pwrPart(parts, who+(rep.n==="veteran"?"Veteran":"Known")+" on "+(typ||"this job"), rep.bonus);
+    quirkPwrParts(p, m, party).forEach(x=>{ pwr += pwrPart(parts, who+x.label, x.n); });
   });
-  pwr += chemDelta(party);
-  if(isDarkMission(m)||isHolyMission(m)) pwr += (S.buildings.bell||0)*2;
-  if((S.buildings.seer||0)>=4) pwr += 4;
-  if(m && m.blessPwr) pwr += m.blessPwr;
+  const chem = chemDelta(party);
+  if(chem) pwr += pwrPart(parts, chem>0?"Mixed classes":"Same-class penalty", chem);
+  if(isDarkMission(m)||isHolyMission(m)) pwr += pwrPart(parts, "Chapel Bell", (S.buildings.bell||0)*2);
+  if(seer>=4) pwr += pwrPart(parts, "Seer blessing", 6);
+  if(m && m.blessPwr) pwr += pwrPart(parts, "Blessing on this job", m.blessPwr);
+  if(detail) return {total:pwr, parts, shown:Math.round(pwr)};
   return pwr;
+}
+function paintJobPowerSheet(p, m, onBack){
+  const sheet = document.getElementById("sheet");
+  if(!sheet || !p || !m) return;
+  const d = power([p], m, true);
+  const sheetN = pwrOf(p);
+  const rows = (d.parts||[]).map(part=>{
+    const signed = !part.base;
+    return `<div class="job-pwr-row"><span>${escHtml(part.label)}</span><span>${fmtPwrPart(part.n, signed)}</span></div>`;
+  }).join("");
+  const exact = d.total;
+  const needExact = Math.abs(exact - d.shown) >= 1e-9;
+  sheet.classList.add("tall");
+  sheet.innerHTML = `<h3>Job power</h3>
+    <p class="tiny">${escHtml((p.name||"This face"))} on ${escHtml(m.t||"this job")}. Sheet PWR is ${sheetN}. That number also counts a flat bonus for level, health, and gift. Job power starts from attack and armor on this card, then adds what this job does.</p>
+    <div class="job-pwr-rows">${rows||`<div class="job-pwr-row"><span>Nothing to count</span><span>0</span></div>`}
+      ${needExact?`<div class="job-pwr-row"><span>Exact total</span><span>${fmtPwrPart(exact,false)}</span></div>`:""}
+      <div class="job-pwr-row total"><span>Job power</span><span>${d.shown}</span></div>
+    </div>
+    <button type="button" class="act" id="jobPwrBack" style="width:100%;min-height:44px;margin-top:4px">Back</button>`;
+  const back = document.getElementById("jobPwrBack");
+  if(back) back.onclick = (ev)=>{ ev.preventDefault(); ev.stopPropagation(); if(typeof onBack==="function") onBack(); };
 }
 
 let DAY = [];
@@ -10197,10 +10280,10 @@ function openSendReal(mid, hint){
         const blocked = whyNoSend(p, m);
         const legal = ready.filter(x=>!whyNoSend(x,m));
         const tone = !blocked && seerLv()>=1 ? missionPwrTone(p, m, legal) : null;
-        const badge = tone ? `<span class="tiny" style="display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;background:${tone.col};color:${tone.ink};font-weight:700;letter-spacing:.02em">Job ${tone.n}</span>` : "";
-        return `<button type="button" class="ghost" data-pick="${p.id}" ${blocked?"disabled":""} style="width:100%;text-align:left;margin:6px 0;${blocked?"opacity:.48;filter:grayscale(.35);":""}${chosen[p.id]?"border-color:var(--gold);background:#3a2e22":""}">
-        <span class="who">${face(p)}<span>${nameHtml(p,"strong")}${badge}${mottoHtml(p)}${(p.idleDays||0)>=7 && canBecomeRestless(p)?`<div class="tiny" style="color:#e0a050;font-weight:700">becoming restless · ${p.idleDays}d on the bench</div>`:""}<span class="tiny">Sheet PWR ${pwrOf(p)} · ${roleLine(p)} · ${specLine(p)} · ${quirkLine(p)} · HP ${p.hp}/${p.maxhp}${(m.tags&&m.tags.includes(p.cls))?" ★":""}<br>${traitText(p)}${blocked?`<br><b style="color:#c4a574">${blocked}</b>`:""}</span></span></span>
-      </button>`;
+        const badge = tone ? `<button type="button" class="job-pwr" data-jobpwr="${p.id}" style="background:${tone.col};color:${tone.ink}">Job ${tone.n}</button>` : "";
+        return `<div class="ghost" data-pick="${p.id}" ${blocked?'aria-disabled="true"':""} style="width:100%;text-align:left;margin:6px 0;cursor:${blocked?"default":"pointer"};${blocked?"opacity:.48;filter:grayscale(.35);":""}${chosen[p.id]?"border-color:var(--gold);background:#3a2e22":""}">
+        <span class="who"><span class="pick-left">${face(p)}${badge}</span><span class="pick-body">${nameHtml(p,"strong")}${mottoHtml(p)}${(p.idleDays||0)>=7 && canBecomeRestless(p)?`<div class="tiny" style="color:#e0a050;font-weight:700">becoming restless · ${p.idleDays}d on the bench</div>`:""}<span class="tiny">Sheet PWR ${pwrOf(p)} · ${roleLine(p)} · ${specLine(p)} · ${quirkLine(p)} · HP ${p.hp}/${p.maxhp}${(m.tags&&m.tags.includes(p.cls))?" ★":""}<br>${traitText(p)}${blocked?`<br><b style="color:#c4a574">${blocked}</b>`:""}</span></span></span>
+      </div>`;
       }).join("")||"<p class='muted'>No one is ready.</p>"}</div>
       <p class="danger" id="sendErr" style="display:none"></p>
       <button type="button" class="act" id="confirmSend" style="width:100%;margin-top:8px">Send them</button>
@@ -10216,17 +10299,28 @@ function openSendReal(mid, hint){
         else qd.classList.add("clamp");
       };
     }
-    sheet.querySelectorAll("[data-pick]").forEach(b=>{
-      b.onclick = (ev)=>{
+    sheet.onclick = (ev)=>{
+      const jobBtn = ev.target && ev.target.closest && ev.target.closest("[data-jobpwr]");
+      if(jobBtn && sheet.contains(jobBtn)){
         ev.preventDefault();
         ev.stopPropagation();
-        const id = b.getAttribute("data-pick");
-        const face = S.people.find(x=>x.id===id);
+        const id = jobBtn.getAttribute("data-jobpwr");
+        const face = (S.people||[]).find(x=>x && String(x.id)===String(id));
+        if(!face) return;
+        paintJobPowerSheet(face, m, paint);
+        return;
+      }
+      const row = ev.target && ev.target.closest && ev.target.closest("[data-pick]");
+      if(row && sheet.contains(row)){
+        ev.preventDefault();
+        ev.stopPropagation();
+        const id = row.getAttribute("data-pick");
+        const face = (S.people||[]).find(x=>x && String(x.id)===String(id));
         if(!face || whyNoSend(face, m)) return;
         if(chosen[id]) delete chosen[id]; else chosen[id] = true;
         paint();
-      };
-    });
+      }
+    };
     const err = document.getElementById("sendErr");
     document.getElementById("cancelSend").onclick = closeModal;
     document.getElementById("confirmSend").onclick = ()=>{
@@ -10759,7 +10853,7 @@ function helpGearBody(){
     <p class="tiny">That button is <b>Sealed Briefs</b> on the Hall. Pay gold to throw out one <b>open</b> job and draw a different contract in that slot. You cannot seal-break a job that already has a party.</p>
     <p class="tiny">Cost is 24g minus 4g per Briefs level, minimum 8g. Right now: ${seal}. The redraw is a random unused title from the pool — it can be harder, easier, or Dark.</p>
     <h4>👁️ Sight</h4>
-    <p class="tiny">Every open card shows live odds for the recommended seat count — not for a stacked party. Hint, not a promise. Seer Lv1 paints Job pills on Assign. Lv2 adds the power bar. Lv3 auto-ticks that same set. Lv4 blesses (+4 power).</p>
+    <p class="tiny">Every open card shows live odds for the recommended seat count — not for a stacked party. Hint, not a promise. Seer Lv1 paints Job pills on Assign, under the portrait. Tap a pill to see how that number is calculated. Lv2 adds the power bar. Lv3 auto-ticks that same set. Lv4 blesses (+4 power).</p>
     <h4>Types</h4>
     <p class="tiny">Specialist traits give +4 on their type. Roles and job marks stack on top. Two pluses may stack. A plus and a minus on the same type never share a person.</p>
     ${Object.keys(TYPE_TRAIT).map(k=>{
@@ -10770,7 +10864,7 @@ function helpGearBody(){
     <h4>Dark jobs</h4>
     <p class="tiny">Harder (+2 Diff) and better pay. Who can walk: Cleric, Night Owl, Occultist, Night role, Night step. “Won't walk Dark” always refuses. Chapel Bell adds +2 party power per level on Dark work (yours: Lv ${bell}).</p>
     <h4>Who you send</h4>
-    <p class="tiny">Two+ of the same class: −2 power per extra copy. Two different classes: +2. Typed roles are +4 on-type / −4 off-type, so a second Scout is for Search cards, not Assault. Short road is +5 under 4 days after Stable, −5 over 4. Long strider is the inverse. Sheet PWR is the body with no job in front of it; Assign Job power is the same body on this card. Success is party power vs Diff×8 plus a small roll — the Seer word is a hint. Food packed on a person heals and applies its bonus on the job, then is gone.</p>
+    <p class="tiny">Two+ of the same class: −2 power per extra copy. Two different classes: +2. Typed roles are +4 on-type / −4 off-type, so a second Scout is for Search cards, not Assault. Short road is +5 under 4 days after Stable, −5 over 4. Long strider is the inverse. Sheet PWR is the body with no job in front of it (it also counts a flat bonus for level, health, and gift). Assign Job power starts from attack and armor on that card, then adds what the job does — favored class, role, specialty, traits, quirks, food, kit, job marks, and the rest. Tap the Job pill under the portrait to see the list. Success is party power vs Diff×8 plus a small roll — the Seer word is a hint. Food packed on a person heals and applies its bonus on the job, then is gone.</p>
     <p class="tiny">A success adds 1 job mark on that type (known at 3 / +3 power, veteran at 6 / +5) and can stamp a writ if the type matches. Failed jobs do not count for the writ.</p>
     <h4>The road</h4>
     <p class="tiny">While a party is still out, End Day may fire a roadside event (⚙ chance). Combat can add XP, gold, Renown, or shave a day — or wound someone and add a day. Forced-fight slider is the chance you cannot walk away.</p>`;
@@ -10779,6 +10873,7 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-11", t:"On Assign, the Job power pill sits under the portrait. Tap it to see the calculation for that card."},
   {d:"2026-11-10", t:"The guild contest keeps its countdown ring after you reopen the app, and the pair still comes home. The Contest ring sits with the quest rings; tap it for who's out and the other hall. The away badge now names the reason (contest, levy, kin, watch, build, grave)."},
   {d:"2026-11-10", t:"Assign party failed on some writ-posted quests because they had no id. Those briefs work now, and a leftover card offers a same-difficulty replacement instead of a toast."},
   {d:"2026-11-10", t:"Hall events can no longer stick unseen and block every new one. The night report no longer covers the event, a leftover note is shown again or dropped after two days, and an old save with a stuck event starts getting them again."},
