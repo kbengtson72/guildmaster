@@ -9503,6 +9503,25 @@ function eventAwayChips(){
     </div>`;
   }).join("");
 }
+function feverChips(){
+  return (S.people||[]).filter(p=>p && p.status!=="dead" && p.status!=="away" && p.sickUntil && S.day < p.sickUntil).map(p=>{
+    const left = Math.max(1, p.sickUntil - S.day);
+    const span = Math.max(3, left);
+    const dash = (94.2*(1-Math.max(0, Math.min(1, (span-left)/span)))).toFixed(1);
+    const nm = escHtml((p.name||"").split(" ")[0]);
+    return `<div class="meter">
+      <button type="button" class="meterChip on fieldChip" data-awayid="${p.id}" title="${nm} · Fever · ${left}d">
+        <svg viewBox="0 0 36 36" aria-hidden="true">
+          <circle class="rg-bg" cx="18" cy="18" r="15"></circle>
+          <circle class="rg-fg" cx="18" cy="18" r="15" style="stroke-dashoffset:${dash};stroke:#c23b3b"></circle>
+        </svg>
+        <span class="fieldIco">🤒</span>
+        <span class="fieldMark">${left}</span>
+      </button>
+      <div class="meterLbl">${nm}</div>
+    </div>`;
+  }).join("");
+}
 function paintFieldChips(){
   const box = document.getElementById("fieldMeters");
   if(!box) return;
@@ -9527,7 +9546,7 @@ function paintFieldChips(){
       </button>
       <div class="raise-text">${name}</div>
     </div>`;
-  }).join("") + eventAwayChips();
+  }).join("") + eventAwayChips() + feverChips();
   box.querySelectorAll("[data-gotoboard]").forEach(b=>b.onclick=()=>{ tab="board"; render(); });
   box.querySelectorAll("[data-contest]").forEach(b=>b.onclick=()=>openContestStatus());
   box.querySelectorAll("[data-awayid]").forEach(b=>b.onclick=()=>openPerson(b.dataset.awayid));
@@ -11086,7 +11105,7 @@ function helpGearBody(){
     <h4>The board</h4>
     <p class="tiny">Usually 4 open jobs (up to 6 later). After you send someone, the hall tries to keep at least one job your people can actually walk (comfort cap from level, day, and Renown). Harder work still appears; it should not be the whole board.</p>
     <p class="tiny">If Assign party says a card has left the board, the list was stale. You can refresh it, or post a fresh contract of about the same difficulty in that slot. That does not redraw a quest that is still live.</p>
-    <p class="tiny">A green ⚔ line in the header and on the night report is how many parties are still out. Quest, contest, kin, levy, watch, and build absences each get a countdown ring in the upper left. Tap a quest ring to open the board, or the Contest ring for the other hall.</p>
+    <p class="tiny">A green ⚔ line in the header and on the night report is how many parties are still out. Quest, contest, kin, levy, watch, and build absences each get a countdown ring in the upper left, and so does a face on a fever lock (🤒). Tap a quest ring to open the board, or the Contest ring for the other hall.</p>
     <h4>✉️ Break the seal</h4>
     <p class="tiny">That button is <b>Sealed Briefs</b> on the Hall. Pay gold to throw out one <b>open</b> job and draw a different contract in that slot. You cannot seal-break a job that already has a party.</p>
     <p class="tiny">Cost is 24g minus 4g per Briefs level, minimum 8g. Right now: ${seal}. The redraw is a random unused title from the pool — it can be harder, easier, or Dark.</p>
@@ -11111,7 +11130,7 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
-  {d:"2026-11-11", t:"The ready count no longer counts a face on a fever lock, and the Seer box names anyone held back and why."},
+  {d:"2026-11-11", t:"A face on a fever lock gets a 🤒 countdown ring, no longer counts as ready in the header, and the Seer box names anyone held back and why."},
   {d:"2026-11-11", t:"The Continue button on a road result can no longer stick. A leftover shop button was stealing the tap, and a hall note could cover it. Closing the app mid-road now brings the result back, or clears it so you can go on."},
   {d:"2026-11-11", t:"Hall events show up again even if you closed the app, a find was waiting, or the rival sealed a writ the same day. A note you have not seen comes back the next day instead of vanishing. 🐞 Debug and Help show the last hall event and any note still pending."},
   {d:"2026-11-11", t:"Choosing Use it when sending a face heals them right away. Power, gold, and XP still land on that job. Send all no longer loses the heal."},
