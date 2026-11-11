@@ -4187,8 +4187,9 @@ function seerText(m, party, live){
     } else {
       why = readyN ? "not enough bodies available" : "no one ready";
     }
+    const held = (S.people||[]).filter(p=>p && p.status==="ready" && readyFor(m).indexOf(p)<0).map(p=>escHtml(p.name.split(" ")[0])+": "+(whyNoSend(p,m)||"cannot take this job").replace(/\.$/,"")).join(" · ");
     return `<div class="seerbox"><div class="seer-line"><span class="seer-eye">👁️</span><span class="seer-word">${why}</span></div>
-      <p class="seer-note">${readyN} ready · needs ${need}</p></div>`;
+      <p class="seer-note">${readyN} ready · needs ${need}${held?" · "+held:""}</p></div>`;
   }
   const recommended = !!(reserved && reserved.length);
   if(!use.length){
@@ -9869,7 +9870,7 @@ function render(){ (S.people||[]).forEach(fixTwoHand);
   document.getElementById("roster").textContent = S.people.filter(p=>p.status!=="dead").length;
   document.getElementById("cap").textContent = cap();
   const fieldN = (typeof fieldJobs==="function" ? fieldJobs() : (S.missions||[]).filter(m=>m.party && m.party.length)).length;
-  const readyN = (S.people||[]).filter(p=>p.status==="ready").length;
+  const readyN = (S.people||[]).filter(p=>p.status==="ready" && !(p.sickUntil && S.day < p.sickUntil)).length;
   const faceN = (S.people||[]).filter(p=>p.status==="away").length;
   const fs = document.getElementById("fieldStat");
   if(fs){
@@ -11110,6 +11111,7 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-11", t:"The ready count no longer counts a face on a fever lock, and the Seer box names anyone held back and why."},
   {d:"2026-11-11", t:"The Continue button on a road result can no longer stick. A leftover shop button was stealing the tap, and a hall note could cover it. Closing the app mid-road now brings the result back, or clears it so you can go on."},
   {d:"2026-11-11", t:"Hall events show up again even if you closed the app, a find was waiting, or the rival sealed a writ the same day. A note you have not seen comes back the next day instead of vanishing. 🐞 Debug and Help show the last hall event and any note still pending."},
   {d:"2026-11-11", t:"Choosing Use it when sending a face heals them right away. Power, gold, and XP still land on that job. Send all no longer loses the heal."},
