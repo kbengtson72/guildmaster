@@ -1824,7 +1824,7 @@ function pwrOf(p){
 function atkOf(p){
   const w = WEAPONS.find(x=>x.id===p.weapon) || WEAPONS[0];
   const off = p.offhand ? (WEAPONS.find(x=>x.id===p.offhand)||{}) : {};
-  const half = off.fam==="shield" ? 0 : Math.floor((off.atk||0)/2);
+  const half = off.fam==="shield" ? 0 : (off.atk||0)/2;
   const r = roleDef(p);
   return CLASSES[p.cls].atk + p.lv + w.atk + half + (hasTrait(p,"Brave")?2*emult(p):0) + (hasTrait(p,"Craven")?-2:0) + ((r&&r.atk)||0);
 }
@@ -4317,7 +4317,7 @@ function bodyParts(p, who){
   add("Base attack ("+p.cls+")", CLASSES[p.cls].atk);
   add("Level "+p.lv+" attack", p.lv);
   add("Weapon ("+(p.weapon?(w.n||"weapon"):"bare hands")+")", w.atk);
-  if(!shield) add("Offhand ("+(off.n||"offhand")+", half)", Math.floor((off.atk||0)/2));
+  if(!shield) add("Offhand ("+(off.n||"offhand")+", half)", (off.atk||0)/2);
   if(hasTrait(p,"Brave")) add((em>1?"Epic ":"")+"Brave", 2*em);
   if(hasTrait(p,"Craven")) add("Craven", -2);
   if(r&&r.atk) add(r.n+" role attack", r.atk);
@@ -10722,7 +10722,7 @@ function unequip(pid, slot){
 function offStatText(p){
   const o = WEAPONS.find(x=>x.id===p.offhand) || {};
   if(o.fam==="shield") return " — +"+(o.def||0)+" DEF";
-  return " — +"+Math.floor((o.atk||0)/2)+" ATK (half of +"+(o.atk||0)+")";
+  return " — +"+((o.atk||0)/2)+" ATK (half of +"+(o.atk||0)+")";
 }
 function gearLine(p){
   const w = WEAPONS.find(x=>x.id===p.weapon) || WEAPONS[0];
@@ -11162,6 +11162,7 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-11", t:"Offhand weapons now add an exact half of their attack instead of rounding down, so a +1 offhand adds +0.5."},
   {d:"2026-11-11", t:"The Job power breakdown splits attack and armor into its parts: class base, level, weapon, offhand, traits, role, and each defense source at 70%."},
   {d:"2026-11-11", t:"The character sheet shows the offhand's stats: half attack for a weapon, defense for a shield."},
   {d:"2026-11-11", t:"A face on a fever lock gets a 🤒 countdown ring, no longer counts as ready in the header, and the Seer box names anyone held back and why."},
