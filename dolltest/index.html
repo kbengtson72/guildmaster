@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a1410">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Doll Test">
+<title>Guildmaster · Paper Doll Test</title>
+<style>
+  :root {
+    --bg: #1a1410;
+    --panel: #2a231c;
+    --edge: #3a2e22;
+    --gold: #e0b84a;
+    --gold2: #f3d27a;
+    --muted: #9a9488;
+    --text: #efe6d4;
+    --ink: #1a1410;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    min-height: 100dvh;
+    background:
+      radial-gradient(ellipse at 50% 18%, #2a231c 0%, #1a1410 62%);
+    padding: calc(10px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom));
+  }
+  header { text-align: center; margin: 0 0 10px; }
+  h1 {
+    margin: 0;
+    font-size: 0.98rem;
+    font-weight: normal;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+  .sub {
+    margin: 5px 0 0;
+    color: var(--muted);
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+  }
+  .rule {
+    height: 1px;
+    border: 0;
+    margin: 8px auto 0;
+    max-width: 220px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0.55;
+  }
+  .stage-wrap {
+    width: min(100%, 420px);
+    margin: 0 auto;
+  }
+  .stage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    background:
+      radial-gradient(ellipse at 50% 58%, #2a221b 0%, #14100c 70%);
+    border: 1px solid var(--edge);
+    box-shadow:
+      0 0 0 1px rgba(224, 184, 74, 0.12),
+      0 14px 36px rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .stage img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+  }
+  .stage img.on { opacity: 1; }
+  #layer-base { z-index: 1; }
+  #layer-leather, #layer-plate { z-index: 2; }
+  #layer-boots { z-index: 3; }
+  #layer-cloak { z-index: 4; }
+  #layer-helm { z-index: 5; }
+  #layer-shield { z-index: 6; }
+  #layer-sword { z-index: 7; }
+  .presets {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin: 12px 0 10px;
+  }
+  .presets button {
+    font-family: inherit;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    color: var(--gold);
+    background: var(--panel);
+    border: 1px solid var(--edge);
+    border-radius: 999px;
+    padding: 7px 12px;
+    min-height: 36px;
+    cursor: pointer;
+  }
+  .presets button[aria-pressed="true"] {
+    background: #3a2e22;
+    border-color: var(--gold);
+    color: var(--gold2);
+  }
+  .presets button:active { transform: translateY(1px); }
+  .slots {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: min(100%, 420px);
+    margin: 0 auto;
+  }
+  .slot {
+    appearance: none;
+    -webkit-appearance: none;
+    font-family: inherit;
+    text-align: left;
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--edge);
+    border-radius: 6px;
+    padding: 8px 10px 9px;
+    min-height: 52px;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(243, 210, 122, 0.05);
+  }
+  .slot:active { background: #332a22; }
+  .slot .k {
+    display: block;
+    font-size: 0.66rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 2px;
+  }
+  .slot .v {
+    display: block;
+    font-size: 0.92rem;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .slot .v.empty { color: var(--muted); font-style: italic; }
+  footer {
+    width: min(100%, 420px);
+    margin: 14px auto 0;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.72rem;
+    line-height: 1.45;
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Guildmaster</h1>
+    <p class="sub">Paper doll test &mdash; painted layers</p>
+    <hr class="rule">
+  </header>
+
+  <div class="stage-wrap">
+    <div class="stage" id="stage" aria-label="Character paper doll">
+      <img id="layer-base" class="on" src="img/base.png" alt="Base character">
+      <img id="layer-leather" src="img/leather.png" alt="">
+      <img id="layer-plate" src="img/plate.png" alt="">
+      <img id="layer-boots" src="img/boots.png" alt="">
+      <img id="layer-cloak" src="img/cloak.png" alt="">
+      <img id="layer-helm" src="img/helm.png" alt="">
+      <img id="layer-shield" src="img/shield.png" alt="">
+      <img id="layer-sword" src="img/sword.png" alt="">
+    </div>
+  </div>
+
+  <div class="presets" id="presets"></div>
+  <div class="slots" id="slots"></div>
+
+  <footer>
+    Tap a slot to cycle its gear. This is a standalone layering test, not the live game.<br>
+    Paper doll test &mdash; painted layers, Nov 11 2026
+  </footer>
+
+<script>
+(function () {
+  const SLOTS = [
+    { id: "head", label: "Head", items: [
+      { id: null, name: "None" },
+      { id: "helm", name: "Iron nasal helm" }
+    ]},
+    { id: "cloak", label: "Cloak", items: [
+      { id: null, name: "None" },
+      { id: "cloak", name: "Forest-green cloak" }
+    ]},
+    { id: "chest", label: "Chest", items: [
+      { id: null, name: "None" },
+      { id: "leather", name: "Studded leather" },
+      { id: "plate", name: "Steel plate" }
+    ]},
+    { id: "feet", label: "Feet", items: [
+      { id: null, name: "None" },
+      { id: "boots", name: "Leather boots" }
+    ]},
+    { id: "main", label: "Main hand", items: [
+      { id: null, name: "None" },
+      { id: "sword", name: "Arming sword" }
+    ]},
+    { id: "off", label: "Off hand", items: [
+      { id: null, name: "None" },
+      { id: "shield", name: "Round shield" }
+    ]}
+  ];
+
+  const SETS = {
+    bare:   { head: null, cloak: null, chest: null, feet: null, main: null, off: null },
+    ranger: { head: null, cloak: "cloak", chest: "leather", feet: "boots", main: "sword", off: null },
+    knight: { head: "helm", cloak: null, chest: "plate", feet: "boots", main: "sword", off: "shield" },
+    full:   { head: "helm", cloak: "cloak", chest: "leather", feet: "boots", main: "sword", off: "shield" }
+  };
+  // "mixed" is an alias used by the screenshot script
+  SETS.mixed = SETS.ranger;
+
+  const PRESETS = [
+    { id: "bare", label: "Bare" },
+    { id: "ranger", label: "Ranger" },
+    { id: "knight", label: "Knight" },
+    { id: "full", label: "Full kit" }
+  ];
+
+  const worn = {
+    head: null, cloak: null, chest: null, feet: null, main: null, off: null
+  };
+
+  const layers = {
+    helm: document.getElementById("layer-helm"),
+    cloak: document.getElementById("layer-cloak"),
+    leather: document.getElementById("layer-leather"),
+    plate: document.getElementById("layer-plate"),
+    boots: document.getElementById("layer-boots"),
+    sword: document.getElementById("layer-sword"),
+    shield: document.getElementById("layer-shield")
+  };
+
+  function currentPreset() {
+    for (const [id, set] of Object.entries(SETS)) {
+      if (id === "mixed") continue;
+      if (SLOTS.every(s => worn[s.id] === set[s.id])) return id;
+    }
+    return null;
+  }
+
+  function render() {
+    for (const [id, img] of Object.entries(layers)) {
+      const on = Object.values(worn).includes(id);
+      img.classList.toggle("on", on);
+    }
+    for (const slot of SLOTS) {
+      const btn = document.getElementById("slot-" + slot.id);
+      if (!btn) continue;
+      const item = slot.items.find(it => it.id === worn[slot.id]) || slot.items[0];
+      const v = btn.querySelector(".v");
+      v.textContent = item.name;
+      v.classList.toggle("empty", !item.id);
+    }
+    const preset = currentPreset();
+    document.querySelectorAll("#presets button").forEach(b => {
+      b.setAttribute("aria-pressed", b.dataset.set === preset ? "true" : "false");
+    });
+  }
+
+  function cycle(slotId) {
+    const slot = SLOTS.find(s => s.id === slotId);
+    const i = slot.items.findIndex(it => it.id === worn[slotId]);
+    worn[slotId] = slot.items[(i + 1) % slot.items.length].id;
+    render();
+  }
+
+  function applySet(id) {
+    const set = SETS[id];
+    if (!set) return;
+    Object.assign(worn, set);
+    render();
+  }
+
+  const presetBox = document.getElementById("presets");
+  for (const p of PRESETS) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.set = p.id;
+    b.textContent = p.label;
+    b.addEventListener("click", () => applySet(p.id));
+    presetBox.appendChild(b);
+  }
+
+  const slotBox = document.getElementById("slots");
+  for (const slot of SLOTS) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "slot";
+    b.id = "slot-" + slot.id;
+    b.innerHTML = '<span class="k">' + slot.label + '</span><span class="v"></span>';
+    b.addEventListener("click", () => cycle(slot.id));
+    slotBox.appendChild(b);
+  }
+
+  const params = new URLSearchParams(location.search);
+  const start = (params.get("set") || "bare").toLowerCase();
+  applySet(SETS[start] ? start : "bare");
+})();
+</script>
+</body>
+</html>
