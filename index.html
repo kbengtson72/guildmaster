@@ -1281,7 +1281,7 @@ const ARMORS = [
 const KITS = [
   {id:"whet", n:"Whetstone", icon:"🪨", cost:6, r:"common", pwr:2, desc:"+2 power on the next job, then gone."},
   {id:"pad", n:"Quilted pad", icon:"🩹", cost:7, r:"common", wound:-0.18, desc:"Less likely to come home wounded. One job."},
-  {id:"salt", n:"Salt meat", icon:"🧂", cost:5, r:"common", heal:5, desc:"+5 HP when they return from a job, then gone."},
+  {id:"salt", n:"Salt meat", icon:"🧂", cost:5, r:"common", heal:5, desc:"+5 HP when eaten, then gone."},
   {id:"oil_x", n:"Extermination oil", icon:"☠️", cost:8, r:"uncommon", job:"Extermination", jobp:3, desc:"+3 power on Extermination. One job."},
   {id:"oil_s", n:"Search oil", icon:"🔍", cost:8, r:"uncommon", job:"Search", jobp:3, desc:"+3 power on Search. One job."},
   {id:"oil_e", n:"Escort oil", icon:"🛡️", cost:8, r:"uncommon", job:"Escort", jobp:3, desc:"+3 power on Escort. One job."},
@@ -8352,6 +8352,25 @@ function openWoundList(){
   sheet.querySelectorAll("[data-who]").forEach(b=>b.onclick=()=>openWoundFood(b.dataset.who));
   sheet.querySelector("[data-close]").onclick=()=>modal.classList.remove("show");
 }
+function eatAtSend(p, ids){
+  const f = foodOf(p);
+  p.foodSkip = false;
+  if(!f || p.foodEaten) return;
+  if(f.heal){
+    const before = p.hp||0;
+    p.hp = Math.min(p.maxhp, before + f.heal + (p.quirk==="iron_gut"?3:0));
+    if(p.hp>before) log(p.name+" ate "+f.n+" on the way out (+"+(p.hp-before)+" HP).");
+    const half = Math.floor(f.heal/2);
+    if(half) (ids||[]).forEach(id=>{
+      const c = S.people.find(x=>x.id===id);
+      if(c && c.id!==p.id && c.quirk==="cup_bearer"){
+        const b = c.hp||0; c.hp = Math.min(c.maxhp, b+half);
+        if(c.hp>b) log(c.name+" drank half of "+p.name+"'s "+f.n+" (+"+(c.hp-b)+" HP).");
+      }
+    });
+  }
+  p.foodEaten = true;
+}
 function eatFood(pid){
   const p = S.people.find(x=>x.id===pid);
   if(!p) return;
@@ -9957,7 +9976,7 @@ function bindCards(){
     <button type="button" class="act" id="faYes" style="width:100%;margin-top:8px">Use it</button>
     <button type="button" class="ghost" id="faNo" style="width:100%;margin-top:6px">Keep it packed</button>`;
   modal.classList.add("show"); modal.style.display="flex";
-  document.getElementById("faYes").onclick=()=>{ p.foodEaten=true; askFoodUseAll(jobs, packed, ix+1); };
+  document.getElementById("faYes").onclick=()=>{ const j=jobs.find(j=>j.ids.indexOf(p.id)>=0); eatAtSend(p, j?j.ids:[]); save(); askFoodUseAll(jobs, packed, ix+1); };
   document.getElementById("faNo").onclick=()=>{ p.foodSkip=true; askFoodUseAll(jobs, packed, ix+1); };
 }
 function askArmoryFoodAll(jobs, foods){
@@ -10214,7 +10233,7 @@ function askFoodUse(mid, ids, packed, ix){
     <button type="button" class="ghost" id="foodRack" style="width:100%;margin-top:6px">Return to armory</button>
     <button type="button" class="ghost" id="foodCancel" style="width:100%;margin-top:6px">Cancel send</button>`;
   document.getElementById("foodYes").onclick=()=>{
-    p.foodSkip = false;
+    eatAtSend(p, ids); save();
     askFoodUse(mid, ids, packed, ix+1);
   };
   document.getElementById("foodNo").onclick=()=>{
@@ -10796,7 +10815,7 @@ function helpGearBody(){
     }).join("");
     return `
     <p class="tiny">One snack slot per person. Buy it, loot it, or pick it off the road. One use. Color is rarity, same as gear.</p>
-    <p class="tiny"><b>Use on the sheet</b> — heal and loyalty apply now. Power / gold / XP wait for the next job, then the food is gone. You can also Use food sitting in the Armory.</p>
+    <p class="tiny"><b>Use it when sending</b> — the heal lands right away; power / gold / XP count on that job, then the food is gone. <b>Use on the sheet</b> — heal and loyalty apply now. Power / gold / XP wait for the next job, then the food is gone. You can also Use food sitting in the Armory.</p>
     <p class="tiny"><b>Leave it packed</b> — they eat on the job: heal first, then the wound roll; bonuses apply; then it is gone.</p>
     ${rows}`;
   }
@@ -10873,6 +10892,7 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-11", t:"Choosing Use it when sending a face heals them right away. Power, gold, and XP still land on that job. Send all no longer loses the heal."},
   {d:"2026-11-11", t:"On Assign, the Job power pill sits under the portrait. Tap it to see the calculation for that card."},
   {d:"2026-11-10", t:"The guild contest keeps its countdown ring after you reopen the app, and the pair still comes home. The Contest ring sits with the quest rings; tap it for who's out and the other hall. The away badge now names the reason (contest, levy, kin, watch, build, grave)."},
   {d:"2026-11-10", t:"Assign party failed on some writ-posted quests because they had no id. Those briefs work now, and a leftover card offers a same-difficulty replacement instead of a toast."},
