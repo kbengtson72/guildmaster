@@ -452,7 +452,7 @@
   <button class="act" id="btnDay">End Day</button>
 </footer>
 <div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
-<div id="finds" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.78);align-items:center;justify-content:center;padding:16px;pointer-events:auto"><div id="findsBox" style="background:#2a231c;width:100%;max-width:520px;border-radius:16px;padding:16px;max-height:80vh;overflow:auto;border:2px solid var(--gold);pointer-events:auto"></div></div>
+<div id="finds" style="display:none;position:fixed;inset:0;z-index:10250;background:rgba(0,0,0,.78);align-items:center;justify-content:center;padding:16px;pointer-events:auto"><div id="findsBox" style="background:#2a231c;width:100%;max-width:520px;border-radius:16px;padding:16px;max-height:80vh;overflow:auto;border:2px solid var(--gold);pointer-events:auto"></div></div>
 
 <script>
 const CLASSES = {
@@ -2760,11 +2760,19 @@ function openHealerShop(enc, m, party, after, useSheet){
       log("Road sister healed the party for "+bill+"g.");
       save(); paint();
     };
-    document.getElementById("healDone").onclick=()=>{
-      note("The stool is empty.", "info");
-      ENC_BUSY = false;
-      after();
+    const healWalk = ()=>{
+      try{
+        note("The stool is empty.", "info");
+        try{ finishRoadUi(); }catch(e){ ENC_BUSY = false; try{ closeModal(); }catch(x){} }
+        after();
+      }catch(err){
+        ENC_BUSY = false;
+        try{ closeModal(); }catch(e){}
+        try{ if(after) after(); }catch(e){}
+      }
     };
+    const healBtn = box.querySelector("#healDone") || document.getElementById("healDone");
+    if(healBtn) healBtn.onclick = healWalk;
   }
   paint();
 }
@@ -2806,7 +2814,7 @@ function startRescue(enc, m, party, after){
     note(names+" tried the ring (Diff "+diff+") and could not break it. The stranger went down.", "warn");
     log("Road rescue failed. Diff "+diff+".");
     save();
-    ENC_BUSY = false;
+    try{ finishRoadUi(); }catch(e){ ENC_BUSY = false; }
     after();
     return;
   }
@@ -2856,20 +2864,31 @@ function openRescueOffer(guest, m, party, after, diff){
       upgrade("barracks");
       paint();
     };
-    document.getElementById("resJoin").onclick=()=>{
-      if(!guest.hero && livingCount() >= cap()) return toast("Barracks full.");
-      guest.status = "ready";
-      S.people.push(guest);
-      note(guest.name+" took a bench. Epic.", "success");
-      log("Hired from the road: "+guest.name+".");
-      save();
-      ENC_BUSY = false;
-      after();
+    const rescueDone = (fn)=>{
+      try{
+        fn();
+        try{ finishRoadUi(); }catch(e){ ENC_BUSY = false; try{ closeModal(); }catch(x){} }
+        after();
+      }catch(err){
+        ENC_BUSY = false;
+        try{ closeModal(); }catch(e){}
+        try{ if(after) after(); }catch(e){}
+      }
     };
-    document.getElementById("resNo").onclick=()=>{
-      note("They nodded and took the other fork.", "info");
-      ENC_BUSY = false;
-      after();
+    const joinBtn = box.querySelector("#resJoin") || document.getElementById("resJoin");
+    if(joinBtn) joinBtn.onclick=()=>{
+      if(!guest.hero && livingCount() >= cap()) return toast("Barracks full.");
+      rescueDone(()=>{
+        guest.status = "ready";
+        S.people.push(guest);
+        note(guest.name+" took a bench. Epic.", "success");
+        log("Hired from the road: "+guest.name+".");
+        save();
+      });
+    };
+    const noBtn = box.querySelector("#resNo") || document.getElementById("resNo");
+    if(noBtn) noBtn.onclick=()=>{
+      rescueDone(()=>note("They nodded and took the other fork.", "info"));
     };
   }
   paint();
@@ -3071,7 +3090,7 @@ function openRoadShop(kind, enc, m, party, after, useSheet){
           <button type="button" class="ghost" data-sell="${p.id}" ${base?"disabled":""} style="width:100%;margin-top:6px">${base?(kind==="food"?"Empty slot":"Nothing worth selling"):"Sell · "+gp(pay)}</button>
         </div>`;
       }).join("")}
-      <button type="button" class="act" id="roadDone" style="width:100%;margin-top:10px">Walk on</button>`;
+      <button type="button" class="act" id="roadShopDone" onclick="window._roadContinue&&window._roadContinue(event)" style="width:100%;margin-top:10px">Walk on</button>`;
     box.querySelectorAll("[data-buy]").forEach(b=>{
       b.onclick=()=>{
         const it = list.find(x=>x.id===b.dataset.buy);
@@ -3103,23 +3122,114 @@ function openRoadShop(kind, enc, m, party, after, useSheet){
       };
     });
     box.querySelectorAll("[data-borrow]").forEach(b=>b.onclick=()=>openLoanSheet("road"));
-    document.getElementById("roadDone").onclick=()=>{
-      S[key] = null;
-      note("The stall is behind you.", "info");
-      ENC_BUSY = false;
-      after();
+    const shopDone = ()=>{
+      try{
+        S[key] = null;
+        note("The stall is behind you.", "info");
+        try{ finishRoadUi(); }catch(e){ ENC_BUSY = false; try{ closeModal(); }catch(x){} }
+        after();
+      }catch(err){
+        ENC_BUSY = false;
+        try{ closeModal(); }catch(e){}
+        try{ if(after) after(); }catch(e){}
+      }
     };
+    window._roadContinue = function(ev){ if(ev){ try{ ev.preventDefault(); ev.stopPropagation(); }catch(e){} } shopDone(); };
+    const shopBtn = box.querySelector("#roadShopDone") || box.querySelector("#roadDone");
+    if(shopBtn) shopBtn.onclick = window._roadContinue;
   }
   paint();
 }
 function bellFace(party){
   return (party||[]).filter(p=>p && p.quirk==="road_bell" && (!p.bellUntil || S.day>=p.bellUntil)).sort((a,b)=>(b.lv||1)-(a.lv||1))[0];
 }
+function raiseFindsLayer(){
+  const wrap = document.getElementById("finds");
+  if(wrap){ wrap.style.zIndex = "10250"; wrap.style.pointerEvents = "auto"; }
+  const box = document.getElementById("findsBox");
+  if(box) box.style.pointerEvents = "auto";
+}
+function finishRoadUi(){
+  ENC_BUSY = false;
+  window._roadContinue = null;
+  window._roadAct = null;
+  S._roadStall = null;
+  try{
+    const fw = document.getElementById("finds");
+    if(fw) fw.style.display = "none";
+    const box = document.getElementById("findsBox");
+    if(box) box.innerHTML = "";
+  }catch(e){}
+  try{ closeModal(); }catch(e){}
+}
+function roadMissionFor(st){
+  const mid = st && st.mid;
+  if(mid){
+    const found = (S.missions||[]).find(x=>x && (x.id===mid || x.t===mid));
+    if(found) return found;
+  }
+  return (S.missions||[]).find(x=>x && x.party && x.party.length) || {t:"the road", left:1};
+}
+function roadPartyFor(st, m){
+  const ids = (st && st.partyIds) || [];
+  let party = ids.map(id=>(S.people||[]).find(p=>p && p.id===id)).filter(Boolean);
+  if(!party.length && m) party = (typeof partyOf==="function") ? partyOf(m) : [];
+  if(!party.length) party = (S.people||[]).filter(p=>p && p.status==="away");
+  return party;
+}
+function stampRoadStall(phase, extra){
+  const cur = S._roadStall || {};
+  S._roadStall = Object.assign({}, cur, extra||{}, {phase:phase, needTick:cur.needTick!==false, day:S.day});
+  try{ save(true); }catch(e){}
+}
+function healRoadStall(){
+  const st = S._roadStall;
+  if(!st || !st.phase) return false;
+  const need = !!st.needTick;
+  const after = function(){
+    try{ finishRoadUi(); }catch(e){ ENC_BUSY = false; S._roadStall = null; }
+    if(need){ try{ tickMissions(); }catch(e){} }
+  };
+  try{
+    const enc = st.enc;
+    const m = roadMissionFor(st);
+    const party = roadPartyFor(st, m);
+    if(st.phase==="result"){
+      showRoadResult(enc||{title:"On the road"}, st.pick||"a", st.bits||[], after);
+      return true;
+    }
+    if(st.phase==="choice" && enc && enc.a){
+      const faces = party.length ? party : [{name:"Someone", id:"x", status:"away", daysOut:1, cls:"Warrior", lv:1, hp:10, maxhp:10}];
+      showEncounter(enc, m, faces, after, !!st.locked);
+      return true;
+    }
+    if(st.phase==="shop"){
+      const kind = st.kind || (enc && enc.shop) || "weapon";
+      const faces = party.length ? party : livingRoster().filter(p=>p.status==="ready"||p.status==="wounded");
+      openRoadShop(kind, enc||{n:"Stall"}, m, faces, after, true);
+      return true;
+    }
+    if(st.phase==="heal"){
+      const faces = party.length ? party : livingRoster().filter(p=>p.status==="away"||p.status==="ready"||p.status==="wounded");
+      openHealerShop(enc||{title:"Road sister"}, m, faces, after, true);
+      return true;
+    }
+  }catch(e){}
+  try{ finishRoadUi(); }catch(e){ ENC_BUSY=false; S._roadStall=null; }
+  if(need){ try{ tickMissions(); }catch(e){} }
+  return true;
+}
 function showRoadResult(enc, pick, bits, cont){
   const box = document.getElementById("findsBox");
   const wrap = document.getElementById("finds");
-  if(!box||!wrap){ if(cont) cont(); return; }
+  const goNext = function(){
+    try{ finishRoadUi(); }catch(e){ ENC_BUSY = false; }
+    try{ if(cont) cont(); }catch(e){ try{ tickMissions(); }catch(x){} }
+  };
+  if(!box||!wrap){ goNext(); return; }
+  try{ closeModal(); }catch(e){}
   wrap.style.display="flex";
+  raiseFindsLayer();
   const choice = enc && enc[pick] && enc[pick].label ? enc[pick].label : "the choice";
   const joined = (bits||[]).join(" ").toLowerCase();
   const won = /won|beat|drove|gold|found|gained/.test(joined) && !/lost|hurt|wounded/.test(joined);
@@ -3131,8 +3241,20 @@ function showRoadResult(enc, pick, bits, cont){
     <p>${lead}</p>
     <p class="tiny">${enc&&enc.story||""}</p>
     <div style="margin-top:8px;border-top:1px solid var(--line);padding-top:8px">${lines}</div>
-    <button type="button" class="act" id="roadDone" style="width:100%;margin-top:10px">Continue</button>`;
-  document.getElementById("roadDone").onclick=()=>{ if(cont) cont(); };
+    <button type="button" class="act" id="roadResultDone" onclick="window._roadContinue&&window._roadContinue(event)" style="width:100%;margin-top:10px">Continue</button>`;
+  window._roadContinue = function(ev){
+    if(ev){ try{ ev.preventDefault(); ev.stopPropagation(); }catch(e){} }
+    try{ goNext(); }
+    catch(err){
+      try{ finishRoadUi(); }catch(e){}
+      ENC_BUSY = false;
+      try{ if(cont) cont(); }catch(e){}
+    }
+  };
+  const btn = box.querySelector("#roadResultDone") || box.querySelector("button.act");
+  if(btn) btn.onclick = window._roadContinue;
+  ENC_BUSY = true;
+  try{ stampRoadStall("result", {enc:enc, pick:pick, bits:bits||[]}); }catch(e){}
 }
 function showEncounter(enc, m, party, after, locked){
   showEncounterReal(enc, m, party, after, locked);
@@ -3140,12 +3262,15 @@ function showEncounter(enc, m, party, after, locked){
 function showEncounterReal(enc, m, party, after, locked){
   ENC_BUSY = true;
   if(!enc || !enc.a || !enc.a.label){ ENC_BUSY=false; if(after) after(); return; }
+  try{ closeModal(); }catch(e){}
   const names = party.map(p=>p.name.split(" ")[0]).join(", ");
   const fightTag = enc.combat ? ` · Combat diff ${enc.diff}${locked?" · they have you":""}` : "";
   const box = document.getElementById("findsBox");
   const wrap = document.getElementById("finds");
   if(!box || !wrap){ ENC_BUSY=false; after(); return; }
   wrap.style.display="flex";
+  raiseFindsLayer();
+  try{ stampRoadStall("choice", {enc:enc, mid:m&&(m.id||m.t), partyIds:(party||[]).map(p=>p.id), locked:!!locked}); }catch(e){}
   try { box.innerHTML = `<div class="row"><h3>⚔ On the road</h3></div>
     <p class="tiny">${MISSION_ICON[m.t]||"📜"} ${m.t} · ${names} · ${party[0]&&party[0].daysOut||m.left}d left${fightTag}</p>
     <h3>${enc.title}</h3>
@@ -3160,30 +3285,30 @@ function showEncounterReal(enc, m, party, after, locked){
   } catch(err){ ENC_BUSY=false; hideNightReport(); if(after) after(); return; }
   box.onclick = null;
   box.style.pointerEvents = "auto";
+  const hideChoice = ()=>{ try{ if(wrap) wrap.style.display="none"; }catch(e){} };
   const done = (pick)=>{
-    ENC_BUSY = false;
     S._roadBits = [];
     try { resolveEncounter(enc, pick, m, party); } catch(err){ note("The road passed.","info"); }
-    showRoadResult(enc, pick, S._roadBits||[], ()=>{ const fw=document.getElementById("finds"); if(fw) fw.style.display="none"; closeModal(); if(after) after(); });
+    showRoadResult(enc, pick, S._roadBits||[], ()=>{ try{ finishRoadUi(); }catch(e){ ENC_BUSY=false; } if(after) after(); });
   };
-  const skip = document.getElementById("encSkip");
+  const skip = box.querySelector("#encSkip");
   if(skip) skip.onclick=()=>{ note("Soft step. The road was left behind.","info"); done("b"); };
   window._roadAct = (which)=>{
     if(which==="a"){
-      if(enc.rescue){ startRescue(enc, m, party, after); return; }
-      if(enc.heal){ openHealerShop(enc, m, party, after, true); return; }
-      if(enc.shop){ openRoadShop(enc.shop, enc, m, party, after, true); return; }
+      if(enc.rescue){ hideChoice(); try{ stampRoadStall("rescue", {enc:enc, mid:m&&(m.id||m.t), partyIds:(party||[]).map(p=>p.id)}); }catch(e){} startRescue(enc, m, party, after); return; }
+      if(enc.heal){ hideChoice(); try{ stampRoadStall("heal", {enc:enc, mid:m&&(m.id||m.t), partyIds:(party||[]).map(p=>p.id)}); }catch(e){} openHealerShop(enc, m, party, after, true); return; }
+      if(enc.shop){ hideChoice(); try{ stampRoadStall("shop", {enc:enc, kind:enc.shop, mid:m&&(m.id||m.t), partyIds:(party||[]).map(p=>p.id)}); }catch(e){} openRoadShop(enc.shop, enc, m, party, after, true); return; }
       done("a");
     } else { done("b"); }
   };
-  const a = document.getElementById("encA");
+  const a = box.querySelector("#encA");
   if(a) a.onclick = (e)=>{ e.stopPropagation();
-    if(enc.rescue){ startRescue(enc, m, party, after); return; }
-    if(enc.heal){ openHealerShop(enc, m, party, after, true); return; }
-    if(enc.shop){ openRoadShop(enc.shop, enc, m, party, after, true); return; }
+    if(enc.rescue){ hideChoice(); try{ stampRoadStall("rescue", {enc:enc, mid:m&&(m.id||m.t), partyIds:(party||[]).map(p=>p.id)}); }catch(e){} startRescue(enc, m, party, after); return; }
+    if(enc.heal){ hideChoice(); try{ stampRoadStall("heal", {enc:enc, mid:m&&(m.id||m.t), partyIds:(party||[]).map(p=>p.id)}); }catch(e){} openHealerShop(enc, m, party, after, true); return; }
+    if(enc.shop){ hideChoice(); try{ stampRoadStall("shop", {enc:enc, kind:enc.shop, mid:m&&(m.id||m.t), partyIds:(party||[]).map(p=>p.id)}); }catch(e){} openRoadShop(enc.shop, enc, m, party, after, true); return; }
     done("a");
   };
-  const b = document.getElementById("encB");
+  const b = box.querySelector("#encB");
   if(b) b.onclick = (e)=>{ e.stopPropagation(); done("b"); };
 }
 function roadCombatLoot(diff){
@@ -4853,12 +4978,23 @@ function showQuestResults(){
   const wrap=document.getElementById("finds");
   if(!box||!wrap) return;
   wrap.style.display="flex";
+  raiseFindsLayer();
   box.innerHTML=`<h3>Quests done</h3>`+list.map(r=>`<div class="card" style="margin:8px 0">
     <strong>${r.title}</strong>
     <p>${r.story}</p>
     <p class="tiny">${r.line}</p>
   </div>`).join("")+`<button type="button" class="act" id="qresDone" style="width:100%;margin-top:8px">Continue</button>`;
-  document.getElementById("qresDone").onclick=()=>{ wrap.style.display="none"; if(!showFindsPopup()) finishFinds(); };
+  const qgo = ()=>{
+    try{
+      wrap.style.display="none";
+      if(!showFindsPopup()) finishFinds();
+    }catch(e){
+      try{ wrap.style.display="none"; }catch(x){}
+      try{ finishFinds(); }catch(x){}
+    }
+  };
+  const qbtn = box.querySelector("#qresDone");
+  if(qbtn) qbtn.onclick = qgo;
   return true;
 }
 function resolveMission(m){
@@ -5154,12 +5290,16 @@ function checkGameOver(){
 function endDay(){
   checkGameOver();
   hideNightReport();
-  const report = document.getElementById("report");
-  const reportUp = report && report.style.display==="block";
-  if(ENC_BUSY && !reportUp){
+  if(typeof hasLiveRoadUi==="function" && hasLiveRoadUi()){
+    return toast("Decide the road first.");
+  }
+  if(S._roadStall){
+    return toast("Decide the road first.");
+  }
+  if(ENC_BUSY){
+    if(typeof hasLiveRoadUi==="function" && hasLiveRoadUi()) return toast("Decide the road first.");
     ENC_BUSY = false;
   }
-  if(ENC_BUSY) return toast("Decide the road first.");
   if(doorWaiting()){
     toast("Faces at the door first.");
     openSeekers();
@@ -5323,7 +5463,7 @@ function findsUiLocked(){
   if(!wrap) return false;
   const on = wrap.style.display==="flex" || (wrap.style.display!=="none" && wrap.offsetParent!==null && getComputedStyle(wrap).display!=="none");
   if(!on) return false;
-  return !!(document.getElementById("roadDone") || document.getElementById("encA") || document.getElementById("encB") || document.getElementById("encSkip") || document.getElementById("qresDone") || document.getElementById("eqFindCancel") || document.getElementById("findsDone"));
+  return !!wrap.querySelector("#roadDone, #roadResultDone, #roadShopDone, #encA, #encB, #encSkip, #qresDone, #eqFindCancel, #findsDone");
 }
 function stashPendingQuiet(){
   const left = (S.pendingLoot||[]).slice();
@@ -5342,7 +5482,7 @@ function stashPendingQuiet(){
 }
 function finishFinds(){
   const wrap = document.getElementById("finds");
-  if(wrap && !document.getElementById("roadDone") && !document.getElementById("encA") && !document.getElementById("qresDone")) wrap.style.display="none";
+  if(wrap && !wrap.querySelector("#roadDone, #roadResultDone, #encA, #qresDone")) wrap.style.display="none";
   if(finishFinds._busy) return;
   finishFinds._busy = true;
   try { nextDoorQueue(); }
@@ -5364,7 +5504,7 @@ function showFindsPopup(){
   const list = S.pendingLoot||[];
   if(!list.length){
     const wrap = document.getElementById("finds");
-    if(wrap && !document.getElementById("roadDone") && !document.getElementById("encA") && !document.getElementById("qresDone")) wrap.style.display="none";
+    if(wrap && !wrap.querySelector("#roadDone, #roadResultDone, #encA, #qresDone")) wrap.style.display="none";
     return false;
   }
   const box = document.getElementById("findsBox");
@@ -5374,6 +5514,7 @@ function showFindsPopup(){
     return false;
   }
   wrap.style.display="flex";
+  raiseFindsLayer();
   box.innerHTML = `<h3>Finds</h3>
     <p class="tiny">Armory ${(S.vault||[]).length}/${vaultCap()}. Equip puts it on someone. Keep racks it. Sell is half price.</p>
     ${list.map(it=>`<div class="card" style="margin:8px 0">
@@ -5502,7 +5643,8 @@ function guardReport(){
     const modal = document.getElementById("modal");
     const modalOpen = modal && modal.classList.contains("show");
     const reportOpen = box && box.querySelector("h3");
-    if(!modalOpen && !reportOpen) ENC_BUSY = false;
+    const roadOpen = typeof hasLiveRoadUi==="function" && hasLiveRoadUi();
+    if(!modalOpen && !reportOpen && !roadOpen) ENC_BUSY = false;
   }
   document.querySelectorAll("#view .card, #view .seerbox").forEach(el=>{
     const tx = (el.textContent||"").replace(/\s+/g," ").trim();
@@ -6315,7 +6457,14 @@ function hallEventIsOpen(){
   return sheet.getAttribute("data-hallevent")===S.hallEvent.id;
 }
 function hasLiveRoadUi(){
-  return !!(document.getElementById("encA") || document.getElementById("encB") || document.getElementById("encSkip") || document.getElementById("roadDone"));
+  const finds = document.getElementById("finds");
+  const findsOn = finds && (finds.style.display==="flex" || (finds.style.display!=="none" && getComputedStyle(finds).display!=="none"));
+  if(findsOn && finds.querySelector("#encA, #encB, #encSkip, #roadResultDone, #roadDone, #qresDone")) return true;
+  const modal = document.getElementById("modal");
+  const sheet = document.getElementById("sheet");
+  const modalOn = modal && modal.classList.contains("show") && getComputedStyle(modal).display!=="none";
+  if(modalOn && sheet && sheet.querySelector("#roadShopDone, #roadDone, #healDone, #resJoin, #resNo")) return true;
+  return false;
 }
 function clearStaleDoorLocks(){
   if(typeof ENC_BUSY!=="undefined" && ENC_BUSY && !hasLiveRoadUi()) ENC_BUSY = false;
@@ -6330,8 +6479,12 @@ function clearStaleDoorLocks(){
 }
 function nextDoorQueue(){
   healHallEvent();
+  if(typeof hasLiveRoadUi==="function" && hasLiveRoadUi()) return;
+  if(S._roadStall && typeof healRoadStall==="function"){
+    try{ if(healRoadStall()) return; }catch(e){}
+  }
   if(typeof ENC_BUSY!=="undefined" && ENC_BUSY){
-    if(hasLiveRoadUi()) return;
+    if(typeof hasLiveRoadUi==="function" && hasLiveRoadUi()) return;
     ENC_BUSY = false;
   }
   if(S.hallEvent && !S.hallEvent.shown && hallEventOverdue()) return showHallEvent();
@@ -8796,7 +8949,8 @@ function snapshot(){
     bloodAsk:S.bloodAsk||null, saintAsk:S.saintAsk||null, graveAsk:S.graveAsk||null,
     bonusInterest:S.bonusInterest||0, doubleWrit:!!S.doubleWrit, dawnSing:S.dawnSing||null,
     poached:S.poached||null, gameOver:!!S.gameOver, lastHero:S.lastHero||null, forceSeek:!!S.forceSeek, writPing:!!S.writPing,
-    hallEventLog:S.hallEventLog||null
+    hallEventLog:S.hallEventLog||null,
+    _roadStall:S._roadStall||null
   }));
 }
 function applySnap(d){
@@ -8814,6 +8968,7 @@ function applySnap(d){
   S.bonusInterest=d.bonusInterest||0; S.doubleWrit=!!d.doubleWrit; if(d.dawnSing!=null) S.dawnSing=d.dawnSing;
   S.poached=d.poached||null; S.gameOver=!!d.gameOver; if(d.lastHero!=null) S.lastHero=d.lastHero; S.forceSeek=!!d.forceSeek; S.writPing=!!d.writPing;
   S.hallEventLog=d.hallEventLog||null;
+  S._roadStall=d._roadStall||null;
   S.buildings=Object.assign({barracks:1,armory:1,infirmary:1,grounds:0,alley:0,sanctum:0,chapel:0,tavern:1,bank:0,racks:0,board:0,bell:0,briefs:0,seer:0,stables:0}, d.buildings||{});
   S.nextSeek=d.nextSeek||null; S.seekers=d.seekers||null; S.quitAsk=d.quitAsk||null; S.restlessAsk=d.restlessAsk||null; S.raise=d.raise||null;
   S.people=d.people||[]; S.missions=d.missions||[]; S.shop=d.shop||[]; S.vault=d.vault||[];
@@ -8851,7 +9006,7 @@ function fillFromFullSave(){
     function missing(v){
       return v==null || v==="" || (Array.isArray(v)&&!v.length);
     }
-    ["contestUntil","contestParty","contestTheir","rival","rivalWritAsk","raiseQ","featItem","featAsk","bloodAsk","saintAsk","graveAsk","poached","dawnSing","nextFeat","cookUntil","glutUntil","tapDry","roofTax","loan","lastHero","hallEvent","hallEventLog"].forEach(k=>{
+    ["contestUntil","contestParty","contestTheir","rival","rivalWritAsk","raiseQ","featItem","featAsk","bloodAsk","saintAsk","graveAsk","poached","dawnSing","nextFeat","cookUntil","glutUntil","tapDry","roofTax","loan","lastHero","hallEvent","hallEventLog","_roadStall"].forEach(k=>{
       if(missing(S[k]) && src[k]!=null && !missing(src[k])) S[k]=src[k];
     });
     ["plant","shade","grain","firewood","doubleWrit","featBadge","gameOver","forceSeek","writPing"].forEach(k=>{
@@ -10791,7 +10946,7 @@ function helpPage(id){
     <p class="tiny"><b>Quests</b> — assign ready people. Favored classes show a mark. Extra bodies past the needed seats cut gold 25% each. Jobs take days; Courier Stable shortens them.</p>
     <p class="tiny"><b>Merchant</b> — Weapons, Armor, Consumables. Buys go to the Armory.</p>
     <p class="tiny"><b>Armory</b> — 4 slots to start. Equip someone home; old gear returns here. Sell at half list. Racks add +3 slots per level. Jobs and the road can drop salvage, gear, or food.</p>
-    <p class="tiny"><b>End Day</b> — wages, healing, returns, night report (who is still in the field and days left). Parties still out may hit a road event (⚙ slider, default 10%). The road can be a fight, a merchant, a healer, a priest, a beggar, or a rescue. Combat can give XP, gold, Renown, or −1 day — or wound people and add a day. Gear from a fight or a finished quest opens a Finds window to keep, sell, or equip. Unclaimed finds stay and come back until you deal with them. Forced-fight slider is the chance you cannot skip a fight (default 50%).</p>
+    <p class="tiny"><b>End Day</b> — wages, healing, returns, night report (who is still in the field and days left). Parties still out may hit a road event (⚙ slider, default 10%). The road can be a fight, a merchant, a healer, a priest, a beggar, or a rescue. Combat can give XP, gold, Renown, or −1 day — or wound people and add a day. Gear from a fight or a finished quest opens a Finds window to keep, sell, or equip. Unclaimed finds stay and come back until you deal with them. If you close the app mid-road, the choice or result comes back when you reopen. Forced-fight slider is the chance you cannot skip a fight (default 50%).</p>
     <p class="tiny"><b>Hall events</b> — each dawn has an 8% chance of a hall note (a leak, a levy, a purse, a peddler, and the like). A note you have not seen yet comes back the next day until you close it, and it is not thrown away by a writ, a contest warning, or reopening the app. Last hall event: ${(typeof hallEventDiagText==="function"?hallEventDiagText().last:"none yet")}. Pending: ${(typeof hallEventDiagText==="function"?hallEventDiagText().pending:"none")}.</p>
     <h4>Money and people</h4>
     <p class="tiny"><b>Wages</b> — half the listed wage, rounded down, paid to people at the hall (ready or wounded). Away and dead are not paid. Each Renown cuts hire price and wages 1%, cap 50% at 50 Renown.</p>
@@ -10955,6 +11110,7 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-11", t:"The Continue button on a road result can no longer stick. A leftover shop button was stealing the tap, and a hall note could cover it. Closing the app mid-road now brings the result back, or clears it so you can go on."},
   {d:"2026-11-11", t:"Hall events show up again even if you closed the app, a find was waiting, or the rival sealed a writ the same day. A note you have not seen comes back the next day instead of vanishing. 🐞 Debug and Help show the last hall event and any note still pending."},
   {d:"2026-11-11", t:"Choosing Use it when sending a face heals them right away. Power, gold, and XP still land on that job. Send all no longer loses the heal."},
   {d:"2026-11-11", t:"On Assign, the Job power pill sits under the portrait. Tap it to see the calculation for that card."},
@@ -12151,7 +12307,7 @@ function askRestart(){
 }
 function newGame(){
   S.day = 1; S.gold = 40; S.renown = 0; S.nextFeat = 8; S.featItem = null; S.season="spring"; S.seasonLeft=30; S.loan=0; S.rival=null;
-  S.hallEvent=null; S.hallEventLog=null; S.seasonAsk=null; S.contestAsk=null; S.contestDue=null; S.contestWarn=null; S.contestWarned=false; S.contestUntil=null; S.contestParty=null; S.rivalWritAsk=null;
+  S.hallEvent=null; S.hallEventLog=null; S._roadStall=null; S.seasonAsk=null; S.contestAsk=null; S.contestDue=null; S.contestWarn=null; S.contestWarned=false; S.contestUntil=null; S.contestParty=null; S.rivalWritAsk=null;
   S.buildings = {barracks:1, armory:1, infirmary:1, grounds:0, alley:0, sanctum:0, chapel:0, tavern:1, bank:1, racks:0, board:0, bell:0, briefs:0, seer:0, stables:0};
   S.deposit = 40;
   S.people = []; S.missions = []; S.shop = []; S.vault = []; S.pendingLoot = []; S.hire = []; S.log = []; S.selected = null;
@@ -12209,11 +12365,14 @@ function doorQueueWaiting(){
 }
 function resumeDoorQueue(){
   try{
+    if(typeof hasLiveRoadUi==="function" && hasLiveRoadUi()) return;
+    if(typeof healRoadStall==="function" && S._roadStall && healRoadStall()) return;
     resumePendingFinds();
     if(doorQueueWaiting()) nextDoorQueue();
   }catch(e){}
 }
 function recoverHall(){
+  if(typeof hasLiveRoadUi==="function" && hasLiveRoadUi()) return false;
   const kept = storedHall();
   const now = snapshot();
   if(kept && hallLived(kept) && hallScore(kept) > hallScore(now)){
