@@ -2300,7 +2300,7 @@ function gearN(p, key){
 }
 function gearHas(p, key){ return heldGear(p).some(it=>it.ab===key); }
 function partyGearN(party, key){ return (party||[]).reduce((n,p)=>n+gearN(p,key),0); }
-function gearLabel(it){ return it.n+" ("+((GEAR_TIERS[it.r]||{}).color||"")+")"; }
+function gearLabel(it){ return it.n; }
 function abilityText(it){
   if(!it || !it.ab || !GEAR_AB[it.ab]) return "";
   const a = GEAR_AB[it.ab];
@@ -2313,6 +2313,7 @@ function gearStatText(it){
   if(isShield(c)) return "+"+(c.def||0)+" DEF";
   return "+"+(c.atk||0)+" ATK";
 }
+function tierBit(it){ return (it && (it.kind==="weapon"||it.kind==="armor")) ? "" : " · "+gearTierWord(it); }
 function gearTierWord(it){ const k = rarityOf(gearSrc(it)); const t = GEAR_TIERS[k]; return (it.kind==="weapon"||it.kind==="armor") && t ? t.color : k; }
 function gearAbHtml(it){ const t = abilityText(gearSrc(it)); return t ? `<p class="tiny">✦ ${t}</p>` : ""; }
 const EAGLE_JOBS = /Lost|Trace|Herb|Wood|Trail|Shepherd|Ledger/;
@@ -8268,10 +8269,6 @@ function itemNameHtml(it){
     if(!new RegExp(slot,"i").test(name)) name += " · "+slot;
     name += " · "+wt;
   }
-  if(kind==="weapon" || kind==="armor"){
-    const t = GEAR_TIERS[rarityOf(src||it)];
-    if(t) name += " · "+t.color;
-  }
   return `<span class="${rarityColor(rarityOf(src||it))}">${name}</span>`;
 }
 function rarityRank(r){
@@ -10625,7 +10622,7 @@ function shopView(){
       ${cats.map(c=>`<button class="${shopCat===c.id?"on":""}" data-shopcat="${c.id}">${c.icon} ${c.label}</button>`).join("")}
     </div>
     </div>
-    ${list.length?list.map(it=>`<div class="card"><div class="row"><strong>${it.kind==="food"?(it.icon||"🍖")+" ":""}${itemNameHtml(it)}</strong><span class="muted">${it.kind==="food"?foodBits(it) : it.kind==="kit"?kitBits(it) : gearStatText(it)} · ${gearTierWord(it)} · ${gp(shopCost(it))}${(S.glutUntil||0)>S.day?" · glut":""}</span></div>
+    ${list.length?list.map(it=>`<div class="card"><div class="row"><strong>${it.kind==="food"?(it.icon||"🍖")+" ":""}${itemNameHtml(it)}</strong><span class="muted">${it.kind==="food"?foodBits(it) : it.kind==="kit"?kitBits(it) : gearStatText(it)}${tierBit(it)} · ${gp(shopCost(it))}${(S.glutUntil||0)>S.day?" · glut":""}</span></div>
       ${it.kind==="food"&&it.desc?`<p class="tiny">${it.desc}</p>`:""}${(it.kind==="weapon")?gearAbHtml(it):""}
       <button class="act" data-buy="${it.kind}|${it.id}" style="width:100%;margin-top:8px">Buy · ${gp(shopCost(it))}</button>
     </div>`).join(""):`<div class="card"><p class="muted">Nothing in ${labels[shopCat]||shopCat} today.</p></div>`}`;
@@ -10651,7 +10648,7 @@ function vaultView(){
   const ready = S.people.filter(p=>p.status!=="dead" && p.status!=="away");
   if(!S.vault.length) return `<div class="card"><h3>Armory</h3><p class="muted">Empty racks (${vaultCap()} slots). Buy from the Merchant.</p>${raiseOffer("racks")}</div>`;
   return `<div class="card"><h3>Armory</h3>${raiseOffer("racks")}<p class="tiny">${S.vault.length}/${vaultCap()} on the rack. Equip someone home, or sell for half price. Upgrade Racks for more slots.</p></div>
-    ${S.vault.map(it=>`<div class="card"><div class="row"><strong>${it.kind==="food"?(it.icon||(catalog("food",it.id)||{}).icon||"🍖")+" ":""}${itemNameHtml(it)}</strong><span class="muted">${it.kind} · ${gearTierWord(it)} · ${it.kind==="food"?foodBits(catalog("food",it.id)||it) : gearStatText(it)} · sell ${gp(sellPrice(it))}</span></div>
+    ${S.vault.map(it=>`<div class="card"><div class="row"><strong>${it.kind==="food"?(it.icon||(catalog("food",it.id)||{}).icon||"🍖")+" ":""}${itemNameHtml(it)}</strong><span class="muted">${it.kind}${tierBit(it)} · ${it.kind==="food"?foodBits(catalog("food",it.id)||it) : gearStatText(it)} · sell ${gp(sellPrice(it))}</span></div>
       ${it.kind==="weapon"?gearAbHtml(it):""}
       ${it.kind==="loot"?`<p class="tiny">${it.story||"Salvage. Sell it."}</p>`:`<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">
         ${it.kind==="food"?`<p class="tiny" style="width:100%;margin:0 0 4px">${(catalog("food",it.id)||it).desc||foodBlurb(it)}</p>`:""}
@@ -11730,6 +11727,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-12", t:"Weapon and armor names no longer carry the colour word (Gray, White, Green…). The name is drawn in its colour instead."},
   {d:"2026-11-12", t:"Early economy eased so a small guild is less likely to spiral to 0 gold: job pay +35% and nightly wages -30% through day 30, fading in a straight line to normal by day 60 (epic quests unchanged). Cancel at the food prompt, and Back on the epic confirm, now reopens the party picker with your party still selected. A stall buy with nobody home and a full Armory is no longer a dead end: there is now a Sell it button. Fixed the Racks-full Equip to make room path, which put armor in the wrong slot and could put a shield in the main hand."},
   {d:"2026-11-12", t:"Playtest fixes after a 100-day run. Road stall purchases work again. Taking gear off now puts it in the Armory (and asks if full) instead of losing it. A two-hander can no longer sit beside an off-hand; swapping a main hand asks what to do with the old weapon. Mages' starter weapon is a dagger and hire pools respect who can wield armor. Fixed a food-prompt loop on sending, End Day while a hall door waits, gear-stat deltas on Off-hand buttons, and hall raise costs showing blank."},
   {d:"2026-11-12", t:"Gear revamp. Weapons and armor now come in six colours: Gray (Common), White (Masterwork), Green (Uncommon), Blue (Rare), Purple (Epic) and Orange (Legendary, quest-only, never random)."},
