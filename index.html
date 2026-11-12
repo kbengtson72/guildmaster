@@ -10453,8 +10453,6 @@ function render(){ (S.people||[]).forEach(fixTwoHand);
       br.onclick = recruit;
     }
   }
-  const bl = document.getElementById("btnLog");
-  if(bl) bl.style.background = tab==="log" ? "#5a4a28" : "";
   const v = document.getElementById("view");
   if(tab==="hall") v.innerHTML = hallView();
   if(tab==="roster") v.innerHTML = rosterView();
@@ -11727,6 +11725,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-12", t:"The 📒 Ledger opens as a popup again, with its own scroll and a Close button."},
   {d:"2026-11-12", t:"Weapon and armor names no longer carry the colour word (Gray, White, Green…). The name is drawn in its colour instead."},
   {d:"2026-11-12", t:"Early economy eased so a small guild is less likely to spiral to 0 gold: job pay +35% and nightly wages -30% through day 30, fading in a straight line to normal by day 60 (epic quests unchanged). Cancel at the food prompt, and Back on the epic confirm, now reopens the party picker with your party still selected. A stall buy with nobody home and a full Armory is no longer a dead end: there is now a Sell it button. Fixed the Racks-full Equip to make room path, which put armor in the wrong slot and could put a shield in the main hand."},
   {d:"2026-11-12", t:"Playtest fixes after a 100-day run. Road stall purchases work again. Taking gear off now puts it in the Armory (and asks if full) instead of losing it. A two-hander can no longer sit beside an off-hand; swapping a main hand asks what to do with the old weapon. Mages' starter weapon is a dagger and hire pools respect who can wield armor. Fixed a food-prompt loop on sending, End Day while a hall door waits, gear-stat deltas on Off-hand buttons, and hall raise costs showing blank."},
@@ -12681,6 +12680,16 @@ const PATCH_LOG = [
   {d:"2026-09-24", t:"The Tap is Flawed through Gifted only. Elite do not drink there."},
   {d:"2026-09-24", t:"Charter is gone. Renown is prestige, not a building currency."}
 ];
+function openLedger(){
+  const sheet = document.getElementById("sheet");
+  const modal = document.getElementById("modal");
+  if(!sheet||!modal) return;
+  const rows = (S.log||[]).map(t=>`<p>${t}</p>`).join("") || "<p class='muted'>Quiet so far.</p>";
+  sheet.innerHTML = `<h3>📒 Ledger</h3><div class="log" style="max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch">${rows}</div>
+    <button type="button" class="act" id="ledgerClose" style="width:100%;margin-top:10px">Close</button>`;
+  modal.classList.add("show"); modal.style.display="flex";
+  document.getElementById("ledgerClose").onclick=closeModal;
+}
 function openPatch(){
   const sheet = document.getElementById("sheet");
   const modal = document.getElementById("modal");
@@ -12891,7 +12900,7 @@ function dbgBumpUpgrade(){
 
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{tab=b.dataset.tab; render();});
 document.getElementById("btnRecruit").onclick=recruit;
-document.getElementById("btnLog").onclick=()=>{ tab="log"; render(); };
+document.getElementById("btnLog").onclick=openLedger;
 document.getElementById("btnProf").onclick=openProfiles;
 const _rivBtn = document.getElementById("btnRival");
 if(_rivBtn) _rivBtn.onclick = openRivalHall;
