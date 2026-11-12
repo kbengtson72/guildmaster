@@ -2014,7 +2014,7 @@ function cheapPool(kind, p){
   return list.filter(x=>{
     if(!x || x.unique) return false;
     if(rarityRank(x.r||"common")>1) return false;
-    if(kind!=="armor" && !canWield(p, Object.assign({}, x, {kind}))) return false;
+    if(!canWield(p, Object.assign({}, x, {kind}))) return false;
     return true;
   });
 }
@@ -2052,11 +2052,13 @@ function outfitStarter(p){
   p.foodEaten = false;
 }
 const STARTER_WEAPON = "w_club_gray", STARTER_ARMOR = "a_chest_cloth_gray";
+// the free Gray weapon a person falls back to (a Mage cannot use a Club)
+function starterWeaponFor(p){ return p && p.cls==="Mage" ? "w_dagger_gray" : STARTER_WEAPON; }
 function hirePool(kind, p){
   const list = kind==="weapon" ? WEAPONS : kind==="armor" ? ARMORS : FOODS;
   return list.filter(x=>{
     if(!x || x.unique || (x.r||"") === "artifact") return false;
-    if(kind!=="armor" && !canWield(p, Object.assign({}, x, {kind}))) return false;
+    if(!canWield(p, Object.assign({}, x, {kind}))) return false;
     return true;
   });
 }
@@ -3426,12 +3428,14 @@ function setSlot(p, kind, id){
   if(kind==="weapon"){
     const it = catalog("weapon", id);
     if(it && isShield(it)){
-      if(p.offhand && p.offhand!==id) stashPush("weapon", p.offhand);
+      if(p.offhand && p.offhand!==id) safeStash("weapon", p.offhand);
+      if(p.weapon && p.weapon!==id && isTwoHand(catalog("weapon", p.weapon))){ safeStash("weapon", p.weapon); p.weapon = null; }
       p.offhand = id;
       if(p.weapon===id) p.weapon = null;
       return;
     }
     p.weapon = id;
+    fixTwoHand(p);
   }
   else if(kind==="armor"){
     const it=catalog("armor", id);
@@ -3442,7 +3446,7 @@ function setSlot(p, kind, id){
   else { p.food = id; p.foodEaten = false; }
 }
 function isBaseSlot(p, kind, it){
-  if(kind==="weapon") { const id = slotOf(p, kind, it); return !id || id===STARTER_WEAPON; }
+  if(kind==="weapon") { const id = slotOf(p, kind, it); return !id || id===STARTER_WEAPON || id===starterWeaponFor(p); }
   if(kind==="armor") { const id = slotOf(p, kind, it); return !id || id===STARTER_ARMOR; }
   return !p.food;
 }
@@ -3516,10 +3520,7 @@ function openRoadShop(kind, enc, m, party, after, useSheet){
         const oldId = slotOf(p, kind, it);
         const old = oldId ? catalogKind(kind, oldId) : null;
         const occupied = !isBaseSlot(p, kind, it) && old;
-        const nv = kind==="weapon"?(it.atk||0):kind==="armor"?(it.def||0):0;
-        const ov = old ? (kind==="weapon"?(old.atk||0):kind==="armor"?(old.def||0):0) : 0;
-        const d = nv-ov;
-        const delta = (kind==="weapon"||kind==="armor") ? (d>0?`<b style="color:#7dcea0"> +${d}</b>`:d<0?`<b style="color:#e74c3c"> ${d}</b>`:`<span class="tiny"> +0</span>`) : "";
+        const delta = (kind==="weapon"||kind==="armor") ? gearDeltaHtml(p, wear, isShield(wear)?"off":"main") : "";
         return `<div class="card" style="margin:6px 0">
           <div class="row">${face(p)}<div class="names">${nameHtml(p,"strong")}
             <div class="tiny">${c.icon||""} ${p.cls} ${p.lv} · PWR ${pwrOf(p)} · HP ${p.hp}/${p.maxhp}</div>
@@ -3593,7 +3594,7 @@ function openRoadShop(kind, enc, m, party, after, useSheet){
       <button type="button" class="act" id="roadShopDone" onclick="window._roadContinue&&window._roadContinue(event)" style="width:100%;margin-top:10px">Walk on</button>`;
     box.querySelectorAll("[data-buy]").forEach(b=>{
       b.onclick=()=>{
-        const it = list.find(x=>x.id===b.dataset.buy);
+        const it = stock.find(x=>x.id===b.dataset.buy);
         if(!it) return;
         if(funds() < it.cost) return toast("Need "+gp(it.cost)+". Have "+gp(S.gold)+".");
         spend(it.cost);
@@ -3614,8 +3615,8 @@ function openRoadShop(kind, enc, m, party, after, useSheet){
         S.gold += pay;
         log("Road stall bought "+per.name+"'s "+it.n+" for "+pay+"g.");
         note(per.name+" sold "+it.n+" on the verge · "+gp(pay), "success");
-        if(kind==="weapon") per.weapon = STARTER_WEAPON;
-        else if(kind==="armor") per.armor = STARTER_ARMOR;
+        if(kind==="weapon") per.weapon = starterWeaponFor(per);
+        else if(kind==="armor") setChest(per, STARTER_ARMOR);
         else { per.food = null; per.foodEaten = false; }
         save();
         paint();
@@ -6830,10 +6831,7 @@ function openGraveAsk(){
     const it = catalog(kind, id);
     if(!it) return;
     const old = kind==="weapon"?w.weapon:w.armor;
-    if(old && old!==STARTER_WEAPON && old!==STARTER_ARMOR){
-      if(!S.vault) S.vault = [];
-      S.vault.push({uid:uid(), kind, id:old});
-    }
+    if(old && old!==STARTER_WEAPON && old!==STARTER_ARMOR) safeStash(kind, old);
     if(kind==="weapon") w.weapon = id; else setChest(w, id);
     if(kind==="weapon") d.weapon = STARTER_WEAPON; else setChest(d, STARTER_ARMOR);
     log(w.name+" took "+it.n+" from "+d.name+"'s grave.");
@@ -7350,7 +7348,7 @@ function openHallEvent(){
     body = `<h3>Word from town</h3><p>Something moved.</p>`;
   }
   const contestReady = livingRoster().filter(x=>x.status==="ready").length;
-  const extra = e.id==="contest_warn" ? `
+  let extra = e.id==="contest_warn" ? `
     <button type="button" class="act" id="warnOk" style="width:100%;margin-top:10px">Understood</button>` : e.id==="featured" ? `
     <button type="button" class="act" id="featBuy" style="width:100%;margin-top:10px">Buy it</button>
     <button type="button" class="ghost" id="hallEvOk" style="width:100%;margin-top:6px">Not now</button>` : e.id==="rival_writ" ? `
@@ -7937,7 +7935,7 @@ function openHallEvent(){
   const bls = document.getElementById("bladeScrap");
   if(bls) bls.onclick=()=>{
     const ppl = (S.people||[]).find(x=>x.id===e.pid);
-    if(ppl) ppl.weapon = STARTER_WEAPON;
+    if(ppl) ppl.weapon = starterWeaponFor(ppl);
     S.hallEvent = null;
     log((e.name||"Someone")+"'s blade was scrapped.");
     save(); closeModal(); nextDoorQueue(); render();
@@ -8356,6 +8354,28 @@ function placeWeapon(p, it){
 }
 
 
+/* the old main-hand weapon just went to the armory. If the offhand is free, offer to keep it there instead. */
+function openOldHandAsk(p, oldId){
+  const old = catalog("weapon", oldId);
+  const wrap = document.getElementById("finds");
+  const inFinds = !!(wrap && getComputedStyle(wrap).display!=="none");
+  const done = ()=>{ save(); if(inFinds){ try{ paintDayReport(); }catch(e){} render(); afterFind(); } else { closeModal(); render(); } };
+  if(!old || p.offhand || isTwoHand(catalog("weapon", p.weapon)) || !canOffhand(p, old)){ done(); return; }
+  const box = document.getElementById(inFinds ? "findsBox" : "sheet");
+  if(!box){ done(); return; }
+  if(!inFinds){ const modal = document.getElementById("modal"); modal.classList.add("show"); modal.style.display = "flex"; }
+  box.innerHTML = `<h3>${itemNameHtml(old)}</h3>
+    <p>${p.name.split(" ")[0]}'s old weapon is in the armory. Keep it in the off hand?</p>
+    <p class="tiny">Offhand · half attack${gearDeltaHtml(p, old, "off")}</p>
+    <button type="button" class="act" id="ohYes" style="width:100%;margin-top:8px">Off hand</button>
+    <button type="button" class="ghost" id="ohNo" style="width:100%;margin-top:6px">Leave it in the armory</button>`;
+  document.getElementById("ohYes").onclick = ()=>{
+    const ix = (S.vault||[]).findIndex(x=>x.id===oldId);
+    if(ix>=0){ S.vault.splice(ix,1); p.offhand = oldId; }
+    done();
+  };
+  document.getElementById("ohNo").onclick = done;
+}
 function openHandAsk(){
   const a=S._handAsk; if(!a) return;
   const p=(S.people||[]).find(x=>x.id===a.pid);
@@ -8550,7 +8570,7 @@ function rollLoot(m){
     j.story = "Lifted from "+title+".";
     return j;
   }
-  const rarity = pickRarityForLoot(m.diff||1);
+  let rarity = pickRarityForLoot(m.diff||1);
   if(rarity==="junk" || r < 0.72){
     if(Math.random()<0.35){
       const f = pickByRarity(FOODS, rarity==="junk"?"junk":(rarity==="artifact"?"rare":rarity)) || pick(FOODS.filter(x=>!x.unique));
@@ -8676,16 +8696,13 @@ function openEquipFind(findUid){
     ${wear.map(p=>{
       const cur = kind==="armor" ? catalog("armor", (p.slots||{})[armorSlotOf(it)]|| (armorSlotOf(it)==="chest"?p.armor:null)) : slotItem(p, kind);
       const now = cur ? itemNameHtml(cur)+(kind==="weapon"?" · +"+cur.atk+" ATK":kind==="armor"?" · +"+cur.def+" DEF":" · "+foodBits(cur)) : "empty";
-      const nv = kind==="weapon"?(it.atk||0):kind==="armor"?(it.def||0):0;
-      const ov = cur ? (kind==="weapon"?(cur.atk||0):kind==="armor"?(cur.def||0):0) : 0;
-      const dd = nv-ov;
-      const delta = (kind==="weapon"||kind==="armor") ? (dd>0?` <b style="color:#7dcea0">(+${dd})</b>`:dd<0?` <b style="color:#e74c3c">(${dd})</b>`:` <span class="tiny">(+0)</span>`) : "";
+      const delta = (kind==="weapon"||kind==="armor") ? gearDeltaHtml(p, it, isShield(it)?"off":"main") : "";
       const offOk = kind==="weapon" && canOffhand(p, it) && !isTwoHand(catalog("weapon", p.weapon));
       const off = offOk ? catalog("weapon", p.offhand) : null;
       const offNow = off ? itemNameHtml(off)+" · "+(isShield(off)?"+"+(off.def||0)+" DEF":"+"+(off.atk||0)+" ATK") : "empty";
       const shield = isShield(it);
       const btns = offOk
-        ? `<div class="tiny">Main: ${now}${delta}</div><div class="tiny">Off: ${offNow}</div><div class="row" style="gap:6px;margin-top:4px">${shield?"":`<button type="button" class="act" data-eqto="${p.id}|main" style="flex:1">Main hand</button>`}<button type="button" class="ghost" data-eqto="${p.id}|off" style="flex:1">Off hand</button></div>`
+        ? `<div class="tiny">Main: ${now}${delta}</div><div class="tiny">Off: ${offNow}</div><div class="row" style="gap:6px;margin-top:4px">${shield?"":`<button type="button" class="act" data-eqto="${p.id}|main" style="flex:1">Main hand</button>`}<button type="button" class="ghost" data-eqto="${p.id}|off" style="flex:1">Off hand${gearDeltaHtml(p, it, "off")}</button></div>`
         : `<button type="button" class="ghost" data-eqto="${p.id}|main" style="width:100%;text-align:left;margin-top:4px"><span class="tiny">Now: ${now}${delta}</span></button>`;
       return `<div class="card" style="margin-top:6px;text-align:left">${CLASSES[p.cls].icon} ${p.name.split(" ")[0]}${p.status==="away"?" · on the road":""} · ${p.cls} ${p.lv} · HP ${p.hp||0}/${p.maxhp||0}${btns}</div>`;
     }).join("")||"<p class='muted'>No one home can use this.</p>"}
@@ -8740,6 +8757,7 @@ function equipPending(findUid, pid, hand){
     const oldMain=p.weapon;
     if(oldMain) stashPush("weapon", oldMain);
     p.weapon=it.id;
+    fixTwoHand(p);
     if(!isTwoHand(it) && oldMain && canOffhand(p, catalog("weapon", oldMain))){ save(); openOldHandAsk(p, oldMain); return; }
     save(); paintDayReport(); render(); afterFind(); return;
   }
@@ -8965,6 +8983,7 @@ function equipFromVault(uid, pid, hand){
     const oldMain=p.weapon;
     if(oldMain) stashPush("weapon", oldMain);
     p.weapon=it.id;
+    fixTwoHand(p);
     if(!isTwoHand(it) && oldMain && canOffhand(p, catalog("weapon", oldMain))){ save(); openOldHandAsk(p, oldMain); return; }
     save(); render(); return;
   } else if(it.kind==="armor"){
@@ -9033,7 +9052,7 @@ function feedOne(pid, src, idx){
   if(!p) return;
   let f = null;
   if(src==="carry"){ f = foodOf(p); if(f) p.food = null; }
-  else { f = (S.armory||[])[idx]; if(f) S.armory.splice(idx,1); }
+  else { f = (S.vault||[])[idx]; if(f) S.vault.splice(idx,1); }
   if(!f) return toast("That food is gone.");
   const heal = f.heal || 2;
   p.hp = Math.min(p.maxhp, (p.hp||0)+heal);
@@ -9049,7 +9068,7 @@ function openWoundFood(pid){
   const modal = document.getElementById("modal");
   if(!sheet||!modal) return;
   const carry = foodOf(p);
-  const arm = (S.armory||[]).map((it,i)=>({it,i})).filter(x=>x.it && (x.it.kind==="food" || x.it.heal));
+  const arm = (S.vault||[]).map((it,i)=>({it,i})).filter(x=>x.it && (x.it.kind==="food" || x.it.heal));
   const carryBtn = carry ? `<button class="act" data-eat="carry" style="width:100%;margin:6px 0">Eat carried: ${carry.n||"food"} · heals ${carry.heal||2}</button>` : `<p class="tiny">Nothing in the food slot.</p>`;
   const armBtns = arm.length ? arm.map(x=>`<button class="ghost" data-arm="${x.i}" style="width:100%;margin:4px 0">${x.it.n||"food"} · heals ${x.it.heal||2}</button>`).join("") : `<p class="tiny">No food in the armory.</p>`;
   sheet.innerHTML = `<h3>${p.name.split(" ")[0]} · ${p.hp}/${p.maxhp}</h3>
@@ -9231,7 +9250,7 @@ function finishRaise(why){
   const b = BUILDINGS[r.k];
   S.buildings[r.k] = r.to;
   if(r.k==="armory") restockShop();
-  const out = {key:r.k, n:b?b.n:r.k, lv:r.to};
+  const out = {key:r.k, n:b?b.n:r.k, lv:r.to, cost:r.cost||(b?b.base*r.to:0)};
   const helper=(S.people||[]).find(x=>x.id===r.helper);
   if(helper){ helper.status="ready"; helper.daysOut=0; helper.mission=null; note(helper.name+" finished the build and is back.","success"); }
   S.raise = null;
@@ -10445,7 +10464,7 @@ function render(){ (S.people||[]).forEach(fixTwoHand);
   paintRaiseChip(); paintWritChip(); paintBankChip(); paintWoundChip(); paintFieldChips();
   const bd = document.getElementById("btnDay");
   if(bd){
-    bd.disabled = doorWaiting();
+    bd.disabled = false;   // stays tappable: with faces at the door, End Day reopens the door sheet instead of leaving the player stranded
     bd.style.opacity = doorWaiting() ? ".45" : "";
   }
   bindCards();
@@ -10633,16 +10652,13 @@ function vaultView(){
           ensureSlots(p);
           const cur = it.kind==="armor" ? catalog("armor", (p.slots||{})[armorSlotOf(it)]|| (armorSlotOf(it)==="chest"?p.armor:null)) : slotItem(p, it.kind);
           const now = cur ? (itemNameHtml(cur)+(it.kind==="weapon"?" +"+cur.atk+" ATK":it.kind==="armor"?" +"+cur.def+" DEF":" "+foodBits(cur))) : "empty";
-          const nv = it.kind==="weapon"?(isShield(it)?0:(it.atk||0)):it.kind==="armor"?(it.def||0):0;
-          const ov = cur ? (it.kind==="weapon"?(isShield(it)?0:(cur.atk||0)):it.kind==="armor"?(cur.def||0):0) : 0;
-          const d = nv-ov;
-          const delta = (it.kind==="weapon"||it.kind==="armor") ? (d>0?` <b style="color:#7dcea0">(+${d})</b>`:d<0?` <b style="color:#e74c3c">(${d})</b>`:` <span class="tiny">(+0)</span>`) : "";
+          const delta = gearDeltaHtml(p, it, isShield(it)?"off":"main");
           const offOk = it.kind==="weapon" && canOffhand(p, it);
           const off = offOk ? catalog("weapon", p.offhand) : null;
           const offNow = off ? (itemNameHtml(off)+" "+(isShield(off)?"+"+(off.def||0)+" DEF":"+"+(off.atk||0)+" ATK")) : "empty";
           const shield = isShield(it);
           const hands = offOk
-            ? `<div class="tiny">Main: ${now}${delta}</div><div class="tiny">Off: ${offNow}</div><div class="row" style="gap:6px;margin-top:4px">${shield?"":`<button type="button" class="act" data-equip="${it.uid}|${p.id}|main" style="flex:1">Main hand</button>`}${(isTwoHand(it)||isTwoHand(catalog("weapon", p.weapon)))?"":`<button type="button" class="ghost" data-equip="${it.uid}|${p.id}|off" style="flex:1">Off hand</button>`}</div>`
+            ? `<div class="tiny">Main: ${now}${delta}</div><div class="tiny">Off: ${offNow}</div><div class="row" style="gap:6px;margin-top:4px">${shield?"":`<button type="button" class="act" data-equip="${it.uid}|${p.id}|main" style="flex:1">Main hand</button>`}${(isTwoHand(it)||isTwoHand(catalog("weapon", p.weapon)))?"":`<button type="button" class="ghost" data-equip="${it.uid}|${p.id}|off" style="flex:1">Off hand${gearDeltaHtml(p, it, "off")}</button>`}</div>`
             : `<button type="button" class="ghost" data-equip="${it.uid}|${p.id}|main" style="text-align:left;width:100%">${CLASSES[p.cls].icon} ${p.name.split(" ")[0]}<br><span class="tiny">Now: ${now}${delta}</span></button>`;
           return `<div class="card" style="margin:6px 0;text-align:left">${CLASSES[p.cls].icon} ${p.name.split(" ")[0]}${hands}</div>`;
         }).join("")||"<span class='muted'>No one home can use this.</span>"}
@@ -10847,14 +10863,14 @@ function askArmoryFood(mid, ids, foods){
     if(packed.length) askFoodUse(mid, ids, packed, 0);
     else finishSendGate(mid, ids);
   });
-  document.getElementById("afSkip").onclick=()=>{ closeModal(); const m=S.missions.find(x=>x.id===mid); if(m) doSend(m, ids); };
+  document.getElementById("afSkip").onclick=()=>{ closeModal(); const m=S.missions.find(x=>x.id===mid); finishSendGate(mid, ids, true); };
 }
-function finishSendGate(mid, ids){
+function finishSendGate(mid, ids, skipArmoryFood){
   const m = findMission(mid);
   const packed = ids.map(id=>S.people.find(p=>p.id===id)).filter(p=>p && p.food && !p.foodEaten);
   if(packed.length){ askFoodUse(mid, ids, packed, 0); return; }
   const loose = (S.vault||[]).filter(it=>it.kind==="food");
-  if(loose.length){ askArmoryFood(mid, ids, loose); return; }
+  if(!skipArmoryFood && loose.length && askArmoryFood(mid, ids)) return;
   if(m && m.epic){
     const names = ids.map(id=>(S.people.find(x=>x.id===id)||{}).name).filter(Boolean);
     let who = names.join(", ");
@@ -10886,7 +10902,7 @@ function askArmoryFood(mid, ids){
     <button type="button" class="ghost" id="armFoodNo" style="width:100%;margin-top:6px">No</button>`;
   modal.classList.add("show"); modal.style.display="flex";
   document.getElementById("armFoodYes").onclick=()=>pickArmoryFood(mid, ids, foods);
-  document.getElementById("armFoodNo").onclick=()=>finishSendGate(mid, ids);
+  document.getElementById("armFoodNo").onclick=()=>finishSendGate(mid, ids, true);
   return true;
 }
 function pickArmoryFood(mid, ids, foods){
@@ -11201,16 +11217,36 @@ function unequip(pid, slot){
   else if(slot==="offhand" && p.offhand){ it = catalog("weapon", p.offhand); clear = ()=>{ p.offhand = null; }; }
   else if(slot==="food" && foodOf(p)){ it = foodOf(p); clear = ()=>{ p.food = null; }; }
   else if(slot==="kit" && p.kit){ it = catalog("kit", p.kit); clear = ()=>{ p.kit = null; }; }
-  else if(p.slots && p.slots[slot]){ it = catalog("armor", p.slots[slot]); clear = ()=>{ p.slots[slot] = null; }; }
+  else if(p.slots && p.slots[slot]){ it = catalog("armor", p.slots[slot]); clear = ()=>{ p.slots[slot] = null; if(slot==="chest") p.armor = null; }; }
   if(!it) return toast("Nothing there.");
-  if(!S.armory) S.armory = [];
-  if(S.armory.length >= vaultCap()) return armoryFullChoice(pid, slot, it, clear);
+  const kind = slot==="food" ? "food" : slot==="kit" ? "kit" : (slot==="weapon"||slot==="offhand") ? "weapon" : "armor";
+  if(!S.vault) S.vault = [];
+  if(S.vault.length >= vaultCap()) return armoryFullChoice(pid, slot, it, clear);
   clear();
-  S.armory.push(it);
+  stashPush(kind, it.id);
   log("Sent "+(it.n||slot)+" to the armory.");
   toast((it.n||slot)+" sent to the armory.");
   save();
   openPerson(pid);
+}
+/* exact change in ATK / DEF if p wore item it (hand: "main" or "off"). Mirrors placeWeapon: a shield or offhand
+   displaces a two-hander, a two-hander clears the offhand, an empty hand counts as bare hands. */
+function gearDelta(p, it, hand){
+  if(!p || !it) return null;
+  const q = Object.assign({}, p, {slots:Object.assign({}, p.slots||{})});
+  if(it.kind==="armor"){ const sl = armorSlotOf(it); q.slots[sl] = it.id; if(sl==="chest") q.armor = it.id; }
+  else if(it.kind==="weapon"){
+    if(isShield(it) || hand==="off"){ if(isTwoHand(catalog("weapon", q.weapon))) q.weapon = null; q.offhand = it.id; }
+    else { q.weapon = it.id; if(isTwoHand(it)) q.offhand = null; }
+  } else return null;
+  return {atk:atkOf(q)-atkOf(p), def:defOf(q)-defOf(p)};
+}
+function gearDeltaHtml(p, it, hand){
+  const d = gearDelta(p, it, hand);
+  if(!d) return "";
+  const bit = (n,l)=> n ? `<b style="color:${n>0?"#7dcea0":"#e74c3c"}">${n>0?"+":""}${n} ${l}</b>` : "";
+  const t = [bit(d.atk,"ATK"), bit(d.def,"DEF")].filter(Boolean).join(" ");
+  return t ? " ("+t+")" : ` <span class="tiny">(+0)</span>`;
 }
 function offStatText(p){
   const o = catalog("weapon",p.offhand) || {};
@@ -11257,10 +11293,7 @@ function openSheetEquip(pid){
     <p class="tiny">From the armory. The number is the change against what they wear.</p>
     ${items.map(it=>{
       const cur = it.kind==="armor" ? catalog("armor", (p.slots||{})[armorSlotOf(it)]|| (armorSlotOf(it)==="chest"?p.armor:null)) : slotItem(p, it.kind);
-      const nv = it.kind==="weapon"?(isShield(it)?0:(it.atk||0)):it.kind==="armor"?(it.def||0):0;
-      const ov = cur ? (it.kind==="weapon"?(isShield(it)?0:(cur.atk||0)):it.kind==="armor"?(cur.def||0):0) : 0;
-      const d = nv-ov;
-      const delta = (it.kind==="weapon"||it.kind==="armor") ? (d>0?`<b style="color:#7dcea0"> (+${d})</b>`:d<0?`<b style="color:#e74c3c"> (${d})</b>`:"") : "";
+      const delta = (it.kind==="weapon"||it.kind==="armor") ? gearDeltaHtml(p, it, isShield(it)?"off":"main") : "";
       return `<button type="button" class="ghost" data-sheq="${it.uid}" style="width:100%;text-align:left;margin-top:6px">${itemNameHtml(it)}${delta}<br><span class="tiny">Now: ${cur?itemNameHtml(cur):"empty"}</span></button>`;
     }).join("")||"<p class='muted'>Nothing in the armory they can wear.</p>"}
     <button type="button" class="ghost" id="sheqBack" style="width:100%;margin-top:10px">Back</button>`;
@@ -11684,6 +11717,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-12", t:"Playtest fixes after a 100-day run. Road stall purchases work again. Taking gear off now puts it in the Armory (and asks if full) instead of losing it. A two-hander can no longer sit beside an off-hand; swapping a main hand asks what to do with the old weapon. Mages' starter weapon is a dagger and hire pools respect who can wield armor. Fixed a food-prompt loop on sending, End Day while a hall door waits, gear-stat deltas on Off-hand buttons, and hall raise costs showing blank."},
   {d:"2026-11-12", t:"Gear revamp. Weapons and armor now come in six colours: Gray (Common), White (Masterwork), Green (Uncommon), Blue (Rare), Purple (Epic) and Orange (Legendary, quest-only, never random)."},
   {d:"2026-11-12", t:"Weapons are now types: Sword, Hand Axe, Mace, Dagger, Hammer, Club, Throwing Knives, Wand (one-hand) and Greatsword, Battleaxe, Warhammer, Greatclub, Bow, Crossbow, Staff (two-hand). Each is Bladed, Blunt or Ranged. Wands and Staves are for Mages. Shields are Buckler, Shield and Tower Shield."},
   {d:"2026-11-12", t:"Green, Blue and Purple weapons and shields carry one ability, named in the item (Sword of the Lone Wolf). 29 abilities: power, Eagle Eye, Treasure Hunter, Night Owl, Daywalker, Investor, Charming, Grim, Hardened, Keen, Stayer, Sprinter, Pack Leader, Lone Wolf, Blooded, Quick Mend, Tithe-hand, Field Aid, Oath-eater, Dawn-singer and the nine job specialists. They stack with traits and quirks, and show in the job power breakdown."},
