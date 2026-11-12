@@ -8262,7 +8262,7 @@ function itemNameHtml(it){
   if(kind==="weapon"){
     const T = WTYPES[src.t];
     if(src.shield) name += " · shield · +"+(src.def||0)+" DEF";
-    else if(T) name += " · "+T.dmg+(T.hands>=2?" · two-hand":" · one-hand")+(T.mage?" · mages":"");
+    else if(T) name += " · "+T.dmg+(T.hands>=2?" · two-hand":"");
   } else if(kind==="armor"){
     const slot = armorSlotOf(src||it);
     const wt = armorWtOf(src||it);
@@ -11725,6 +11725,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-12", t:"Weapon labels drop \"one-hand\" and \"mages\". Two-hand weapons still say two-hand."},
   {d:"2026-11-12", t:"The 📒 Ledger opens as a popup again, with its own scroll and a Close button."},
   {d:"2026-11-12", t:"Weapon and armor names no longer carry the colour word (Gray, White, Green…). The name is drawn in its colour instead."},
   {d:"2026-11-12", t:"Early economy eased so a small guild is less likely to spiral to 0 gold: job pay +35% and nightly wages -30% through day 30, fading in a straight line to normal by day 60 (epic quests unchanged). Cancel at the food prompt, and Back on the epic confirm, now reopens the party picker with your party still selected. A stall buy with nobody home and a full Armory is no longer a dead end: there is now a Sell it button. Fixed the Racks-full Equip to make room path, which put armor in the wrong slot and could put a shield in the main hand."},
