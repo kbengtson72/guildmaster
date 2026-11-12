@@ -135,7 +135,7 @@
   .r-uncommon { color:#4cbf6a; }
   .r-rare { color:#5aa0e8; }
   .r-epic { color:#b57cf0; }
-  .r-artifact { color:var(--gold); }
+  .r-artifact { color:#ff8c2a; }
   button.act {
     background: var(--accent); color: #fff8e8; border: 0; border-radius: 8px;
     padding: 8px 10px; font: inherit; font-size: 0.9rem;
@@ -594,7 +594,7 @@ const QUIRKS = [
   {id:"no_dark", n:"Afraid of the Dark", icon:"🕯️", desc:"Can walk Dark jobs at −5 power."},
   {id:"field_aid", n:"Field aid", icon:"🩹", desc:"On return, the whole party heals 2 HP."},
   {id:"iron_gut", n:"Iron gut", icon:"🍖", desc:"Food heals +3 extra HP."},
-  {id:"second_shadow", n:"Second shadow", icon:"👥", desc:"On a success, a second find may appear. Never an artifact. Never a copy of the first drop. One extra per job."},
+  {id:"second_shadow", n:"Second shadow", icon:"👥", desc:"On a success, a second find may appear. Never Legendary gear. Never a copy of the first drop. One extra per job."},
   {id:"oath_eater", n:"Oath-eater", icon:"🩸", desc:"When this face completes a writ quest, the writ gains one extra mark. Once per writ."},
   {id:"blood_debt", n:"Blood-debt", icon:"💉", desc:"If an ally would die, they take the blow instead. Then they invoice double wage or they leave."},
   {id:"dawn_singer", n:"Dawn-singer", icon:"🌅", desc:"Can walk Holy. After a Holy success, the next dawn: +1 Renown and +1 heal for all wounded."},
@@ -1040,7 +1040,7 @@ function darkMark(m){
 function itemHasDark(it){
   if(!it) return false;
   if(it.dark) return true;
-  const c = catalog(it.kind||"", it.id) || FOODS.find(x=>x.id===it.id) || WEAPONS.find(x=>x.id===it.id) || ARMORS.find(x=>x.id===it.id);
+  const c = catalog(it.kind||"", it.id) || FOODS.find(x=>x.id===it.id) || catalog("weapon",it.id) || catalog("armor",it.id);
   return !!(c && c.dark);
 }
 function isDarkTrait(t){ return t==="Night Owl" || t==="Occultist"; }
@@ -1054,7 +1054,7 @@ function blocksDarkWalk(p){
 }
 function grantsDarkWalk(p){
   if(!p) return false;
-  return p.cls==="Cleric" || hasTrait(p,"Night Owl") || hasTrait(p,"Occultist") || roleHasDark(p) || p.quirk==="night_step" || p.quirk==="no_dark";
+  return p.cls==="Cleric" || hasTrait(p,"Night Owl") || hasTrait(p,"Occultist") || roleHasDark(p) || p.quirk==="night_step" || p.quirk==="no_dark" || gearHas(p,"night");
 }
 function scrubOpposites(p){
   if(!p) return p;
@@ -1091,14 +1091,14 @@ function scrubAfraid(p){
 }
 function canWalkDark(p){
   if(!p) return false;
-  return p.cls==="Cleric" || hasTrait(p,"Night Owl") || hasTrait(p,"Occultist") || p.role==="night" || p.quirk==="night_step" || p.quirk==="no_dark";
+  return p.cls==="Cleric" || hasTrait(p,"Night Owl") || hasTrait(p,"Occultist") || p.role==="night" || p.quirk==="night_step" || p.quirk==="no_dark" || gearHas(p,"night");
 }
 function isHolyMission(m){
   return !!(m && m.holy);
 }
 function canWalkHoly(p){
   if(!p) return false;
-  return p.cls==="Cleric" || hasTrait(p,"Daywalker") || p.quirk==="dawn_singer";
+  return p.cls==="Cleric" || hasTrait(p,"Daywalker") || p.quirk==="dawn_singer" || gearHas(p,"day");
 }
 function holyMark(m){
   return isHolyMission(m) ? " · ☀️ Holy" : "";
@@ -1200,7 +1200,7 @@ function pickTraits(opts){
 }
 const FIRST = ["Ada","Aldric","Anwen","Bram","Bridget","Cora","Cedric","Dain","Della","Elsa","Edric","Finn","Faye","Greta","Garrick","Holt","Helga","Ivy","Idris","Joss","Jory","Kael","Kestra","Lina","Leif","Mira","Maren","Noll","Nadia","Ora","Otto","Pax","Petra","Quinn","Ryn","Rowan","Sable","Soren","Tess","Tilda","Ulric","Una","Vera","Vesper","Wren","Willa","Yara","Yorick","Zed","Zosia","Cass","Duncan","Eira","Falk","Gwen","Hale","Isolde","Jules","Kipp","Liora","Matthias","Nerys","Orrin","Perrin","Rhian","Sigrid","Torin","Ulva","Wyn","Aric","Bryn","Cait","Doran","Elowen","Fenric","Gilda","Harlan","Imogen","Josslyn","Keir","Lysa","Maela","Nessa","Odric","Prim","Rook","Selene","Tamsin","Ulf","Vanya","Wystan","Ysolde","Alaric","Beatrix","Calum","Daphne","Emric","Fiora","Gareth","Hazel","Iona","Jareth","Katya","Lucan","Merrick","Niall","Ophelia","Pippa","Quillan","Rorik","Sorcha","Talon","Urien","Voss","Wilhelmina","Yvette","Alma","Bastian","Cressida","Dag","Evander","Freya","Gideon","Hester","Inigo","Juniper","Kaspar","Lotte","Magnus","Noelle","Osric","Pearl","Ragna","Silas","Thea","Ulla","Warrick","Ysabel","Ansel","Briar","Cyrus","Delia","Edmund","Flora","Godric","Helena","Isa","Jorah","Linnea","Milo","Nora","Owen","Rosalind","Sten","Tabitha","Violet","Wolfe","Astrid","Beren","Clara","Dorian","Elric","Frey","Giselle","Hugo","Iris","Johan","Karin","Larkin","Morden","Nell","Opal","Pascal","Renata","Sabine","Tristan","Winona","Auden","Blythe","Corin","Devlin","Eamon","Fallon","Garret","Honora","Idony","Jasper","Kieran","Lorcan","Maude","Nimue","Orla","Padraig","Quinlan","Roisin","Saoirse","Tegan","Ulric","Veda","Wulfric","Yorath","Zinnia","Alcott","Bramwell","Calla","Declan","Eleri","Fintan","Gwyneira","Hollis","Iseult","Jocelyn","Kendra","Lyle","Morwen","Nevin","Oona","Peregrine","Quenby","Rafferty","Senna","Tavish","Ursula","Vaughn","Winifred","Yarrow","Zephyr","Alden","Breda","Colm","Dierdre","Ewan","Fionn","Grania","Hale","Ivar","Jessamine","Killian","Luned","Merryn","Niamh","Oisin","Phaedra","Ronan","Siobhan","Tiernan","Una","Verity","Willa","Yseult","Zara","Ambrose","Bronwen","Cathal","Delyth","Eleri","Fergus","Glynnis","Hadrian","Ilsa","Jowan","Kevan","Lowri","Mabon","Nerys","Ossian","Pryderi","Rhys","Seren","Tamsyn","Uther","Vaughan","Wynn","Ygraine","Aislinn","Branwen","Cian","Dervla","Eithne","Fionnuala","Gruffudd","Hywel","Iorwerth","Jenna","Keelin","Llew","Mairead","Nessa","Owain","Peadar","Rhosyn","Sinead","Tadgh","Ultan","Vivienne","Wynnifred","Ynyr","Aneurin","Blodwen","Cadogan","Dilys","Emrys","Ffion","Gethin","Heulwen","Iestyn","Jonwen","Lloyd","Meirion","Nia","Osian","Peredur","Rhydian","Sian","Trefor","Urien","Vaughan","Wynne","Angharad","Bedwyr","Cerys","Dyfan","Eira","Fflur","Gwilym","Heledd","Iolo","Llinos","Mair","Non","Owena","Prydwen","Rhiannon","Sioned","Tegid","Vaughan","Wynford","Aled","Bethan","Caradog","Dafydd","Elen","Gwenllian","Hywel","Iolo","Lowri","Morfydd","Nesta","Owain","Rhun","Siwan","Teleri","Vaughan","Wyn","Arawn","Bran","Cedwyn","Derwen","Eluned","Gwyn","Hefin","Ianto","Lleu","Meurig","Nye","Pedr","Rhodri","Seren","Tomos","Vaughan","Wyn","Arwen","Bleddyn","Catrin","Dewi","Eira","Glyn","Harri","Iestyn","Jac","Lewys","Mali","Nia","Osian","Pryderi","Rhydian","Sioned","Tegwen","Vaughan","Wynne"];
 const LAST = ["Ash","Brook","Crow","Dale","Ember","Flint","Gale","Hart","Iron","Kettle","Lark","Moss","Nettle","Oak","Pike","Quill","Reed","Stone","Thorn","Underhill","Vale","Wick","York","Blackwater","Copper","Dunridge","Fairwind","Greycloak","Hollow","Ivyfell","Marsh","Northam","Oxley","Pebble","Rook","Salt","Thatcher","Umber","Vellum","Whitbrook","Yardley","Barlow","Cinder","Drake","Fen","Grist","Hawke","Kell","Morrow","Nightwell","Proudfoot","Redd","Shear","Tallow","Wain","Alden","Bramble","Cartwright","Dusk","Everett","Foxglove","Graves","Hillock","Inkwell","Juniper","Knott","Lambton","Merrick","Norwood","Orchard","Pryor","Quick","Ravenhill","Southwell","Trow","Upton","Viner","Westfall","Yarrow","Ashford","Briarwood","Coldwell","Dunbar","Eastmere","Fell","Goodwin","Harwood","Ironside","Kestrel","Langley","Millward","Newlyn","Oakheart","Pritchard","Rowntree","Sable","Trelawney","Underwood","Vane","Wainwright","Yale","Ashcombe","Beck","Crane","Darrow","Eld","Frost","Gull","Harrow","Ives","Keene","Lovell","Marrow","Nash","Oakes","Penn","Quarry","Rivers","Storm","Thorne","Ullswater","Voss","Wetherby","Yew","Adderley","Barrow","Cobble","Dench","Ellery","Farrow","Gresham","Hobb","Ingle","Jarrett","Kendal","Lowry","Mabley","Nancarrow","Ogden","Parnell","Quince","Rudge","Somer","Tindall","Unwin","Varley","Wescott","Yarnall","Alder","Beckett","Crowe","Digby","Elms","Forrester","Gresham","Hedley","Ingham","Jarvis","Kenyon","Lawley","Middleton","Naylor","Osborne","Padgett","Ransome","Sedgwick","Tilley","Upton","Vickers","Wycliffe","Yates","Ashby","Bellamy","Corbett","Denham","Elwood","Fairfax","Gower","Holbrook","Ingram","Jowett","Kingsley","Lockwood","Maynard","Nesbitt","Oldfield","Paget","Radcliffe","Seldon","Trowbridge","Underhay","Ventnor","Whitlock","Yarn","Ambler","Bowden","Chadwick","Dalton","Endicott","Fairchild","Godwin","Hastings","Ibbotson","Jellicoe","Kittredge","Langdon","Marchant","Newcombe","Oglethorpe","Penrose","Redfern","Standish","Trelawny","Underdown","Vickers","Whitmore","Yardley","Ainsworth","Blackwood","Cromwell","Davenport","Ellsworth","Fairbairn","Goodacre","Hardwick","Ingersoll","Jolley","Kingsford","Loxley","Maberley","Northcott","Oxenham","Pembroke","Redmayne","Stanhope","Trelawny","Upton","Vale","Whitaker","Yarborough","Ashdown","Bideford","Charnwood","Dunstan","Elphinstone","Fothergill","Galsworthy","Hargreaves","Inchbald","Jenkyn","Kingswell","Lytton","Mowbray","Netherton","Ormond","Penhallow","Redvers","Stapleton","Tremaine","Upcott","Vivian","Whitfield","Yelverton"];
-const WEAPONS = [
+const LEGACY_WEAPONS = [
   {id:"splinter", n:"Splinter Club", atk:1, cost:3, r:"junk"},
   {id:"nailclub", n:"Rusty Nail Club", atk:1, cost:4, r:"junk"},
   {id:"ladle", n:"Cracked Ladle", atk:1, cost:3, r:"junk"},
@@ -1268,7 +1268,7 @@ const WEAPONS = [
   {id:"stormlash", n:"Storm Lash", atk:9, cost:90, r:"epic", unique:true, road:true, desc:"Braided wire that hums. Road smiths only."},
   {id:"wayking", n:"The Way-King's Nail", atk:11, cost:120, r:"epic", blade:true, unique:true, road:true, smithStar:true, desc:"The nail they say held the first mile-post. Only this stall."}
 ];
-const ARMORS = [
+const LEGACY_ARMORS = [
   {id:"hood", n:"Frayed Hood", def:1, cost:3, r:"junk", slot:"head", wt:"light"},
   {id:"cap", n:"Padded Cap", def:2, cost:12, r:"common", slot:"head", wt:"light"},
   {id:"coif", n:"Mail Coif", def:4, cost:34, r:"uncommon", slot:"head", wt:"medium"},
@@ -1320,6 +1320,380 @@ const ARMORS = [
   {id:"ashharness", n:"Ash Harness", def:8, cost:96, r:"epic", unique:true, road:true, slot:"chest", wt:"heavy", desc:"Char-black straps. Road stalls only."},
   {id:"waycloak", n:"The Way-King's Cloak", def:10, cost:125, r:"epic", unique:true, road:true, smithStar:true, slot:"chest", wt:"medium", desc:"Dust of a hundred roads. Only this stall."}
 ]
+
+/* ===================== GEAR REVAMP (2026-11-12) =====================
+   Weapon TYPES, six colour tiers, weapon abilities, armor by slot + weight.
+   INTERNAL rarity keys are unchanged (junk, common, uncommon, rare, epic, artifact), so every
+   loot / shop / door-kit / day-cap rule still works. For gear they DISPLAY as:
+     junk = Gray (Common) · common = White (Masterwork) · uncommon = Green · rare = Blue
+     epic = Purple · artifact = Orange (Legendary, quest-only placeholders)
+   ALL THE NUMBERS TO TWEAK ARE IN THE "TUNING" BLOCK BELOW. */
+const GEAR_TIERS = {
+  junk:{name:"Common", color:"Gray", id:"gray", prefix:""},
+  common:{name:"Masterwork", color:"White", id:"white", prefix:"Masterwork "},
+  uncommon:{name:"Uncommon", color:"Green", id:"green", prefix:"Fine "},
+  rare:{name:"Rare", color:"Blue", id:"blue", prefix:"Superior "},
+  epic:{name:"Epic", color:"Purple", id:"purple", prefix:"Exquisite "},
+  artifact:{name:"Legendary", color:"Orange", id:"orange", prefix:""}
+};
+const GEAR_RANDOM_TIERS = ["junk","common","uncommon","rare","epic"];
+/* ---------------- TUNING ----------------
+   Kevin's notes (raw): one-hand Gray +1, two-hand Gray +2; White +2 / +3; Green, Blue and Purple use White's
+   numbers and add an ability. Scaled so a tier hits what comparable gear gave before the revamp.
+   WEAPON_ATK  = [one-hand, two-hand] ATK per tier.   (raw notes: [1,2] [2,3] [2,3] [2,3] [2,3])
+   SHIELD_DEF  = Gray DEF of each offhand; White and up add SHIELD_STEP.          (raw: step 1, no scaling)
+   ARMOR DEF   = round-to-half((SLOT_BASE + WEIGHT_ADD + ARMOR_STEP*colourStep) * ARMOR_K[tier]), min 1.  (raw: all K = 1) */
+const WEAPON_ATK = {junk:[1,2], common:[2,3], uncommon:[3,4], rare:[5,6], epic:[7,8]};
+const SHIELD_DEF = {buckler:1, shield:2, tower:3};
+const SHIELD_STEP = 1;
+const SLOT_BASE = {head:1, cloak:1, chest:2, hands:1, legs:2, feet:1};
+const WEIGHT_ADD = {light:0, medium:2, heavy:3};
+const ARMOR_STEP = 1;
+const ARMOR_COLOR_STEP = {junk:0, common:1, uncommon:2, rare:3, epic:4};
+const ARMOR_K = {junk:0.38, common:0.58, uncommon:0.74, rare:0.82, epic:0.8};
+const UNIQUE_BONUS = 1;          // road-stall uniques get +1 ATK / +1 DEF over a normal item of their colour
+const ARMOR_SLOTS = ["head","cloak","chest","hands","legs","feet"];
+const SLOT_LABEL = {head:"Head", cloak:"Cloak", chest:"Chest", hands:"Hands", legs:"Legs", feet:"Feet"};
+function weaponCost(atk, ab){ return Math.round(3 + 1.55*atk*atk) + (ab||0); }
+function armorCost(def){ return Math.round(2 + 1.65*def*def); }
+function shieldCost(def, ab){ return 8 + def*12 + (ab||0); }
+const AB_COST = [4, 8, 14];       // ability premium by colour (Green, Blue, Purple)
+/* ---------------- weapon types ---------------- */
+const WTYPES = {
+  sword:{n:"Sword", dmg:"Bladed", hands:1}, handaxe:{n:"Hand Axe", dmg:"Bladed", hands:1},
+  mace:{n:"Mace", dmg:"Blunt", hands:1}, dagger:{n:"Dagger", dmg:"Bladed", hands:1},
+  hammer:{n:"Hammer", dmg:"Blunt", hands:1}, club:{n:"Club", dmg:"Blunt", hands:1},
+  knives:{n:"Throwing Knives", dmg:"Ranged", hands:1}, wand:{n:"Wand", dmg:"Ranged", hands:1, mage:true},
+  greatsword:{n:"Greatsword", dmg:"Bladed", hands:2}, battleaxe:{n:"Battleaxe", dmg:"Bladed", hands:2},
+  warhammer:{n:"Warhammer", dmg:"Blunt", hands:2}, greatclub:{n:"Greatclub", dmg:"Blunt", hands:2},
+  bow:{n:"Bow", dmg:"Ranged", hands:2}, crossbow:{n:"Crossbow", dmg:"Ranged", hands:2},
+  staff:{n:"Staff", dmg:"Ranged", hands:2, mage:true},
+  buckler:{n:"Buckler", shield:true, hands:1}, shield:{n:"Shield", shield:true, hands:1}, tower:{n:"Tower Shield", shield:true, hands:1}
+};
+/* ---------------- weapon abilities (Green / Blue / Purple) ---------------- */
+const GEAR_AB = {
+  power:{n:"Extra Power", of:"of Extra Power", v:[3,4,5], t:v=>"+"+v+" power on every job."},
+  eagle:{n:"Eagle Eye", of:"of the Eagle Eye", v:[3,4,5], t:v=>"+"+v+" power on search and gather jobs."},
+  treasure:{n:"Treasure Hunter", of:"of the Treasure Hunter", v:[20,25,30], t:v=>"+"+v+"% gold on a success."},
+  night:{n:"Night Owl", of:"of the Night Owl", v:[0,2,3], t:v=>"Can walk Dark."+(v?" +"+v+" power on Dark jobs.":"")},
+  day:{n:"Daywalker", of:"of the Daywalker", v:[0,2,3], t:v=>"Can walk Holy."+(v?" +"+v+" power on Holy jobs.":"")},
+  investor:{n:"Investor", of:"of the Investor", v:[5,10,20], t:v=>"+"+v+" gold into the vault on a success."},
+  charming:{n:"Charming", of:"of Charming", v:[1,2,3], t:v=>"+"+v+" Renown on a success."},
+  grim:{n:"Grim", of:"of Grim", v:[15,20,25], t:v=>"+"+v+"% chance to survive a killing blow."},
+  hardened:{n:"Hardened", of:"of the Hardened", v:[2,3,4], t:v=>"+"+v+" power on hard jobs (difficulty 6 and up)."},
+  keen:{n:"Keen", of:"of the Keen", v:[2,3,4], t:v=>"+"+v+" power on easy jobs (difficulty 3 and under)."},
+  stayer:{n:"Stayer", of:"of the Stayer", v:[2,3,4], t:v=>"+"+v+" power on long jobs (4 days or more)."},
+  sprinter:{n:"Sprinter", of:"of the Sprinter", v:[2,3,4], t:v=>"+"+v+" power on short jobs (3 days or less)."},
+  packleader:{n:"Pack leader", of:"of the Pack Leader", v:[2,3,4], t:v=>"+"+v+" power in a party of three or more."},
+  lonewolf:{n:"Lone wolf", of:"of the Lone Wolf", v:[2,3,4], t:v=>"+"+v+" power when sent alone."},
+  blooded:{n:"Blooded", of:"of the Blooded", v:[1,2,3], t:v=>"+"+v+" loyalty on a success."},
+  quickmend:{n:"Quick mend", of:"of Quick Mend", v:[2,4,6], t:v=>"+"+v+" HP at dawn while wounded."},
+  tithe:{n:"Tithe-hand", of:"of the Tithe-hand", v:[1,2,3], t:v=>"+"+v+" Renown on a writ job."},
+  Exterminator:{n:"Exterminator", of:"of the Exterminator", v:[1,2,3], spec:"Extermination"},
+  Forager:{n:"Forager", of:"of the Forager", v:[1,2,3], spec:"Gathering"},
+  Bodyguard:{n:"Bodyguard", of:"of the Bodyguard", v:[1,2,3], spec:"Escort"},
+  Tracker:{n:"Tracker", of:"of the Tracker", v:[1,2,3], spec:"Search"},
+  Stormer:{n:"Stormer", of:"of the Stormer", v:[1,2,3], spec:"Assault"},
+  Occultist:{n:"Occultist", of:"of the Occultist", v:[1,2,3], spec:"Mystery"},
+  Hunter:{n:"Hunter", of:"of the Hunter", v:[1,2,3], spec:"Bounty"},
+  Cartographer:{n:"Cartographer", of:"of the Cartographer", v:[1,2,3], spec:"Survey"},
+  Retriever:{n:"Retriever", of:"of the Retriever", v:[1,2,3], spec:"Recovery"},
+  fieldaid:{n:"Field aid", of:"of Field Aid", v:[2,4,6], t:v=>"On return, the whole party heals "+v+" HP."},
+  oatheater:{n:"Oath-eater", of:"of the Oath-eater", v:[1,2,3], t:v=>"Once per writ: +"+v+" extra writ mark when this wearer finishes a writ job."},
+  dawnsinger:{n:"Dawn-singer", of:"of the Dawn-singer", v:[1,2,3], t:v=>"After a Holy success, next dawn: +"+v+" Renown and +"+v+" heal for all wounded."}
+};
+Object.keys(GEAR_AB).forEach(k=>{
+  const a = GEAR_AB[k];
+  if(a.spec) a.t = v=>"+"+v+" power on "+a.spec+" jobs.";
+  a.key = k;
+});
+const GEAR_AB_KEYS = Object.keys(GEAR_AB);
+const AB_TIERS = {uncommon:0, rare:1, epic:2};
+/* ---------------- armor names ---------------- */
+const ARMOR_MATS = [["cloth","light"],["padded","light"],["leather","medium"],["chain","medium"],["scale","medium"],["plate","heavy"],["fullplate","heavy"]];
+const ARMOR_NAMES = {
+  head:{cloth:"Cloth Hood", padded:"Padded Cap", leather:"Leather Cap", chain:"Chain Coif", scale:"Scale Helm", plate:"Plate Helm", fullplate:"Full Plate Helm"},
+  cloak:{cloth:"Cloth Cloak", padded:"Padded Cloak", leather:"Leather Cloak", chain:"Chain Mantle", scale:"Scale Mantle", plate:"Plate Mantle", fullplate:"Full Plate Mantle"},
+  chest:{cloth:"Cloth Tunic", padded:"Padded Jack", leather:"Leather Jerkin", chain:"Chain Hauberk", scale:"Scale Cuirass", plate:"Plate Cuirass", fullplate:"Full Plate Cuirass"},
+  hands:{cloth:"Cloth Gloves", padded:"Padded Gloves", leather:"Leather Gloves", chain:"Chain Mitts", scale:"Scale Gauntlets", plate:"Plate Gauntlets", fullplate:"Full Plate Gauntlets"},
+  legs:{cloth:"Cloth Trousers", padded:"Padded Breeches", leather:"Leather Leggings", chain:"Chain Chausses", scale:"Scale Greaves", plate:"Plate Greaves", fullplate:"Full Plate Greaves"},
+  feet:{cloth:"Cloth Shoes", padded:"Padded Slippers", leather:"Leather Boots", chain:"Chain Boots", scale:"Scale Sabatons", plate:"Plate Boots", fullplate:"Full Plate Sabatons"}
+};
+function armorDefFor(slot, wt, r){
+  const raw = (SLOT_BASE[slot]||1) + (WEIGHT_ADD[wt]||0) + ARMOR_STEP*(ARMOR_COLOR_STEP[r]||0);
+  return Math.max(1, Math.round(raw*(ARMOR_K[r]||1)*2)/2);
+}
+function weaponAtkFor(t, r){
+  const row = WEAPON_ATK[r] || WEAPON_ATK.common;
+  return (WTYPES[t].hands>=2) ? row[1] : row[0];
+}
+function shieldDefFor(t, r){
+  return (SHIELD_DEF[t]||1) + (r==="junk"?0:SHIELD_STEP);
+}
+function gearIdColor(r){ return (GEAR_TIERS[r]||GEAR_TIERS.common).id; }
+function mkWeapon(t, r, abKey, extra){
+  const T = WTYPES[t], tier = GEAR_TIERS[r];
+  const ab = abKey ? GEAR_AB[abKey] : null;
+  const abt = ab ? (AB_TIERS[r]||0) : null;
+  const o = {id:"w_"+t+"_"+tier.id+(abKey?"_"+abKey:""), kind:"weapon", t, dmg:T.dmg||"", hands:T.hands, r,
+    atk: T.shield ? 1 : weaponAtkFor(t, r), def: T.shield ? shieldDefFor(t, r) : 0, shield:!!T.shield, mage:!!T.mage};
+  if(T.shield) o.atk = 0;
+  o.n = (r==="common" ? "Masterwork " : "") + T.n + (ab ? " "+ab.of : "");
+  o.cost = T.shield ? shieldCost(o.def, ab?AB_COST[abt]:0) : weaponCost(o.atk, ab?AB_COST[abt]:0);
+  if(ab){ o.ab = abKey; o.abt = abt; }
+  o.fam = T.shield ? "shield" : (T.mage && t==="wand" ? "wand" : (T.dmg||"").toLowerCase());
+  if(extra) Object.assign(o, extra);
+  return o;
+}
+function mkArmor(slot, mat, wt, r, extra){
+  const tier = GEAR_TIERS[r];
+  const def = armorDefFor(slot, wt, r);
+  const o = {id:"a_"+slot+"_"+mat+"_"+tier.id, kind:"armor", slot, wt, mat, r, def, n: tier.prefix + ARMOR_NAMES[slot][mat], cost: armorCost(def)};
+  if(extra) Object.assign(o, extra);
+  return o;
+}
+/* ---------------- legacy items: uniques keep their ids, everything else maps to the nearest new item ---------------- */
+// [type, ability] for the old uniques. Legendary (artifact) ones stay ability-less placeholders.
+const UNIQUE_W = {
+  wellspike:["sword"], ridgefang:["dagger"], starrod:["mace"], oathwand:["wand"], crownedge:["greatsword"], ashenstar:["mace"],
+  ridgebill:["handaxe","Forager"], peatmaul:["hammer","Bodyguard"], frostawl:["dagger","Tracker"],
+  coachbow:["bow","Hunter"], milewand:["wand","Cartographer"], ditchpike:["sword","stayer"], ferryhook:["hammer","Retriever"],
+  ashdirk:["dagger","Occultist"], stormlash:["knives","Stormer"], wayking:["sword","power"]
+};
+const UNIQUE_A = {
+  fogcloak:{mat:"cloth"}, maskhide:{mat:"leather"}, orashroud:{mat:"cloth"}, crownplate:{mat:"fullplate"},
+  ditchhide:{mat:"padded"}, coachcape:{mat:"padded"}, peatjack:{mat:"leather"}, fordmail:{mat:"plate"}, milecoat:{mat:"scale"},
+  lanthorn:{mat:"chain"}, brigveil:{mat:"cloth"}, stormcape:{mat:"fullplate"}, ashharness:{mat:"plate"}, waycloak:{mat:"leather"}
+};
+// old plain weapons -> new type
+const LEGACY_W_TYPE = {
+  splinter:"club", nailclub:"club", ladle:"club", poker:"dagger", spoke:"club", paring:"dagger", broom:"club", sling:"knives", cordbow:"bow", kitchen:"dagger",
+  stick:"club", sword:"sword", shortblade:"sword", hatchet:"handaxe", bow:"bow", sling2:"knives", wand1:"wand", oakclub:"club", pike:"sword", dirk:"dagger",
+  axe:"handaxe", staff:"staff", wand2:"wand", longbow:"bow", mace:"mace", saber:"sword", spear:"sword", cross:"crossbow", crescent:"dagger", ashrod:"mace",
+  runesword:"sword", wand3:"wand", falchion:"sword", warhammer:"hammer", hornbow:"bow", glaive:"sword", silverdirk:"dagger", stormrod:"mace", boar:"sword", moonaxe:"handaxe",
+  voidedge:"sword", sunlance:"mace", nightbow:"bow", hexwand:"wand", oathmaul:"hammer", wyrmfang:"sword", veilstaff:"staff", bloodhook:"handaxe", starbit:"sword", graveiron:"sword"
+};
+const LEGACY_GEN_W = {Dagger:"dagger", Sword:"sword", Axe:"handaxe", Greatsword:"greatsword", Greataxe:"battleaxe", Club:"club", Mace:"mace", Staff:"staff", Maul:"warhammer", Greatclub:"greatclub", Bow:"bow", Crossbow:"crossbow"};
+const LEGACY_GEN_SHIELD = {Buckler:["buckler","common"], RoundShield:["shield","uncommon"], KiteShield:["shield","rare"], TowerShield:["tower","epic"], ChapelBoard:["shield","common"], IronHeater:["shield","uncommon"]};
+const GEAR_IDX = new Map();
+const WEAPONS = [];
+const ARMORS = [];
+(function buildGear(){
+  Object.keys(WTYPES).forEach(t=>{
+    GEAR_RANDOM_TIERS.forEach(r=>{
+      if(r==="junk" || r==="common") WEAPONS.push(mkWeapon(t, r, null));
+      else GEAR_AB_KEYS.forEach(k=>{ WEAPONS.push(mkWeapon(t, r, k)); });
+    });
+  });
+  ARMOR_SLOTS.forEach(slot=>{
+    ARMOR_MATS.forEach(([mat, wt])=>{
+      GEAR_RANDOM_TIERS.forEach(r=>{ ARMORS.push(mkArmor(slot, mat, wt, r)); });
+    });
+  });
+  // uniques (road-stall exclusives and Legendary placeholders): same ids as before
+  LEGACY_WEAPONS.filter(x=>x.unique).forEach(o=>{
+    const spec = UNIQUE_W[o.id] || ["sword"];
+    const t = spec[0], legend = o.r==="artifact";
+    const w = mkWeapon(t, o.r, legend?null:(spec[1]||null), {id:o.id, n:o.n, unique:true, cost:o.cost, desc:o.desc||""});
+    if(legend){ w.atk = o.atk; w.legend = true; w.desc = "Legendary. A special-quest reward, never a random drop."; }
+    else { w.atk = w.shield ? 0 : w.atk + UNIQUE_BONUS; }
+    if(o.road) w.road = true;
+    if(o.smithStar) w.smithStar = true;
+    WEAPONS.push(w);
+  });
+  LEGACY_ARMORS.filter(x=>x.unique).forEach(o=>{
+    const U = UNIQUE_A[o.id] || {mat:"cloth"};
+    const legend = o.r==="artifact";
+    const a = mkArmor(o.slot||"chest", U.mat, o.wt||"light", o.r, {id:o.id, n:o.n, unique:true, cost:o.cost, desc:o.desc||""});
+    if(legend){ a.def = o.def; a.legend = true; a.desc = "Legendary. A special-quest reward, never a random drop."; }
+    else a.def = a.def + UNIQUE_BONUS;
+    a.slot = o.slot || "chest";
+    if(o.road) a.road = true;
+    if(o.smithStar) a.smithStar = true;
+    ARMORS.push(a);
+  });
+  WEAPONS.concat(ARMORS).forEach(x=>GEAR_IDX.set(x.id, x));
+})();
+const BARE_HANDS = {id:"bare", n:"Bare hands", kind:"weapon", t:"bare", dmg:"", hands:1, atk:1, def:0, r:"junk", cost:0};
+/* ---- legacy id -> new id (old saves, old shop copies, old quest/event references) ---- */
+const LEGACY_GEAR_IDS = new Set(LEGACY_WEAPONS.concat(LEGACY_ARMORS).map(x=>x.id));
+const _legacyMemo = {};
+const LEGACY_IDX = {weapon:new Map(LEGACY_WEAPONS.map(x=>[x.id,x])), armor:new Map(LEGACY_ARMORS.map(x=>[x.id,x]))};
+function LEGACY_catalog(kind,id){ return (LEGACY_IDX[kind]||new Map()).get(id) || null; }
+function legacyWeaponTarget(id){
+  const old = LEGACY_catalog("weapon",id);
+  if(old){
+    if(old.unique) return GEAR_IDX.has(id) ? id : null;
+    if(id==="stick") return STARTER_WEAPON;
+    const t = LEGACY_W_TYPE[id] || (/bow/i.test(old.n)?"bow":/wand/i.test(old.n)?"wand":old.blade?"sword":"club");
+    return gearWeaponId(t, old.r, id);
+  }
+  let m = /^gen_(blade|blunt|ranged)_([A-Za-z]+)_(junk|common|uncommon|rare|epic)$/.exec(id);
+  if(m) return gearWeaponId(LEGACY_GEN_W[m[2]]||"sword", m[3], id);
+  m = /^gen_wand_(common|rare)$/.exec(id);
+  if(m) return gearWeaponId("wand", m[1], id);
+  m = /^gen_shield_([A-Za-z]+)$/.exec(id);
+  if(m && LEGACY_GEN_SHIELD[m[1]]) return gearWeaponId(LEGACY_GEN_SHIELD[m[1]][0], LEGACY_GEN_SHIELD[m[1]][1], id);
+  return null;
+}
+function gearWeaponId(t, r, seedId){
+  if(r==="junk" || r==="common") return "w_"+t+"_"+gearIdColor(r);
+  if(r==="artifact") r = "epic";
+  const k = GEAR_AB_KEYS[hashStr(seedId||t)%GEAR_AB_KEYS.length];
+  return "w_"+t+"_"+gearIdColor(r)+"_"+k;
+}
+function legacyArmorTarget(id){
+  const old = LEGACY_catalog("armor",id);
+  if(old){
+    if(old.unique) return GEAR_IDX.has(id) ? id : null;
+    if(id==="cloth") return STARTER_ARMOR;
+    const slot = old.slot==="arms" ? "cloak" : (old.slot||"chest");
+    const n = old.n||"";
+    let mat;
+    if(old.wt==="light") mat = /padded|quilted/i.test(n) ? "padded" : "cloth";
+    else if(old.wt==="medium") mat = /scale|lamellar|brig|studded|vambrace|warden/i.test(n) ? "scale" : /mail|coif|steel/i.test(n) ? "chain" : "leather";
+    else mat = /great|tower|deep|iron arms/i.test(n) ? "fullplate" : "plate";
+    return "a_"+slot+"_"+mat+"_"+gearIdColor(old.r);
+  }
+  const m = /^gen_(head|chest|arms|legs|feet|hands)_(light|medium|heavy)_(junk|common|uncommon|rare|epic)$/.exec(id);
+  if(m){
+    const mat = m[2]==="light" ? "cloth" : m[2]==="medium" ? "leather" : "plate";
+    return "a_"+(m[1]==="arms"?"cloak":m[1])+"_"+mat+"_"+gearIdColor(m[3]);
+  }
+  return null;
+}
+function legacyGearId(id, kind){
+  const key = (kind||"?")+":"+id;
+  if(key in _legacyMemo) return _legacyMemo[key];
+  let out = null;
+  if(kind!=="armor") out = legacyWeaponTarget(id);
+  if(!out && kind!=="weapon") out = legacyArmorTarget(id);
+  _legacyMemo[key] = out;
+  return out;
+}
+function gearResolve(kind, id){
+  if(!id) return null;
+  let it = GEAR_IDX.get(id);
+  if(!it){
+    const nid = legacyGearId(id, kind);
+    it = nid ? GEAR_IDX.get(nid) : null;
+  }
+  if(!it) return null;
+  if(kind && it.kind!==kind) return null;
+  return it;
+}
+/* a stored copy (vault / pending loot / shop) of a gear item: every field the UI reads */
+function gearCopy(it, extra){
+  const o = {kind:it.kind, id:it.id, n:it.n, atk:it.atk||0, def:it.def||0, cost:it.cost||0, r:it.r, desc:it.desc||""};
+  if(it.unique) o.unique = true;
+  ["t","dmg","hands","fam","slot","wt","mat","ab","abt","shield","mage","road","legend"].forEach(k=>{ if(it[k]!==undefined) o[k]=it[k]; });
+  return extra ? Object.assign(o, extra) : o;
+}
+
+
+/* ===================== SAVE MIGRATION ===================== */
+const CLASS_WEAPON_PREF = {Warrior:["sword"], Rogue:["sword","dagger"], Mage:["wand","dagger"], Cleric:["mace","club"]};
+/* the same colour and ability on a type this class can actually use */
+function convertWeaponForClass(p, it){
+  const prefs = CLASS_WEAPON_PREF[p.cls] || ["sword"];
+  for(let i=0;i<prefs.length;i++){
+    const t = prefs[i];
+    const id = "w_"+t+"_"+gearIdColor(it.r)+((it.ab && (it.r==="uncommon"||it.r==="rare"||it.r==="epic")) ? "_"+it.ab : "");
+    const c = GEAR_IDX.get(id);
+    if(c && canWield(p, c)) return c;
+  }
+  return GEAR_IDX.get(STARTER_WEAPON);
+}
+function gearMigratePerson(p){
+  let n = 0;
+  const wasOff = p.offhand;
+  // main hand
+  if(p.weapon){
+    let it = gearResolve("weapon", p.weapon);
+    if(!it){ it = GEAR_IDX.get(STARTER_WEAPON); }
+    if(isShield(it)){ if(!p.offhand) p.offhand = it.id; else safeStash("weapon", it.id); it = null; p.weapon = null; }
+    else {
+      if(!canWield(p, it)) it = convertWeaponForClass(p, it);
+      if(it.id!==p.weapon) n++;
+      p.weapon = it.id;
+    }
+  }
+  // offhand
+  if(p.offhand){
+    let it = gearResolve("weapon", p.offhand);
+    if(!it){ p.offhand = null; }
+    else {
+      const main = p.weapon ? catalog("weapon", p.weapon) : null;
+      if(main && isTwoHand(main)){ safeStash("weapon", it.id); p.offhand = null; n++; }
+      else if(!canOffhand(p, it) && !isShield(it)){
+        const c = convertWeaponForClass(p, it);
+        if(canOffhand(p, c) && !isTwoHand(c)){ it = c; p.offhand = c.id; n++; }
+        else { safeStash("weapon", it.id); p.offhand = null; n++; }
+      }
+      else if(isShield(it) && !canWield(p, it)){ safeStash("weapon", it.id); p.offhand = null; n++; }
+      else { if(it.id!==p.offhand) n++; p.offhand = it.id; }
+    }
+  }
+  // armor: every worn piece goes into its own slot (old Arms became Cloak)
+  const old = Object.assign({}, p.slots||{});
+  if(p.armor && !old.chest) old.chest = p.armor;
+  p.slots = {};
+  Object.keys(old).forEach(k=>{
+    const id = old[k]; if(!id) return;
+    const it = gearResolve("armor", id);
+    if(!it) return;
+    const slot = armorSlotOf(it);
+    if(it.id!==id || slot!==k) n++;
+    if(!p.slots[slot]) p.slots[slot] = it.id;
+    else safeStash("armor", it.id);
+  });
+  p.armor = p.slots.chest || null;
+  return n;
+}
+function gearMigrateItem(o){
+  const kind = (o.kind==="weapon"||o.kind==="armor") ? o.kind : (gearResolve("weapon", o.id) ? "weapon" : "armor");
+  const it = gearResolve(kind, o.id);
+  if(!it) return 0;
+  const n = it.id!==o.id ? 1 : 0;
+  ["blade","bow","fam","slot","wt","mat","t","dmg","hands","ab","abt","shield","mage","road","legend"].forEach(k=>{ delete o[k]; });
+  Object.assign(o, gearCopy(it));
+  return n;
+}
+/* walk a whole save: people, racks, shop, pending loot, road stock, quest and event references. Safe to run on every load. */
+function migrateGearState(root){
+  const seen = new WeakSet(); let changed = 0;
+  function walk(o, key){
+    if(!o || typeof o!=="object" || seen.has(o)) return;
+    seen.add(o);
+    if(Array.isArray(o)){
+      if(key && /^_roadStock_(weapon|armor)$/.test(key)){
+        const kind = key.slice(11);
+        for(let i=0;i<o.length;i++){
+          if(typeof o[i]!=="string") continue;
+          const it = gearResolve(kind, o[i]);
+          if(it && it.id!==o[i]){ o[i] = it.id; changed++; }
+        }
+        return;
+      }
+      o.forEach(x=>walk(x));
+      return;
+    }
+    if(typeof o.cls==="string" && ("weapon" in o || "armor" in o || "slots" in o || "offhand" in o)) changed += gearMigratePerson(o);
+    else if(typeof o.id==="string" && (o.kind==="weapon" || o.kind==="armor")) changed += gearMigrateItem(o);
+    else if(typeof o.id==="string" && LEGACY_GEAR_IDS.has(o.id) && typeof o.n==="string" && (typeof o.atk==="number" || typeof o.def==="number")) changed += gearMigrateItem(o);
+    // event / quest references that hold a bare gear id
+    [["iid","name"],["aid","an"],["wid","wn"]].forEach(([idk, nk])=>{
+      if(typeof o[idk]==="string" && (o.kind==="weapon"||o.kind==="armor"||idk!=="iid")){
+        const kind = idk==="aid" ? "armor" : idk==="wid" ? "weapon" : o.kind;
+        const it = gearResolve(kind, o[idk]);
+        if(it && it.id!==o[idk]){ o[idk] = it.id; if(typeof o[nk]==="string") o[nk] = it.n; changed++; }
+      }
+    });
+    Object.keys(o).forEach(k=>walk(o[k], k));
+  }
+  try { walk(root); } catch(e){ try{ console.error("gear migration", e); }catch(_){} }
+  return changed;
+}
 
 const KITS = [
   {id:"whet", n:"Whetstone", icon:"🪨", cost:6, r:"common", pwr:2, desc:"+2 power on the next job, then gone."},
@@ -1416,7 +1790,7 @@ const BUILDINGS = {
 };
 const BUILD_HELP = {
   barracks: {how:"Each level adds two beds. Cap is 2 + 2 × Barracks level (you start with Barracks 1, so 4 people).", lv:["Lv1 — 4 roster slots (the hall you start with).","Lv2 — 6 slots.","Lv3 — 8 slots.","Lv4 — 10 slots.","Lv5 — 12 slots."]},
-  armory: {how:"Called Outfitter. Merchant stocks a handful of items at or under its rarity cap: Lv1 junk+common, Lv2 uncommon, Lv3 rare, Lv4 epic. Gold artifacts never sit on the stall.", lv:["Lv1 — cheap iron and cloaks. You start here.","Lv2 — mid gear (bows, mail, better food).","Lv3 — heavy list prices start showing.","Lv4 — top shop gear. Named loot still only drops on jobs."]},
+  armory: {how:"Called Outfitter. Merchant stocks a handful of items at or under its colour cap: Lv1 Gray and White, Lv2 adds Green, Lv3 adds Blue, Lv4 adds Purple. Orange Legendary gear never sits on the stall.", lv:["Lv1 — cheap iron and cloaks. You start here.","Lv2 — mid gear (bows, mail, better food).","Lv3 — heavy list prices start showing.","Lv4 — top shop gear. Named loot still only drops on jobs."]},
   infirmary: {how:"Wounded people heal 3 + 2×level HP each End Day. They stand up again at 75% HP. If a job would kill someone, each Infirmary level adds 10% chance they are dragged home at 1 HP instead (base 35%). Ready people still only mend 2 HP/day.", lv:["Lv0 — 3 HP/day if wounded, 35% last-breath save.","Lv1 — 5 HP/day, 45% save. You start here.","Lv2 — 7 HP/day, 55% save.","Lv3 — 9 HP/day, 65% save.","Lv4 — 11 HP/day, 75% save."]},
   grounds: {how:"Warrior school. Each level adds +1 power on jobs for every Warrior and +1 XP when a Warrior returns from a success.", lv:["Lv1 — +1 PWR and +1 XP for Warriors.","Lv2 — +2 / +2.","Lv3 — +3 / +3.","Lv4 — +4 / +4."]},
   alley: {how:"Rogue school. Same as Grounds, for Rogues only.", lv:["Lv1 — +1 PWR and +1 XP for Rogues.","Lv2 — +2 / +2.","Lv3 — +3 / +3.","Lv4 — +4 / +4."]},
@@ -1620,7 +1994,7 @@ function makePerson(paid, forcedClass, forcedLv){
     traits: ts,
     trait: ts[0],
     spec: pickSpec(),
-    weapon: "stick", armor: "cloth", food: null,
+    weapon: STARTER_WEAPON, armor: STARTER_ARMOR, food: null,
     status: "ready", // ready, away, wounded, dead
     mission: null,
     daysOut: 0,
@@ -1644,15 +2018,40 @@ function cheapPool(kind, p){
     return true;
   });
 }
+/* pick a tier by weight, then an item of that tier at random (the gear catalog has far more items in the
+   upper colours, so picking item-by-item would skew every table toward Green and up) */
+function pickTierItem(list, weights){
+  const by = {};
+  list.forEach(x=>{ const r = x.r||"common"; (by[r] = by[r]||[]).push(x); });
+  const tiers = Object.keys(by);
+  if(!tiers.length) return null;
+  const wf = t=>(weights && weights[t]!=null) ? weights[t] : 1;
+  let tot = 0; tiers.forEach(t=>{ tot += wf(t); });
+  let roll = Math.random()*tot;
+  for(let i=0;i<tiers.length;i++){ roll -= wf(tiers[i]); if(roll<=0) return pick(by[tiers[i]]); }
+  return pick(by[tiers[0]]);
+}
+/* wear a piece in its own slot; p.armor only ever holds the chest piece */
+function setChest(p, id){ ensureSlots(p); p.armor = id; p.slots.chest = id; }
+function wearArmor(p, id){
+  const it = catalog("armor", id);
+  if(!it) return;
+  ensureSlots(p);
+  const slot = armorSlotOf(it);
+  p.slots[slot] = it.id;
+  if(slot==="chest") p.armor = it.id;
+}
 function outfitStarter(p){
   const w = cheapPool("weapon", p);
   const a = cheapPool("armor", p);
   const f = cheapPool("food", p);
-  p.weapon = (w.length ? pick(w) : {id:"stick"}).id;
-  p.armor = (a.length ? pick(a) : {id:"cloth"}).id;
+  p.slots = {}; p.armor = null;
+  p.weapon = (w.length ? pickTierItem(w) : {id:STARTER_WEAPON}).id;
+  wearArmor(p, (a.length ? pickTierItem(a) : {id:STARTER_ARMOR}).id);
   p.food = (Math.random()<0.18 && f.length) ? pick(f).id : null;
   p.foodEaten = false;
 }
+const STARTER_WEAPON = "w_club_gray", STARTER_ARMOR = "a_chest_cloth_gray";
 function hirePool(kind, p){
   const list = kind==="weapon" ? WEAPONS : kind==="armor" ? ARMORS : FOODS;
   return list.filter(x=>{
@@ -1661,8 +2060,10 @@ function hirePool(kind, p){
     return true;
   });
 }
+const HIRE_TIER_W = {junk:23, common:32, uncommon:23, rare:13, epic:6};   // same spread the hall had before the revamp
 function pickWeightedItem(list){
   if(!list.length) return null;
+  if(list[0].kind==="weapon" || list[0].kind==="armor") return pickTierItem(list, HIRE_TIER_W);
   const w = {junk:25, common:35, uncommon:22, rare:12, epic:6};
   const bag = [];
   list.forEach(it=>{
@@ -1675,8 +2076,9 @@ function outfitHire(p){
   const w = pickWeightedItem(hirePool("weapon", p));
   const a = pickWeightedItem(hirePool("armor", p));
   const f = hirePool("food", p);
-  p.weapon = (w||{id:"stick"}).id;
-  p.armor = (a||{id:"cloth"}).id;
+  p.slots = {}; p.armor = null;
+  p.weapon = (w||{id:STARTER_WEAPON}).id;
+  wearArmor(p, (a||{id:STARTER_ARMOR}).id);
   p.food = (Math.random()<0.28 && f.length) ? pickWeightedItem(f).id : null;
   p.foodEaten = false;
 }
@@ -1858,6 +2260,7 @@ function pwrOf(p){
   if(hasTrait(p,"Lucky")) n += 2*emult(p);
   if(hasTrait(p,"Unlucky")) n -= 2;
   if(hasTrait(p,"Cautious")) n += 1*emult(p);
+  n += gearN(p,"power");
   if(isElite(p)) n += 3;
   else if(isGifted(p)) n += 1;
   n += foodPwr(p, null);
@@ -1865,18 +2268,70 @@ function pwrOf(p){
   return Math.max(1, Math.round(n));
 }
 function atkOf(p){
-  const w = WEAPONS.find(x=>x.id===p.weapon) || WEAPONS[0];
-  const off = p.offhand ? (WEAPONS.find(x=>x.id===p.offhand)||{}) : {};
-  const half = off.fam==="shield" ? 0 : (off.atk||0)/2;
+  const w = (p.weapon && catalog("weapon",p.weapon)) || BARE_HANDS;
+  const off = p.offhand ? (catalog("weapon",p.offhand)||{}) : {};
+  const half = isShield(off) ? 0 : (off.atk||0)/2;
   const r = roleDef(p);
   return CLASSES[p.cls].atk + p.lv + w.atk + half + (hasTrait(p,"Brave")?2*emult(p):0) + (hasTrait(p,"Craven")?-2:0) + ((r&&r.atk)||0);
 }
 function defOf(p){
-  expandGear(); ensureSlots(p);
-  const adef = wornArmor(p).reduce((n,a)=>n+(a.def||0),0) + ((p.offhand && (WEAPONS.find(x=>x.id===p.offhand)||{}).fam==="shield") ? ((WEAPONS.find(x=>x.id===p.offhand)||{}).def||0) : 0);
-  const a = {def:adef};
+  ensureSlots(p);
+  const off = p.offhand ? (catalog("weapon",p.offhand)||{}) : {};
+  const adef = wornArmor(p).reduce((n,a)=>n+(a.def||0),0) + (isShield(off) ? (off.def||0) : 0);
   const r = roleDef(p);
-  return CLASSES[p.cls].def + Math.floor(p.lv/2) + a.def + (hasTrait(p,"Tough")?2*emult(p):0) + (hasTrait(p,"Fragile")?-2:0) + ((r&&r.def)||0);
+  return CLASSES[p.cls].def + Math.floor(p.lv/2) + adef + (hasTrait(p,"Tough")?2*emult(p):0) + (hasTrait(p,"Fragile")?-2:0) + ((r&&r.def)||0);
+}
+/* ---- weapon abilities: the main hand and the offhand each count; the same ability in both hands adds up ---- */
+function heldGear(p){
+  const out = [];
+  [p&&p.weapon, p&&p.offhand].forEach(id=>{ const it = id && catalog("weapon", id); if(it && it.ab && GEAR_AB[it.ab]) out.push(it); });
+  return out;
+}
+function gearN(p, key){
+  let n = 0;
+  heldGear(p).forEach(it=>{ if(it.ab===key) n += GEAR_AB[key].v[it.abt||0]; });
+  return n;
+}
+function gearHas(p, key){ return heldGear(p).some(it=>it.ab===key); }
+function partyGearN(party, key){ return (party||[]).reduce((n,p)=>n+gearN(p,key),0); }
+function gearLabel(it){ return it.n+" ("+((GEAR_TIERS[it.r]||{}).color||"")+")"; }
+function abilityText(it){
+  if(!it || !it.ab || !GEAR_AB[it.ab]) return "";
+  const a = GEAR_AB[it.ab];
+  return a.n+": "+a.t(a.v[it.abt||0]);
+}
+function gearStatText(it){
+  const c = gearSrc(it);
+  if(!c) return "";
+  if(c.kind==="armor") return "+"+(c.def||0)+" DEF";
+  if(isShield(c)) return "+"+(c.def||0)+" DEF";
+  return "+"+(c.atk||0)+" ATK";
+}
+function gearTierWord(it){ const k = rarityOf(gearSrc(it)); const t = GEAR_TIERS[k]; return (it.kind==="weapon"||it.kind==="armor") && t ? t.color : k; }
+function gearAbHtml(it){ const t = abilityText(gearSrc(it)); return t ? `<p class="tiny">✦ ${t}</p>` : ""; }
+const EAGLE_JOBS = /Lost|Trace|Herb|Wood|Trail|Shepherd|Ledger/;
+function gearPwrParts(p, m, party){
+  const out = [];
+  const days = m ? missionDays(m) : 0;
+  const mt = ((MISSION_TYPE[m&&m.t])||{}).type;
+  heldGear(p).forEach(it=>{
+    const a = GEAR_AB[it.ab], v = a.v[it.abt||0], L = gearLabel(it);
+    const add = (why,n)=>{ if(n) out.push({label:L+(why?" "+why:""), n}); };
+    switch(it.ab){
+      case "power": add("", v); break;
+      case "eagle": if(m && m.t && EAGLE_JOBS.test(m.t)) add("on this job", v); break;
+      case "night": if(v && m && isDarkMission(m)) add("on Dark", v); break;
+      case "day": if(v && m && isHolyMission(m)) add("on Holy", v); break;
+      case "hardened": if(m && m.diff>=6) add("on a hard job", v); break;
+      case "keen": if(m && m.diff<=3) add("on an easy job", v); break;
+      case "stayer": if(m && days>=4) add("on a long job", v); break;
+      case "sprinter": if(m && days<=3) add("on a short job", v); break;
+      case "packleader": if(party && party.length>=3) add("in a party", v); break;
+      case "lonewolf": if(party && party.length<=1) add("(solo)", v); break;
+      default: if(a.spec && mt && TYPE_TRAIT[mt]===a.n) add("on "+mt, v);
+    }
+  });
+  return out;
 }
 function foodOf(p){
   if(!p || !p.food) return null;
@@ -2357,14 +2812,13 @@ function grantEpicArtifact(m){
   if(!pool.length){
     const bonus = 80 + (S.epicWins||0)*15;
     S.gold += bonus;
-    note("No artifact remains unclaimed. The town paid "+gp(bonus)+" instead.", "level");
+    note("No unique gear remains unclaimed. The town paid "+gp(bonus)+" instead.", "level");
     return;
   }
   const it = m.artifact || pick(pool);
-  const kind = WEAPONS.some(x=>x.id===it.id) ? "weapon" : "armor";
   if(!S.pendingLoot) S.pendingLoot = [];
-  S.pendingLoot.push({uid:uid(), kind, id:it.id, n:it.n, atk:it.atk||0, def:it.def||0, cost:it.cost||0, unique:true, r:"artifact", tier:"artifact", from:m.t});
-  note("Artifact claimed: "+it.n+" from "+m.t+". Keep or sell below.", "level");
+  S.pendingLoot.push(gearCopy(it, {uid:uid(), unique:true, from:m.t}));
+  note("Unique gear claimed: "+it.n+" from "+m.t+". Keep or sell below.", "level");
   log("Epic reward: "+it.n+".");
 }
 function makeEpicQuest(){
@@ -2950,7 +3404,11 @@ function stockRoad(kind){
   const list = kind==="weapon"?WEAPONS:kind==="armor"?ARMORS:FOODS;
   const rank = x=>rarityRank(x.r||"common");
   const normal = list.filter(x=>!x.unique && !x.road && (x.r||"")!=="artifact" && rank(x)<=2);
-  const mix = normal.slice().sort(()=>Math.random()-0.5).slice(0, rng(4,6));
+  let mix;
+  if(kind==="weapon" || kind==="armor"){
+    mix = []; const want = rng(4,6);
+    for(let i=0;i<60 && mix.length<want;i++){ const it = pickTierItem(normal); if(it && !mix.find(y=>y.id===it.id)) mix.push(it); }
+  } else mix = normal.slice().sort(()=>Math.random()-0.5).slice(0, rng(4,6));
   const exclusive = roadList(kind).filter(x=>!ownsUnique(x.id) && (x.r==="rare"||x.r==="epic"));
   const fallback = roadList(kind).filter(x=>!ownsUnique(x.id) && rank(x)>=3);
   const star = exclusive.find(x=>x.smithStar) || pick(exclusive.length?exclusive:fallback);
@@ -2958,9 +3416,9 @@ function stockRoad(kind){
   if(star) out.unshift(star);
   return out;
 }
-function slotOf(p, kind){
-  if(kind==="weapon") return p.weapon;
-  if(kind==="armor") return p.armor;
+function slotOf(p, kind, it){
+  if(kind==="weapon") return it && isShield(it) ? p.offhand : p.weapon;
+  if(kind==="armor"){ if(!it) return p.armor; ensureSlots(p); return p.slots[armorSlotOf(it)] || null; }
   return p.food;
 }
 function setSlot(p, kind, id){
@@ -2983,14 +3441,14 @@ function setSlot(p, kind, id){
   }
   else { p.food = id; p.foodEaten = false; }
 }
-function isBaseSlot(p, kind){
-  if(kind==="weapon") return !p.weapon || p.weapon==="stick";
-  if(kind==="armor") return !p.armor || p.armor==="cloth";
+function isBaseSlot(p, kind, it){
+  if(kind==="weapon") { const id = slotOf(p, kind, it); return !id || id===STARTER_WEAPON; }
+  if(kind==="armor") { const id = slotOf(p, kind, it); return !id || id===STARTER_ARMOR; }
   return !p.food;
 }
 function catalogKind(kind, id){
-  const list = kind==="weapon"?WEAPONS:kind==="armor"?ARMORS:FOODS;
-  return list.find(x=>x.id===id) || null;
+  if(kind==="weapon" || kind==="armor") return catalog(kind, id);
+  return FOODS.find(x=>x.id===id) || null;
 }
 function roadShopTitle(kind){
   return kind==="weapon"?"Road smith":kind==="armor"?"Road armorer":"Road kettle";
@@ -3023,9 +3481,9 @@ function openRoadShop(kind, enc, m, party, after, useSheet){
     return true;
   }
   function putOn(p, it, sellOld){
-    const oldId = slotOf(p, kind);
+    const oldId = slotOf(p, kind, it);
     const old = oldId ? catalogKind(kind, oldId) : null;
-    const occupied = !isBaseSlot(p, kind) && old;
+    const occupied = !isBaseSlot(p, kind, it) && old;
     if(occupied){
       if(sellOld){
         S.gold += sellPrice(old);
@@ -3055,9 +3513,9 @@ function openRoadShop(kind, enc, m, party, after, useSheet){
         const c = CLASSES[p.cls]||{};
         const wear = Object.assign({kind}, it);
         const ok = canWield(p, wear);
-        const oldId = slotOf(p, kind);
+        const oldId = slotOf(p, kind, it);
         const old = oldId ? catalogKind(kind, oldId) : null;
-        const occupied = !isBaseSlot(p, kind) && old;
+        const occupied = !isBaseSlot(p, kind, it) && old;
         const nv = kind==="weapon"?(it.atk||0):kind==="armor"?(it.def||0):0;
         const ov = old ? (kind==="weapon"?(old.atk||0):kind==="armor"?(old.def||0):0) : 0;
         const d = nv-ov;
@@ -3093,8 +3551,7 @@ function openRoadShop(kind, enc, m, party, after, useSheet){
     };
   }
   function paint(){
-    const list = kind==="weapon"?WEAPONS:kind==="armor"?ARMORS:FOODS;
-    const stock = (S[key]||[]).map(id=>list.find(x=>x.id===id)).filter(Boolean);
+    const stock = (S[key]||[]).map(id=>catalogKind(kind, id)).filter(Boolean);
     const names = party.map(p=>p.name.split(" ")[0]).join(", ");
     const holding = kind==="weapon"?"weapon":kind==="armor"?"armor":"food";
     box.style.display = "block";
@@ -3157,8 +3614,8 @@ function openRoadShop(kind, enc, m, party, after, useSheet){
         S.gold += pay;
         log("Road stall bought "+per.name+"'s "+it.n+" for "+pay+"g.");
         note(per.name+" sold "+it.n+" on the verge · "+gp(pay), "success");
-        if(kind==="weapon") per.weapon = "stick";
-        else if(kind==="armor") per.armor = "cloth";
+        if(kind==="weapon") per.weapon = STARTER_WEAPON;
+        else if(kind==="armor") per.armor = STARTER_ARMOR;
         else { per.food = null; per.foodEaten = false; }
         save();
         paint();
@@ -3358,24 +3815,22 @@ function roadCombatLoot(diff){
   const top = Math.max(1, ...(S.people||[]).map(p=>p.lv||1));
   const tiers = top>=7?["uncommon","rare"]:top>=5?["common","uncommon"]:top>=3?["junk","common"]:["junk"];
   const bag = WEAPONS.concat(ARMORS).filter(x=>x && tiers.indexOf(x.r)>=0 && !x.unique);
-  const it = bag.length ? pick(bag) : pick(WEAPONS.concat(ARMORS));
+  const it = bag.length ? pickTierItem(bag) : pick(WEAPONS.concat(ARMORS));
   if(!it) return null;
-  const kind = WEAPONS.some(x=>x.id===it.id) ? "weapon" : "armor";
   if(!S.pendingLoot) S.pendingLoot = [];
-  S.pendingLoot.push({uid:uid(), kind, id:it.id, n:it.n, atk:it.atk||0, def:it.def||0, cost:it.cost||0, r:it.r||"common", from:"the road"});
+  S.pendingLoot.push(gearCopy(it, {uid:uid(), from:"the road"}));
   return it;
 }
 function roadLootPick(diff){
   const d = diff||4;
   const tiers = d>=8?["rare","epic"]:d>=6?["uncommon","rare"]:d>=4?["common","uncommon"]:["junk","common"];
   const bag = WEAPONS.concat(ARMORS).filter(x=>x && tiers.indexOf(x.r)>=0 && !x.unique);
-  return (bag.length ? pick(bag) : pick(WEAPONS.concat(ARMORS))) || null;
+  return (bag.length ? pickTierItem(bag) : pick(WEAPONS.concat(ARMORS))) || null;
 }
 function grantRoadLoot(it){
   if(!it) return null;
-  const kind = WEAPONS.some(x=>x.id===it.id) ? "weapon" : "armor";
   if(!S.pendingLoot) S.pendingLoot = [];
-  S.pendingLoot.push({uid:uid(), kind, id:it.id, n:it.n, atk:it.atk||0, def:it.def||0, cost:it.cost||0, r:it.r||"common", from:"the road"});
+  S.pendingLoot.push(gearCopy(it, {uid:uid(), from:"the road"}));
   return it;
 }
 function roadSeerRoll(enc, party, m){
@@ -3606,7 +4061,7 @@ function roadSeerHtml(enc, party, m){
   const diff = enc.diff||4;
   const pwr = power(party, m);
   const winPct = Math.max(5, Math.min(95, Math.round(pwr/Math.max(1,diff*6+3)*70)));
-  const top = Math.max(1, ...(S.people||[]).map(p=>p.lv||1)); const loot = top>=7?"uncommon–rare":top>=5?"common–uncommon":top>=3?"junk–common":"junk";
+  const top = Math.max(1, ...(S.people||[]).map(p=>p.lv||1)); const loot = top>=7?"Green–Blue":top>=5?"White–Green":top>=3?"Gray–White":"Gray";
   const dmgLo = 4+diff, dmgHi = 8+diff*2, goldHi = 6+diff*2;
   const fightPwr = party && party.length ? power(party, m) : 0;
   const target = diff*6+3;
@@ -4264,11 +4719,11 @@ function rosterBestRank(kind){
   let best = 0;
   (S.people||[]).forEach(p=>{
     if(!p || p.status==="dead") return;
-    let it = null;
-    if(kind==="weapon") it = catalog("weapon", p.weapon);
-    else if(kind==="armor") it = catalog("armor", p.armor);
-    else it = foodOf(p);
-    if(it) best = Math.max(best, rarityRank(rarityOf(it)));
+    let its = [];
+    if(kind==="weapon") its = [catalog("weapon", p.weapon)];
+    else if(kind==="armor") its = wornArmor(p);
+    else its = [foodOf(p)];
+    its.forEach(it=>{ if(it) best = Math.max(best, rarityRank(rarityOf(it))); });
   });
   return best;
 }
@@ -4304,9 +4759,10 @@ function tickFeatured(){
 function restockShop(){
   const cap = shopRarityCap();
   function take(list, kind, n, always){
+    const gear = kind==="weapon" || kind==="armor";
     const ok = list.filter(x=>{
       if(x.unique || rarityRank(x.r||"common")>cap) return false;
-      if(kind==="armor" && (x.def||0)>1 && Math.random()<0.45) return false;
+      if(!gear && kind==="armor" && (x.def||0)>1 && Math.random()<0.45) return false;
       return true;
     });
     const out = [];
@@ -4314,9 +4770,18 @@ function restockShop(){
       const it = ok.find(x=>x.id===id);
       if(it && !out.find(y=>y.id===it.id)) out.push(it);
     });
-    const pool = ok.slice().sort(()=>Math.random()-0.5);
-    for(let i=0;i<pool.length && out.length<n;i++){
-      if(!out.find(y=>y.id===pool[i].id)) out.push(pool[i]);
+    if(gear){
+      // one colour is rolled first, then a piece of it, so every colour the Armory allows shows up
+      const w = kind==="armor" ? {junk:1, common:1, uncommon:0.6, rare:0.45, epic:0.35} : null;
+      for(let i=0;i<60 && out.length<n;i++){
+        const it = pickTierItem(ok, w);
+        if(it && !out.find(y=>y.id===it.id)) out.push(it);
+      }
+    } else {
+      const pool = ok.slice().sort(()=>Math.random()-0.5);
+      for(let i=0;i<pool.length && out.length<n;i++){
+        if(!out.find(y=>y.id===pool[i].id)) out.push(pool[i]);
+      }
     }
     out.forEach(it=>{
       if(S.shop.some(x=>x.id===it.id && x.kind===kind)) return;
@@ -4324,8 +4789,8 @@ function restockShop(){
     });
   }
   S.shop = [];
-  take(WEAPONS, "weapon", 6, ["stick"]);
-  take(ARMORS, "armor", 6, ["cloth"]);
+  take(WEAPONS, "weapon", 6, [STARTER_WEAPON]);
+  take(ARMORS, "armor", 6, [STARTER_ARMOR]);
   take(FOODS, "food", 5, ["hardtack","rations"]);
   take(KITS, "kit", KITS.length, KITS.map(x=>x.id));
   injectFeatShop();
@@ -4351,11 +4816,11 @@ function fmtPwrPart(n, signed){
   return (neg?"−":"+")+body;
 }
 function bodyParts(p, who){
-  expandGear(); ensureSlots(p);
+  ensureSlots(p);
   const out=[]; const add=(l,n)=>{ if(n) out.push({label:who+l, n}); };
-  const w = WEAPONS.find(x=>x.id===p.weapon) || WEAPONS[0];
-  const off = p.offhand ? (WEAPONS.find(x=>x.id===p.offhand)||{}) : {};
-  const shield = off.fam==="shield";
+  const w = (p.weapon && catalog("weapon",p.weapon)) || BARE_HANDS;
+  const off = p.offhand ? (catalog("weapon",p.offhand)||{}) : {};
+  const shield = isShield(off);
   const r = roleDef(p); const em = emult(p);
   add("Base attack ("+p.cls+")", CLASSES[p.cls].atk);
   add("Level "+p.lv+" attack", p.lv);
@@ -4411,6 +4876,7 @@ function power(party, m, detail){
     if(hasTrait(p,"Sprinter") && days<=3) pwr += pwrPart(parts, who+(epic?"Epic ":"")+"Sprinter on a short job", 2*emult(p));
     if(hasTrait(p,"Pack leader") && party && party.length>=3) pwr += pwrPart(parts, who+(epic?"Epic ":"")+"Pack leader", 2*emult(p));
     if(hasTrait(p,"Lone wolf")) pwr += pwrPart(parts, who+"Lone wolf"+(party && party.length<=1?" (solo)":" (in a party)"), party && party.length<=1 ? 2*emult(p) : -2);
+    gearPwrParts(p, m, party).forEach(x=>{ pwr += pwrPart(parts, who+x.label, x.n); });
     const mt = (MISSION_TYPE[m&&m.t]||{}).type;
     const spec = mt && TYPE_TRAIT[mt];
     if(spec && specOf(p)===spec) pwr += pwrPart(parts, who+(epic?"Epic ":"")+(specOf(p))+" on "+mt, 4*emult(p));
@@ -4625,7 +5091,8 @@ function creditWrit(m){
   const crew = (m.party||[]).map(id=>(S.people||[]).find(p=>p.id===id)).filter(Boolean);
   if(crew.some(p=>hasTrait(p,"Oath-breaker"))) return 0;
   let add = 1;
-  if(!w.oathUsed && crew.some(p=>p.quirk==="oath_eater")){ add += 1; w.oathUsed = true; }
+  const oathBonus = (crew.some(p=>p.quirk==="oath_eater")?1:0) + partyGearN(crew,"oatheater");
+  if(!w.oathUsed && oathBonus){ add += oathBonus; w.oathUsed = true; }
   if(S.doubleWrit){ add = 2; S.doubleWrit = false; }
   w.have = Math.min(w.need, (w.have||0)+add);
   if(w.have>=w.need){
@@ -5026,6 +5493,8 @@ function itemStatBits(it){
   const bits = [];
   if(src.atk) bits.push("+"+src.atk+" ATK");
   if(src.def) bits.push("+"+src.def+" DEF");
+  const abT = (src.kind==="weapon") ? abilityText(src) : "";
+  if(abT) bits.push(abT);
   if(src.hp) bits.push("+"+src.hp+" HP");
   if(src.heal) bits.push("heals "+src.heal);
   if(src.pwr) bits.push("+"+src.pwr+" PWR");
@@ -5129,13 +5598,19 @@ function resolveMission(m){
   tickBonds(party, success);
   let gold = (m.pay!=null?m.pay:rng(m.gold[0], m.gold[1]));
   let ren = Math.max(1, m.diff||m.need||1);
-  if(party.some(p=>hasTrait(p,"Treasure Hunter")) && success) gold = Math.floor(gold*(party.some(p=>hasTrait(p,"Treasure Hunter")&&isEpic(p))?1.4:1.2));
+  if(success){
+    // trait: +20% (+40% if Epic); weapon ability Treasure Hunter: +20/25/30%. They add together.
+    const thTrait = party.some(p=>hasTrait(p,"Treasure Hunter")) ? (party.some(p=>hasTrait(p,"Treasure Hunter")&&isEpic(p))?0.4:0.2) : 0;
+    const thGear = partyGearN(party,"treasure")/100;
+    if(thTrait+thGear>0) gold = Math.floor(gold*(1+thTrait+thGear));
+  }
   if(success){
     const inv = party.filter(p=>hasTrait(p,"Investor")).length;
+    const invGear = partyGearN(party,"investor");
     const leak = party.filter(p=>hasTrait(p,"Spendthrift")).length;
-    if(inv){
+    if(inv || invGear){
       const room = Math.max(0, bankCap()-(S.deposit||0));
-      const add = Math.min(room, 5*inv);
+      const add = Math.min(room, 5*inv + invGear);
       if(add){ S.deposit = (S.deposit||0)+add; log("Investor parked "+add+" in the vault."); }
     }
     if(leak){
@@ -5151,8 +5626,10 @@ function resolveMission(m){
   if(success){
     party.forEach(p=>{
       if(hasTrait(p,"Charming")) ren += 1;
+      ren += gearN(p,"charming");
       if(hasTrait(p,"Sour")) ren -= 1;
       if(hasTrait(p,"Tithe-hand") && writMatches(m)) ren += 1;
+      if(writMatches(m)) ren += gearN(p,"tithe");
     });
   }
   if(success){
@@ -5211,7 +5688,9 @@ function resolveMission(m){
       bumpLoy(p, 1);
       if((roleDef(p)||{}).loy || p.quirk==="oathbound") bumpLoy(p, 1);
       if(hasTrait(p,"Blooded")) bumpLoy(p, 1);
-      if(p.quirk==="dawn_singer" && isHolyMission(m)) S.dawnSing = p.name.split(" ")[0];
+      if(gearN(p,"blooded")) bumpLoy(p, gearN(p,"blooded"));
+      const singV = (p.quirk==="dawn_singer"?1:0) + gearN(p,"dawnsinger");
+      if(singV && isHolyMission(m)){ S.dawnSing = p.name.split(" ")[0]; S.dawnSingV = Math.max(S.dawnSingV||0, singV); }
       const typ = jobTypeOf(m);
       if(typ){
         const n = addRep(p, typ);
@@ -5231,7 +5710,7 @@ function resolveMission(m){
       if(p.hp <= 0){
         const oddsWord = seerWord(party, m);
         const oddsCut = oddsWord==="good chance"?0.05:oddsWord==="even"?0.10:oddsWord==="bloody"?0.15:oddsWord==="a grave"?0.20:0;
-        if(Math.random() < 0.35 + S.buildings.infirmary*0.1 + (hasTrait(p,"Grim")?0.15*emult(p):0) + (hasTrait(p,"Soft")?-0.15:0) - oddsCut){
+        if(Math.random() < 0.35 + S.buildings.infirmary*0.1 + (hasTrait(p,"Grim")?0.15*emult(p):0) + gearN(p,"grim")/100 + (hasTrait(p,"Soft")?-0.15:0) - oddsCut){
           p.hp = 1; p.status = "wounded";
           log(p.name+" nearly died on "+m.t+" but was dragged home.");
           note(woundStory(p, m, true), "warn");
@@ -5303,6 +5782,7 @@ function resolveMission(m){
     const r = roleDef(p);
     if(r && r.heal) healAmt += r.heal;
     if(p.quirk==="field_aid") healAmt += 2;
+    healAmt += gearN(p,"fieldaid");
   });
   if(healAmt){
     live.forEach(p=>{
@@ -5405,8 +5885,9 @@ function endDay(){
       const was = p.status;
       let dawnHeal = 3 + S.buildings.infirmary*2;
       if(hasTrait(p,"Quick mend")) dawnHeal += 2;
+      dawnHeal += gearN(p,"quickmend");
       if(hasTrait(p,"Slow clot")) dawnHeal -= 2;
-      if(S.dawnSing) dawnHeal += 1;
+      if(S.dawnSing) dawnHeal += (S.dawnSingV||1);
 
       p.hp = Math.min(p.maxhp, p.hp + Math.max(0, dawnHeal));
       if(p.hp >= p.maxhp*0.75) {
@@ -5452,9 +5933,10 @@ function endDay(){
   sweepQuit();
   if(wages) note("Wages paid: "+gp(wages)+".");
   if(S.dawnSing){
-    S.renown = (S.renown||0)+1;
-    note(S.dawnSing+" sang the dawn. +1 Renown. Wounded healed +1.", "success");
-    S.dawnSing = null;
+    const sv = S.dawnSingV||1;
+    S.renown = (S.renown||0)+sv;
+    note(S.dawnSing+" sang the dawn. +"+sv+" Renown. Wounded healed +"+sv+".", "success");
+    S.dawnSing = null; S.dawnSingV = 0;
   }
   if(S.deposit > bankCap()) S.deposit = bankCap();
   tickLoan();
@@ -6138,18 +6620,18 @@ function doorGearBand(fame){
   return Math.min(fame||0, cap);
 }
 function outfitVisitor(p, band){
-  const ranks = band<=0 ? ["junk","common"] : band===1 ? ["junk","common","uncommon"] : band===2 ? ["common","uncommon","rare"] : band===3 ? ["uncommon","rare","epic"] : ["rare","epic","artifact"];
+  const ranks = band<=0 ? ["junk","common"] : band===1 ? ["junk","common","uncommon"] : band===2 ? ["common","uncommon","rare"] : band===3 ? ["uncommon","rare","epic"] : ["rare","epic"];
   const wt = {junk:8, common:10, uncommon:5, rare:2, epic:1, artifact:1};
   function grab(kind){
     const list = (kind==="weapon"?WEAPONS:kind==="armor"?ARMORS:FOODS).filter(x=>{
-      if(x.road) return false;
+      if(x.road || x.legend) return false;            // Legendary gear never turns up on a visitor
       if(kind!=="food" && !canWield(p, x)) return false;
       const r = x.r || (x.unique?"artifact":"common");
-      if(r==="artifact" && band<4) return false;
       if(r==="epic" && band<3) return false;
       return ranks.indexOf(r)>=0;
     });
     if(!list.length) return null;
+    if(kind!=="food") return pickTierItem(list, wt);
     const bag = [];
     list.forEach(it=>{
       const n = wt[it.r || (it.unique?"artifact":"common")] || 3;
@@ -6157,9 +6639,10 @@ function outfitVisitor(p, band){
     });
     return bag.length ? pick(bag) : pick(list);
   }
-  const w = grab("weapon") || WEAPONS[0];
-  const a = grab("armor") || ARMORS[0];
-  p.weapon = w.id; p.armor = a.id;
+  const w = grab("weapon") || {id:STARTER_WEAPON};
+  const a = grab("armor") || {id:STARTER_ARMOR};
+  p.slots = {}; p.armor = null;
+  p.weapon = w.id; wearArmor(p, a.id);
   if(Math.random() < (0.15+band*0.12)){
     const f = grab("food");
     if(f) p.food = f.id;
@@ -6347,12 +6830,12 @@ function openGraveAsk(){
     const it = catalog(kind, id);
     if(!it) return;
     const old = kind==="weapon"?w.weapon:w.armor;
-    if(old && old!=="stick" && old!=="cloth"){
+    if(old && old!==STARTER_WEAPON && old!==STARTER_ARMOR){
       if(!S.vault) S.vault = [];
       S.vault.push({uid:uid(), kind, id:old});
     }
-    if(kind==="weapon") w.weapon = id; else w.armor = id;
-    if(kind==="weapon") d.weapon = "stick"; else d.armor = "cloth";
+    if(kind==="weapon") w.weapon = id; else setChest(w, id);
+    if(kind==="weapon") d.weapon = STARTER_WEAPON; else setChest(d, STARTER_ARMOR);
     log(w.name+" took "+it.n+" from "+d.name+"'s grave.");
     note(w.name+" took "+it.n+" from the fallen.", "success");
     S.graveAsk.shift();
@@ -6680,9 +7163,9 @@ function tickHallEvent(){
     pool.push("fever");
     pool.push("desertion");
     if(ready.length>=2){ pool.push("brawl"); pool.push("night_watch"); }
-    if(ready.some(x=>x.weapon && x.weapon!=="stick")) pool.push("broke_blade");
-    if(ready.some(x=>x.armor && x.armor!=="cloth")) pool.push("broke_strap");
-    if(ready.some(x=>x.cls==="Cleric" || hasTrait(x,"Daywalker") || x.quirk==="dawn_singer")) pool.push("quiet_mass");
+    if(ready.some(x=>x.weapon && x.weapon!==STARTER_WEAPON)) pool.push("broke_blade");
+    if(ready.some(x=>x.armor && x.armor!==STARTER_ARMOR)) pool.push("broke_strap");
+    if(ready.some(x=>canWalkHoly(x))) pool.push("quiet_mass");
   }
   if((S.missions||[]).some(m=>!m.epic && !(m.party&&m.party.length))){
     pool.push("rain_board");
@@ -6759,13 +7242,13 @@ function tickHallEvent(){
     const ppl = ready[Math.floor(Math.random()*ready.length)];
     S.hallEvent = {id:"fever", pid:ppl.id, name:ppl.name};
   } else if(id==="broke_strap"){
-    const bag = ready.filter(x=>x.armor && x.armor!=="cloth");
+    const bag = ready.filter(x=>x.armor && x.armor!==STARTER_ARMOR);
     const ppl = bag[Math.floor(Math.random()*bag.length)];
     const ar = catalog("armor", ppl.armor);
     const fee = Math.max(3, Math.floor((ar&&ar.cost||8)/2));
     S.hallEvent = {id:"broke_strap", pid:ppl.id, name:ppl.name, aid:ppl.armor, an:(ar&&ar.n)||"armor", fee};
   } else if(id==="quiet_mass"){
-    const bag = ready.filter(x=>x.cls==="Cleric" || hasTrait(x,"Daywalker") || x.quirk==="dawn_singer");
+    const bag = ready.filter(x=>canWalkHoly(x));
     const ppl = bag[Math.floor(Math.random()*bag.length)];
     S.hallEvent = {id:"quiet_mass", pid:ppl.id, name:ppl.name, fee:4};
   } else if(id==="mouse_scare"){
@@ -6778,7 +7261,7 @@ function tickHallEvent(){
   } else if(id==="rain_board"){
     S.hallEvent = {id:"rain_board", fee:8};
   } else if(id==="broke_blade"){
-    const bag = ready.filter(x=>x.weapon && x.weapon!=="stick");
+    const bag = ready.filter(x=>x.weapon && x.weapon!==STARTER_WEAPON);
     const ppl = bag[Math.floor(Math.random()*bag.length)];
     const we = catalog("weapon", ppl.weapon);
     const fee = Math.max(3, Math.floor((we&&we.cost||8)/2));
@@ -6941,6 +7424,7 @@ function openHallEvent(){
     const bits = [];
     if(it.atk) bits.push("+"+it.atk+" ATK");
     if(it.def) bits.push("+"+it.def+" DEF");
+    if(it.ab) bits.push(abilityText(gearSrc(it)));
     if(it.kind==="food" || it.heal || it.pwr) bits.push(typeof foodBits==="function" && (it.heal||it.pwr||it.gold||it.loy)?foodBits(it):(it.heal?("+"+it.heal+" HP"):""));
     bits.push(it.kind||e.kind||"item");
     bits.push(rarityOf(it));
@@ -7324,7 +7808,7 @@ function openHallEvent(){
   const ss = document.getElementById("strapScrap");
   if(ss) ss.onclick=()=>{
     const ppl = (S.people||[]).find(x=>x.id===e.pid);
-    if(ppl) ppl.armor = "cloth";
+    if(ppl) setChest(ppl, STARTER_ARMOR);
     S.hallEvent = null;
     log(e.name+"'s armor was torn off.");
     save(); closeModal(); nextDoorQueue(); render();
@@ -7453,7 +7937,7 @@ function openHallEvent(){
   const bls = document.getElementById("bladeScrap");
   if(bls) bls.onclick=()=>{
     const ppl = (S.people||[]).find(x=>x.id===e.pid);
-    if(ppl) ppl.weapon = "stick";
+    if(ppl) ppl.weapon = STARTER_WEAPON;
     S.hallEvent = null;
     log((e.name||"Someone")+"'s blade was scrapped.");
     save(); closeModal(); nextDoorQueue(); render();
@@ -7490,8 +7974,8 @@ function openHallEvent(){
     if(ppl){
       const hit = quitRenownHit(ppl);
       S.renown = Math.max(0, (S.renown||0)-hit);
-      if(ppl.weapon && ppl.weapon!=="stick") stashPush("weapon", ppl.weapon);
-      if(ppl.armor && ppl.armor!=="cloth") stashPush("armor", ppl.armor);
+      if(ppl.weapon && ppl.weapon!==STARTER_WEAPON) stashPush("weapon", ppl.weapon);
+      if(ppl.armor && ppl.armor!==STARTER_ARMOR) stashPush("armor", ppl.armor);
       if(ppl.food) stashPush("food", ppl.food);
       if(ppl.kit) stashPush("kit", ppl.kit);
       S.people = (S.people||[]).filter(x=>x.id!==ppl.id);
@@ -7742,39 +8226,42 @@ function send(mid, ids){
   closeModal(); save(); render();
 }
 
-const BLADED = ["sword","axe","runesword","ridgefang","wellspike","spear","boar","pike","starbit","ditchpike"];
 function rarityOf(it){
   if(!it) return "common";
   if(it.kind==="loot") return "junk";
   if(it.r) return it.r;
   if(it.unique) return "artifact";
-  const c = it.id ? (WEAPONS.find(x=>x.id===it.id)||ARMORS.find(x=>x.id===it.id)||FOODS.find(x=>x.id===it.id)) : null;
+  const c = it.id ? (catalog("weapon",it.id)||catalog("armor",it.id)||FOODS.find(x=>x.id===it.id)) : null;
   if(c && c.r) return c.r;
   if(c && c.unique) return "artifact";
   return "common";
 }
 function rarityColor(r){ return "r-"+(r||"common"); }
+function gearSrc(it){
+  if(!it) return it;
+  if(it.id && (it.kind==="weapon"||it.kind==="armor")){ const c = catalog(it.kind, it.id); if(c) return c; }
+  return it;
+}
 function itemNameHtml(it){
   if(!it) return "";
-  const src = it.n ? it : (catalog(it.kind||"", it.id)||it);
+  let src = gearSrc(it);
+  if(!src.n) src = catalog(it.kind||"", it.id)||it;
   let name = (src&&src.n)||it.id||"";
   const kind = (src&&src.kind)||it.kind;
   if(kind==="loot") return name;
-  if(/bow|crossbow/i.test(name)) name += " · ranged · two-hand";
-  if(isShield(src)) name += " · shield · +"+(src.def||0)+" DEF";
-  else if(kind==="armor" || (src&&src.slot) || (src&&src.wt)){
+  if(kind==="weapon"){
+    const T = WTYPES[src.t];
+    if(src.shield) name += " · shield · +"+(src.def||0)+" DEF";
+    else if(T) name += " · "+T.dmg+(T.hands>=2?" · two-hand":" · one-hand")+(T.mage?" · mages":"");
+  } else if(kind==="armor"){
     const slot = armorSlotOf(src||it);
     const wt = armorWtOf(src||it);
     if(!new RegExp(slot,"i").test(name)) name += " · "+slot;
-    if(!new RegExp(wt,"i").test(name)) name += " · "+wt;
+    name += " · "+wt;
   }
-  if(kind==="weapon" || (src&&src.fam)){
-    name = name.replace(/\s*\((junk|common|uncommon|rare|epic|artifact)\)/ig,"");
-    const fam = (src&&src.fam)||"";
-    const hands = (src&&src.hands)||1;
-    const tag = fam==="blade"?"bladed":fam==="blunt"?"blunt":fam==="ranged"?"ranged":fam==="wand"?"wand":"";
-    if(tag && !new RegExp(tag,"i").test(name)) name += " · "+tag;
-    if(hands>=2 && !/two-hand/i.test(name)) name += " · two-hand";
+  if(kind==="weapon" || kind==="armor"){
+    const t = GEAR_TIERS[rarityOf(src||it)];
+    if(t) name += " · "+t.color;
   }
   return `<span class="${rarityColor(rarityOf(src||it))}">${name}</span>`;
 }
@@ -7792,29 +8279,17 @@ function ownsUnique(id){
   if(!id) return false;
   if((S.vault||[]).some(x=>x.id===id)) return true;
   if((S.pendingLoot||[]).some(x=>x.id===id)) return true;
-  if((S.people||[]).some(p=>p.weapon===id||p.armor===id||p.food===id)) return true;
+  if((S.people||[]).some(p=>p.weapon===id||p.offhand===id||p.armor===id||p.food===id||(p.slots && Object.keys(p.slots).some(k=>p.slots[k]===id)))) return true;
   return false;
 }
-function isBladedWeapon(id){
-  const w = WEAPONS.find(x=>x.id===id);
-  if(w && w.blade) return true;
-  return BLADED.indexOf(id)>=0;
+function weaponTypeOf(idOrItem){
+  const it = (idOrItem && typeof idOrItem==="object") ? (idOrItem.t ? idOrItem : (catalog("weapon", idOrItem.id)||idOrItem)) : catalog("weapon", idOrItem);
+  return it && it.t ? WTYPES[it.t] || null : null;
 }
-function isBow(id){
-  if(!id) return false;
-  const w = WEAPONS.find(x=>x.id===id);
-  if(w && w.bow) return true;
-  const s = (id+" "+((w&&w.n)||"")).toLowerCase();
-  return /bow/.test(s);
-}
-function isWand(id){
-  if(!id) return false;
-  if(String(id).toLowerCase().indexOf("wand")>=0) return true;
-  const w = WEAPONS.find(x=>x.id===id);
-  return !!(w && /wand/i.test(w.n||""));
-}
+function isBladedWeapon(id){ const T = weaponTypeOf(id); return !!(T && T.dmg==="Bladed"); }
+function isBow(id){ const it = (id && typeof id==="object") ? id : catalog("weapon", id); return !!(it && (it.t==="bow" || it.t==="crossbow")); }
+function isWand(id){ const it = (id && typeof id==="object") ? id : catalog("weapon", id); return !!(it && it.t==="wand"); }
 
-const ARMOR_SLOTS=["head","chest","arms","legs","feet","hands"];
 function fixShieldHands(){
   (S.people||[]).forEach(p=>{
     if(!p || !p.weapon) return;
@@ -7826,97 +8301,44 @@ function fixShieldHands(){
     }
   });
 }
-function expandGear(){
-  if(expandGear.done) return;
-  expandGear.done=true;
-  WEAPONS.forEach(w=>{
-    w.kind="weapon";
-    const n=(w.n||"").toLowerCase();
-    if(/bow|crossbow/.test(n)) w.fam="ranged";
-    else if(/wand/.test(n)) w.fam="wand";
-    else if(/staff|stave/.test(n)) w.fam="blunt";
-    else if(w.blade || /sword|dagger|knife|axe|blade|falchion|spear|pike/.test(n)) w.fam="blade";
-    else w.fam="blunt";
-    w.hands = w.hands || 1;
-  });
-  ARMORS.forEach(a=>{
-    a.kind="armor";
-    a.slot=a.slot||"chest";
-    if(!a.wt) a.wt = (a.def||0)>=4 ? "heavy" : (a.def||0)>=2 ? "medium" : "light";
-  });
-  const slots={head:["Cap","Hood","Helm"],chest:["Vest","Jack","Coat"],arms:["Bracers","Sleeves","Vambraces"],legs:["Breeches","Chausses","Greaves"],feet:["Shoes","Boots","Sabatons"],hands:["Gloves","Gauntlets","Mitts"]};
-  const wts=["light","medium","heavy"];
-  const rar=[["junk",0],["common",1],["uncommon",2],["rare",3],["epic",4]];
-  wts.forEach(wt=>{
-    ARMOR_SLOTS.forEach(slot=>{
-      rar.forEach(([r,def],ri)=>{
-        const names=slots[slot];
-        const nm=names[wt==="light"?0:wt==="medium"?1:2]+" ("+wt+")";
-        const bonus=wt==="heavy"?2:wt==="medium"?1:1;
-        ARMORS.push({id:"gen_"+slot+"_"+wt+"_"+r, n:nm, def:def+bonus, cost:6+def*8+bonus*6, r, kind:"armor", slot, wt});
-      });
-    });
-  });
-  const blades=[["Dagger",1],["Sword",1],["Axe",1],["Greatsword",2],["Greataxe",2]];
-  const blunts=[["Club",1],["Mace",1],["Staff",1],["Maul",2],["Greatclub",2]];
-  const ranges=[["Bow",1],["Crossbow",1]];
-  function addW(list, fam){
-    list.forEach(([nm,hands])=>{
-      rar.forEach(([r,atk])=>{
-        const bonus=hands===2?2:0;
-        WEAPONS.push({id:"gen_"+fam+"_"+nm+"_"+r, n:nm, atk:Math.max(1, atk+bonus+(hands===2?1:0)), cost:8+atk*10+bonus*8, r, kind:"weapon", fam, hands, blade:fam==="blade"});
-      });
-    });
-  }
-  addW(blades,"blade"); addW(blunts,"blunt"); addW(ranges,"ranged");
-  WEAPONS.push({id:"gen_wand_common", n:"Ash Wand", atk:2, cost:18, r:"common", kind:"weapon", fam:"wand", hands:1});
-  WEAPONS.push({id:"gen_wand_rare", n:"Glass Wand", atk:4, cost:60, r:"rare", kind:"weapon", fam:"wand", hands:1});
-  [["Buckler",1,"common"],["Round Shield",2,"uncommon"],["Kite Shield",3,"rare"],["Tower Shield",4,"epic"],["Chapel Board",2,"common"],["Iron Heater",3,"uncommon"]].forEach(([n,def,r])=>{
-    WEAPONS.push({id:"gen_shield_"+n.replace(/\s/g,""), n, atk:1, def, cost:12+def*14, r, kind:"weapon", fam:"shield", hands:1});
-  });
-}
-
-bumpWeaponAtk();
-function bumpWeaponAtk(){ WEAPONS.forEach(w=>{ if((w.atk||0)<1) w.atk=1; }); }
-bumpWeaponAtk();
-function stampRanged(){
-  (WEAPONS||[]).forEach(w=>{
-    if(/bow|crossbow/i.test(w.n||"")){ w.fam="ranged"; w.hands=2; }
-  });
-}
+function expandGear(){}   // kept so old call sites still work; the catalog is built once at load
 function canOffhand(p, it){
-  stampRanged();
   if(!p||!it) return false;
-  const fam=it.fam||"";
-  const hands=(/bow|crossbow/i.test(it.n||"")?2:(it.hands||(/great|maul|two-hand/i.test(it.n||"")?2:1)));
-  if(isTwoHand(it) || hands>=2) return false;
-  if(fam==="shield" || isShield(it)) return p.cls==="Warrior"||p.cls==="Cleric";
-  if(p.cls==="Warrior"||p.cls==="Rogue") return fam!=="wand" && fam!=="shield";
-  if(p.cls==="Mage") return fam==="wand";
+  const src = it.t ? it : (catalog("weapon", it.id)||it);
+  if(isTwoHand(src)) return false;
+  if(isShield(src)) return p.cls==="Warrior"||p.cls==="Cleric";
+  if(p.cls==="Warrior"||p.cls==="Rogue") return src.t!=="wand";
+  if(p.cls==="Mage") return src.t==="wand";
   return false;
 }
 function isTwoHand(it){
   if(!it) return false;
-  if(/bow|crossbow/i.test(it.n||"")) return true;
-  return (it.hands||(/great|maul|two-hand/i.test(it.n||"")?2:1))>=2;
+  const src = it.t ? it : (catalog("weapon", it.id)||it);
+  return (src.hands||1)>=2;
 }
 function fixTwoHand(p){
   if(!p||!p.offhand) return;
   const main = p.weapon ? catalog("weapon", p.weapon) : null;
-  if(main && isTwoHand(main)){ stashPush("weapon", p.offhand); p.offhand=null; }
+  if(main && isTwoHand(main)){ safeStash("weapon", p.offhand); p.offhand=null; }
+}
+/* put a gear id away; if the racks are full it waits in pending loot so nothing is ever lost */
+function safeStash(kind, id){
+  if(!id) return;
+  if(stashPush(kind, id)) return;
+  const it = catalog(kind, id);
+  if(!it) return;
+  if(!S.pendingLoot) S.pendingLoot = [];
+  S.pendingLoot.push(gearCopy(it, {uid:uid(), from:"your gear"}));
 }
 function placeWeapon(p, it){
-  expandGear();
-  const hands=(/bow|crossbow/i.test(it.n||"")?2:(it.hands||(/great|maul|two-hand/i.test(it.n||"")?2:1)));
   if(isShield(it)){
     const main = p.weapon ? catalog("weapon", p.weapon) : null;
-    const mainHands = main ? (/bow|crossbow/i.test(main.n||"")?2:(main.hands||(/great|maul|two-hand/i.test(main.n||"")?2:1))) : 1;
-    if(main && mainHands>=2){ stashPush("weapon", p.weapon); p.weapon=null; }
+    if(main && isTwoHand(main)){ stashPush("weapon", p.weapon); p.weapon=null; }
     if(p.offhand) stashPush("weapon", p.offhand);
     p.offhand=it.id;
     return;
   }
-  if(hands>=2){
+  if(isTwoHand(it)){
     if(p.weapon) stashPush("weapon", p.weapon);
     if(p.offhand) stashPush("weapon", p.offhand);
     p.weapon=it.id; p.offhand=null;
@@ -7933,32 +8355,6 @@ function placeWeapon(p, it){
   p.weapon=it.id;
 }
 
-function openOldHandAsk(p, oldId){
-  const old = catalog("weapon", oldId);
-  const box = document.getElementById("findsBox");
-  const wrap = document.getElementById("finds");
-  if(!old||!box||!wrap){ stashPush("weapon", oldId); save(); render(); afterFind(); return; }
-  wrap.style.display="flex";
-  const offOk = canOffhand(p, old);
-  const cur = p.offhand ? catalog("weapon", p.offhand) : null;
-  const curLine = cur ? `<p class="tiny">Offhand now holds ${itemNameHtml(cur)}. Putting this there sends that to the armory.</p>` : `<p class="tiny">The offhand is empty.</p>`;
-  box.innerHTML = `<h3>${itemNameHtml(old)}</h3>
-    <p>That was in the main hand.</p>
-    ${curLine}
-    ${offOk?`<button type="button" class="act" id="oldOff" style="width:100%;margin-top:8px">${cur?"Replace offhand":"Offhand"} · half attack</button>`:`<p class="tiny">Cannot sit in the offhand.</p>`}
-    <button type="button" class="ghost" id="oldRack" style="width:100%;margin-top:6px">Armory</button>`;
-  const oo = document.getElementById("oldOff");
-  if(oo) oo.onclick=()=>{
-    if(p.offhand) stashPush("weapon", p.offhand);
-    p.offhand = oldId;
-    log(p.name.split(" ")[0]+" moved "+old.n+" to the offhand.");
-    save(); render(); afterFind();
-  };
-  document.getElementById("oldRack").onclick=()=>{
-    stashPush("weapon", oldId);
-    save(); render(); afterFind();
-  };
-}
 
 function openHandAsk(){
   const a=S._handAsk; if(!a) return;
@@ -7973,7 +8369,7 @@ function openHandAsk(){
     <p>A hand is free. Where does it go?</p>
     <p class="tiny">Main: ${p.weapon?itemNameHtml(catalog("weapon", p.weapon)):"empty"} · Off: ${p.offhand?itemNameHtml(catalog("weapon", p.offhand)):"empty"}</p>
     ${isShield(it)?"":`<button type="button" class="act" id="handMain" style="width:100%;margin-top:8px">Main hand</button>`}
-    ${offOk && !/bow|crossbow/i.test(it.n||"")?`<button type="button" class="act" id="handOff" style="width:100%;margin-top:6px">${isShield(it)?"Offhand · shield, defense":"Offhand · half attack"}</button>`:""}
+    ${offOk?`<button type="button" class="act" id="handOff" style="width:100%;margin-top:6px">${isShield(it)?"Offhand · shield, defense":"Offhand · half attack"}</button>`:""}
     <button type="button" class="ghost" id="handNo" style="width:100%;margin-top:6px">Put it back</button>`;
   const hm=document.getElementById("handMain");
   if(hm) hm.onclick=()=>{
@@ -8003,28 +8399,20 @@ function openHandAsk(){
 
 function armorSlotOf(it){
   if(!it) return "chest";
-  if(it.slot) return it.slot;
-  const n=(it.n||"");
-  if(/Cap|Hood|Helm/.test(n)) return "head";
-  if(/Bracer|Sleeve|Vambrace/.test(n)) return "arms";
-  if(/Breeches|Chausses|Greave/.test(n)) return "legs";
-  if(/Shoe|Boot|Sabaton/.test(n)) return "feet";
-  if(/Glove|Gauntlet|Mitt/.test(n)) return "hands";
+  const src = it.slot ? it : (catalog("armor", it.id)||it);
+  if(src.slot) return src.slot==="arms" ? "cloak" : src.slot;
   return "chest";
 }
 function armorWtOf(it){
   if(!it) return "light";
-  const n=(it.n||"").toLowerCase();
-  if(/\blight\b/.test(n)) return "light";
-  if(/\bmedium\b/.test(n)) return "medium";
-  if(/\bheavy\b/.test(n)) return "heavy";
-  if(it.wt) return it.wt;
-  return (it.def||0)>=4?"heavy":(it.def||0)>=2?"medium":"light";
+  const src = it.wt ? it : (catalog("armor", it.id)||it);
+  return src.wt || "light";
 }
 function ensureSlots(p){
   if(!p) return;
   if(!p.slots) p.slots={};
-  if(p.armor && !p.slots.chest) p.slots.chest=p.armor;
+  if(p.slots.arms!==undefined){ if(!p.slots.cloak) p.slots.cloak=p.slots.arms; delete p.slots.arms; }
+  if(p.armor && !p.slots.chest){ const a = catalog("armor", p.armor); if(a && armorSlotOf(a)==="chest") p.slots.chest = a.id; }
 }
 function wornArmor(p){
   ensureSlots(p);
@@ -8033,12 +8421,12 @@ function wornArmor(p){
 
 function isShield(it){
   if(!it) return false;
-  const src = it.n ? it : (catalog("weapon", it.id)||it);
-  if((src.kind||it.kind)==="loot") return false;
-  return (src.fam==="shield") || /buckler|shield|heater|board/i.test(src.n||"");
+  const src = (it.t ? it : (it.id ? catalog("weapon", it.id) : null)) || it;
+  if((src.kind||it.kind)==="loot" || (src.kind||it.kind)==="armor") return false;
+  return !!src.shield;
 }
+/* who may use what. Rules are decided by the weapon TYPE (t), never by the name. */
 function canWield(p, item){
-  expandGear();
   if(!p || !item) return false;
   if(item.kind==="loot") return false;
   if(item.kind==="food"){
@@ -8046,29 +8434,31 @@ function canWield(p, item){
     return true;
   }
   if(p.quirk==="no_dark" && itemHasDark(item)) return false;
-  if(isShield(item)) return p.cls==="Warrior" || p.cls==="Cleric";
   if(item.kind==="armor"){
-    const wt=armorWtOf(item);
+    const src = item.wt ? item : (catalog("armor", item.id)||item);
+    const wt = src.wt || "light";
     if(p.cls==="Mage" && wt!=="light") return false;
     if(p.cls==="Rogue" && wt==="heavy") return false;
     return true;
   }
   if(item.kind==="weapon"){
-    const fam=item.fam||(isWand(item.id)?"wand":isBow(item.id)?"ranged":isBladedWeapon(item.id)?"blade":"blunt");
-    const hands = item.hands || (/great|maul|two-hand/i.test(item.n||"") ? 2 : 1);
-    if(fam==="shield") return p.cls==="Warrior" || p.cls==="Cleric";
-    if(hands>=2 && p.cls!=="Warrior" && p.cls!=="Cleric") return false;
-    if(p.cls==="Cleric" && fam!=="blunt") return false;
-    if(p.cls==="Mage" && !(fam==="wand" || fam==="dagger" || (fam==="blade" && /dagger|knife/i.test(item.n||"")) || (fam==="blunt" && /staff|stave/i.test(item.n||"")))) return false;
-    if(fam==="ranged" && p.cls!=="Warrior" && p.cls!=="Rogue") return false;
-    if(fam==="wand" && p.cls!=="Mage") return false;
+    const src = item.t ? item : (catalog("weapon", item.id)||item);
+    const T = WTYPES[src.t];
+    if(!T) return false;
+    if(T.shield) return p.cls==="Warrior" || p.cls==="Cleric";
+    if(T.mage) return p.cls==="Mage";                       // wand, staff
+    if(p.cls==="Mage") return src.t==="dagger";             // mages: wand, staff, dagger
+    if(T.hands>=2 && p.cls!=="Warrior" && p.cls!=="Cleric") return false;
+    if(p.cls==="Cleric") return T.dmg==="Blunt";
+    if(T.dmg==="Ranged") return p.cls==="Warrior" || p.cls==="Rogue";
     return true;
   }
   return true;
 }
 
 function catalog(kind, id){
-  const list = kind==="weapon" ? WEAPONS : kind==="armor" ? ARMORS : kind==="food" ? FOODS : kind==="kit" ? KITS : [];
+  if(kind==="weapon" || kind==="armor") return gearResolve(kind, id);
+  const list = kind==="food" ? FOODS : kind==="kit" ? KITS : [];
   return list.find(x=>x.id===id) || null;
 }
 function kitOf(p){ return p && p.kit ? catalog("kit", p.kit) : null; }
@@ -8089,6 +8479,7 @@ function stashPush(kind, id){
   if(!it) return false;
   if(!S.vault) S.vault = [];
   if(S.vault.length >= vaultCap()) return false;
+  if(kind==="weapon" || kind==="armor"){ S.vault.push(gearCopy(it, {uid:uid()})); return true; }
   S.vault.push({uid:uid(), kind, id:it.id, n:it.n, icon:it.icon||"", atk:it.atk||0, def:it.def||0, heal:it.heal||0, pwr:it.pwr||0, dark:it.dark||0, gold:it.gold||0, xp:it.xp||0, loy:it.loy||0, cost:it.cost||0, unique:!!it.unique, r:it.r||rarityOf(it), desc:it.desc||"", blade:!!it.blade});
   return true;
 }
@@ -8198,7 +8589,7 @@ function tryShadowLoot(m){
     } else {
       const it = catalog(roll.kind, roll.id);
       if(!it) continue;
-      item = {uid:uid(), kind:roll.kind, id:it.id, n:it.n, atk:it.atk||0, def:it.def||0, cost:it.cost||0, unique:!!it.unique, tier:roll.tier, from:m.t, shadow:true};
+      item = gearCopy(it, {uid:uid(), tier:roll.tier, from:m.t, shadow:true});
     }
     if(item.unique || rarityOf(item)==="artifact") continue;
     if(forbid && (item.id===first.id || item.n===first.n)) continue;
@@ -8222,7 +8613,7 @@ function giveLoot(m){
   } else {
     const it = catalog(roll.kind, roll.id);
     if(!it) return;
-    item = {uid:uid(), kind:roll.kind, id:it.id, n:it.n, atk:it.atk||0, def:it.def||0, cost:it.cost||0, unique:!!it.unique, tier:roll.tier, from:m.t};
+    item = gearCopy(it, {uid:uid(), tier:roll.tier, from:m.t});
   }
   S.pendingLoot.push(item);
   const rk = rarityRank(rarityOf(item));
@@ -8234,9 +8625,11 @@ function lootLabel(it){
   const name = itemNameHtml(it);
   if(it.kind==="loot") return name+" · salvage · sell "+gp(sellPrice(it));
   if(it.kind==="food") return foodBlurb(catalog("food", it.id)||it)+" · sell "+gp(sellPrice(it));
-  if(isShield(it)) return name+" · offhand only · sell "+gp(sellPrice(it));
-  if(it.atk) return name+" · weapon +"+it.atk+" ATK · sell "+gp(sellPrice(it));
-  if(it.kind==="armor" || it.slot) return name+" · armor +"+(it.def||0)+" DEF · sell "+gp(sellPrice(it));
+  const c = gearSrc(it);
+  const ab = abilityText(c);
+  if(isShield(c)) return name+" · offhand only"+(ab?" · "+ab:"")+" · sell "+gp(sellPrice(it));
+  if(c.kind==="weapon") return name+" · weapon +"+(c.atk||0)+" ATK"+(ab?" · "+ab:"")+" · sell "+gp(sellPrice(it));
+  if(c.kind==="armor") return name+" · armor +"+(c.def||0)+" DEF · sell "+gp(sellPrice(it));
   return name+" · sell "+gp(sellPrice(it));
 }
 function keepPending(uid){
@@ -8259,7 +8652,7 @@ function keepPending(uid){
   render();
 }
 function slotItem(p, kind){
-  if(kind==="weapon") return catalog("weapon", p.weapon) || WEAPONS.find(x=>x.id===p.weapon);
+  if(kind==="weapon") return catalog("weapon", p.weapon) || catalog("weapon",p.weapon);
   if(kind==="armor"){ ensureSlots(p); return catalog("armor", p.slots.chest||p.armor); }
   if(kind==="food") return foodOf(p);
   if(kind==="kit") return kitOf(p);
@@ -8289,7 +8682,7 @@ function openEquipFind(findUid){
       const delta = (kind==="weapon"||kind==="armor") ? (dd>0?` <b style="color:#7dcea0">(+${dd})</b>`:dd<0?` <b style="color:#e74c3c">(${dd})</b>`:` <span class="tiny">(+0)</span>`) : "";
       const offOk = kind==="weapon" && canOffhand(p, it) && !isTwoHand(catalog("weapon", p.weapon));
       const off = offOk ? catalog("weapon", p.offhand) : null;
-      const offNow = off ? itemNameHtml(off)+" · +"+(off.atk||0)+" ATK" : "empty";
+      const offNow = off ? itemNameHtml(off)+" · "+(isShield(off)?"+"+(off.def||0)+" DEF":"+"+(off.atk||0)+" ATK") : "empty";
       const shield = isShield(it);
       const btns = offOk
         ? `<div class="tiny">Main: ${now}${delta}</div><div class="tiny">Off: ${offNow}</div><div class="row" style="gap:6px;margin-top:4px">${shield?"":`<button type="button" class="act" data-eqto="${p.id}|main" style="flex:1">Main hand</button>`}<button type="button" class="ghost" data-eqto="${p.id}|off" style="flex:1">Off hand</button></div>`
@@ -8422,7 +8815,7 @@ function openMakeSpace(keepUid){
         <p class="tiny">${itemNameHtml(it)} leaves the racks. Their old piece in that slot is sold, not stored.</p>
         <p class="tiny">New: ${itemNameHtml(it)} · ${it.kind==="weapon"?"+"+(it.atk||0)+" ATK":it.kind==="armor"?"+"+(it.def||0)+" DEF":foodBits(it)}</p>
         ${ready.map(p=>{
-          const cur = it.kind==="weapon" ? (WEAPONS.find(x=>x.id===p.weapon)||{}) : it.kind==="armor" ? (ARMORS.find(x=>x.id===p.armor)||{}) : (p.food ? (FOODS.find(x=>x.id===p.food)||{n:p.food}) : {n:"empty"});
+          const cur = it.kind==="weapon" ? (catalog("weapon",p.weapon)||{}) : it.kind==="armor" ? (catalog("armor",p.armor)||{}) : (p.food ? (FOODS.find(x=>x.id===p.food)||{n:p.food}) : {n:"empty"});
           const ok = canWield(p, it);
           const curStat = it.kind==="weapon"?(cur.atk||0):it.kind==="armor"?(cur.def||0):0;
           const newStat = it.kind==="weapon"?(it.atk||0):it.kind==="armor"?(it.def||0):0;
@@ -9062,7 +9455,7 @@ function snapshot(){
     cookUntil:S.cookUntil||0, glutUntil:S.glutUntil||0, tapDry:S.tapDry||0, roofTax:S.roofTax||0,
     nextFeat:S.nextFeat||null, featItem:S.featItem||null, featAsk:S.featAsk||null, featBadge:!!S.featBadge,
     bloodAsk:S.bloodAsk||null, saintAsk:S.saintAsk||null, graveAsk:S.graveAsk||null,
-    bonusInterest:S.bonusInterest||0, doubleWrit:!!S.doubleWrit, dawnSing:S.dawnSing||null,
+    bonusInterest:S.bonusInterest||0, doubleWrit:!!S.doubleWrit, dawnSing:S.dawnSing||null, dawnSingV:S.dawnSingV||0,
     poached:S.poached||null, gameOver:!!S.gameOver, lastHero:S.lastHero||null, forceSeek:!!S.forceSeek, writPing:!!S.writPing,
     hallEventLog:S.hallEventLog||null,
     _roadStall:S._roadStall||null
@@ -9080,7 +9473,7 @@ function applySnap(d){
   S.cookUntil=d.cookUntil||0; S.glutUntil=d.glutUntil||0; S.tapDry=d.tapDry||0; S.roofTax=d.roofTax||0;
   if(d.nextFeat!=null) S.nextFeat=d.nextFeat; S.featItem=d.featItem||null; S.featAsk=d.featAsk||null; S.featBadge=!!d.featBadge;
   S.bloodAsk=d.bloodAsk||null; S.saintAsk=d.saintAsk||null; S.graveAsk=d.graveAsk||null;
-  S.bonusInterest=d.bonusInterest||0; S.doubleWrit=!!d.doubleWrit; if(d.dawnSing!=null) S.dawnSing=d.dawnSing;
+  S.bonusInterest=d.bonusInterest||0; S.doubleWrit=!!d.doubleWrit; if(d.dawnSing!=null) S.dawnSing=d.dawnSing; S.dawnSingV=d.dawnSingV||0;
   S.poached=d.poached||null; S.gameOver=!!d.gameOver; if(d.lastHero!=null) S.lastHero=d.lastHero; S.forceSeek=!!d.forceSeek; S.writPing=!!d.writPing;
   S.hallEventLog=d.hallEventLog||null;
   S._roadStall=d._roadStall||null;
@@ -9106,7 +9499,17 @@ function applySnap(d){
   try { fillFromFullSave(); } catch(e){}
   try { healContest(); } catch(e){}
   try { healHallEvent(true); } catch(e){}
+  gearMigrateOnLoad();
   return true;
+}
+function gearMigrateOnLoad(){
+  let n = 0;
+  try { n = migrateGearState(S); } catch(e){}
+  if(n>0){
+    S.gearRevamp = true;
+    try { log("The armory re-stamped everyone's gear into the new colours and types."); } catch(e){}
+  }
+  return n;
 }
 function fillFromFullSave(){
   const bags = [];
@@ -9216,6 +9619,7 @@ function load(){
         if(!S.people) S.people = [];
         if((S.people||[]).length){
           try { healHallEvent(true); } catch(e){}
+          gearMigrateOnLoad();
           SLOTS.list[SLOTS.current].data = snapshot();
           writeSlots();
           return true;
@@ -9979,9 +10383,10 @@ function render(){ (S.people||[]).forEach(fixTwoHand);
   try { ensureMissionIds(); } catch(e){}
   ensureFoodStock();
   S.people.forEach(p=>{
-    if((p.cls==="Cleric" || p.cls==="Mage") && isBladedWeapon(p.weapon)) p.weapon = p.cls==="Mage" ? "wand1" : "staff";
-    if((p.cls==="Cleric" || p.cls==="Mage") && isBow(p.weapon)) p.weapon = p.cls==="Mage" ? "wand1" : "staff";
-    if((p.cls==="Warrior" || p.cls==="Rogue") && isWand(p.weapon)) p.weapon = "stick";
+    if(p.weapon){
+      const cw = catalog("weapon", p.weapon);
+      if(cw && !isShield(cw) && !canWield(p, cw)){ safeStash("weapon", cw.id); p.weapon = convertWeaponForClass(p, {r:"junk"}).id; }
+    }
     stampPerson(p);
   });
   const gn=document.getElementById("guildName");
@@ -10082,8 +10487,8 @@ function hallView(){
 }
 
 function personLine(p){
-  const w = itemNameHtml(WEAPONS.find(x=>x.id===p.weapon)||WEAPONS[0]);
-  const a = itemNameHtml(ARMORS.find(x=>x.id===p.armor)||ARMORS[0]);
+  const w = itemNameHtml(catalog("weapon",p.weapon)||WEAPONS[0]);
+  const a = itemNameHtml(catalog("armor",p.armor)||ARMORS[0]);
   const c = CLASSES[p.cls];
   const ti = TRAIT_ICON[p.trait] || "";
   return `<div class="card cls-${c.tag}${p.hero?" hero":""}${isFlawedOnly(p)?" flawed":isElite(p)?" elite":isGifted(p)?" gifted":""}" data-person="${p.id}">
@@ -10155,7 +10560,7 @@ function boardView(){
       `<p class="tiny">${needIcons(m.need)} · Pay ${payLabel(m)}${m.epic?" · exactly "+m.need+", no extras":" · extra bodies −25% gold each"}</p>
       ${questLootLine(m)}
       ${chainSendBtn(m)}
-      ${m.epic?`<p class="tiny">Pinned. ${missionDays(m)} days in the field. Reward: a gold artifact and extra loot.</p>`:""}
+      ${m.epic?`<p class="tiny">Pinned. ${missionDays(m)} days in the field. Reward: a Legendary or exclusive piece of gear and extra loot.</p>`:""}
       ${seerText(m)}
       ${m.epic?"":`<p class="tiny">Favors ${favorMarks(m)}</p>`}
       <button class="act" data-send="${m.id}" data-title="${escHtml(m.t||"")}" data-diff="${m.diff||1}">Assign party</button>
@@ -10189,13 +10594,13 @@ function shopView(){
   const writOilLine = writOil()?`<p class="ok">Writ oil: ${writOil().n} · +3 ${writOil().job}</p>`:"";
   return `${glutLine}${writOilLine}${(S.featItem)?`<p class="ok">Limited: ${S.featItem.n} · ${S.featItem.r||rarityOf(S.featItem)} · ${S.nextFeat? (S.nextFeat-S.day)+"d left":""}</p>`:""}<div class="card"><h3>Merchant</h3>
     ${borrowLine()}
-    <p class="tiny">Buy stock for the Armory (${(S.vault||[]).length}/${vaultCap()} slots). Outfitter Lv ${S.buildings.armory} sets rarity (grey→purple). Gold artifacts never for sale. Food is one-use.</p>
+    <p class="tiny">Buy stock for the Armory (${(S.vault||[]).length}/${vaultCap()} slots). Outfitter Lv ${S.buildings.armory} sets the colour (Gray, White, Green, Blue, Purple). Orange Legendary gear is never for sale. Food is one-use.</p>
     <div class="subnav">
       ${cats.map(c=>`<button class="${shopCat===c.id?"on":""}" data-shopcat="${c.id}">${c.icon} ${c.label}</button>`).join("")}
     </div>
     </div>
-    ${list.length?list.map(it=>`<div class="card"><div class="row"><strong>${it.kind==="food"?(it.icon||"🍖")+" ":""}${itemNameHtml(it)}</strong><span class="muted">${it.kind==="food"?foodBits(it) : it.kind==="kit"?kitBits(it) : (it.atk?("+"+it.atk+" ATK"):("+"+it.def+" DEF"))} · ${rarityOf(it)} · ${gp(shopCost(it))}${(S.glutUntil||0)>S.day?" · glut":""}</span></div>
-      ${it.kind==="food"&&it.desc?`<p class="tiny">${it.desc}</p>`:""}
+    ${list.length?list.map(it=>`<div class="card"><div class="row"><strong>${it.kind==="food"?(it.icon||"🍖")+" ":""}${itemNameHtml(it)}</strong><span class="muted">${it.kind==="food"?foodBits(it) : it.kind==="kit"?kitBits(it) : gearStatText(it)} · ${gearTierWord(it)} · ${gp(shopCost(it))}${(S.glutUntil||0)>S.day?" · glut":""}</span></div>
+      ${it.kind==="food"&&it.desc?`<p class="tiny">${it.desc}</p>`:""}${(it.kind==="weapon")?gearAbHtml(it):""}
       <button class="act" data-buy="${it.kind}|${it.id}" style="width:100%;margin-top:8px">Buy · ${gp(shopCost(it))}</button>
     </div>`).join(""):`<div class="card"><p class="muted">Nothing in ${labels[shopCat]||shopCat} today.</p></div>`}`;
 }
@@ -10220,20 +10625,21 @@ function vaultView(){
   const ready = S.people.filter(p=>p.status!=="dead" && p.status!=="away");
   if(!S.vault.length) return `<div class="card"><h3>Armory</h3><p class="muted">Empty racks (${vaultCap()} slots). Buy from the Merchant.</p>${raiseOffer("racks")}</div>`;
   return `<div class="card"><h3>Armory</h3>${raiseOffer("racks")}<p class="tiny">${S.vault.length}/${vaultCap()} on the rack. Equip someone home, or sell for half price. Upgrade Racks for more slots.</p></div>
-    ${S.vault.map(it=>`<div class="card"><div class="row"><strong>${it.kind==="food"?(it.icon||(catalog("food",it.id)||{}).icon||"🍖")+" ":""}${itemNameHtml(it)}</strong><span class="muted">${it.kind} · ${rarityOf(it)} · ${it.kind==="food"?foodBits(catalog("food",it.id)||it) : (it.atk?("+"+it.atk+" ATK"):("+"+(it.def||0)+" DEF"))} · sell ${gp(sellPrice(it))}</span></div>
+    ${S.vault.map(it=>`<div class="card"><div class="row"><strong>${it.kind==="food"?(it.icon||(catalog("food",it.id)||{}).icon||"🍖")+" ":""}${itemNameHtml(it)}</strong><span class="muted">${it.kind} · ${gearTierWord(it)} · ${it.kind==="food"?foodBits(catalog("food",it.id)||it) : gearStatText(it)} · sell ${gp(sellPrice(it))}</span></div>
+      ${it.kind==="weapon"?gearAbHtml(it):""}
       ${it.kind==="loot"?`<p class="tiny">${it.story||"Salvage. Sell it."}</p>`:`<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">
         ${it.kind==="food"?`<p class="tiny" style="width:100%;margin:0 0 4px">${(catalog("food",it.id)||it).desc||foodBlurb(it)}</p>`:""}
         ${ready.filter(p=>canWield(p,it)).map(p=>{
           ensureSlots(p);
           const cur = it.kind==="armor" ? catalog("armor", (p.slots||{})[armorSlotOf(it)]|| (armorSlotOf(it)==="chest"?p.armor:null)) : slotItem(p, it.kind);
           const now = cur ? (itemNameHtml(cur)+(it.kind==="weapon"?" +"+cur.atk+" ATK":it.kind==="armor"?" +"+cur.def+" DEF":" "+foodBits(cur))) : "empty";
-          const nv = it.kind==="weapon"?(it.atk||0):it.kind==="armor"?(it.def||0):0;
-          const ov = cur ? (it.kind==="weapon"?(cur.atk||0):it.kind==="armor"?(cur.def||0):0) : 0;
+          const nv = it.kind==="weapon"?(isShield(it)?0:(it.atk||0)):it.kind==="armor"?(it.def||0):0;
+          const ov = cur ? (it.kind==="weapon"?(isShield(it)?0:(cur.atk||0)):it.kind==="armor"?(cur.def||0):0) : 0;
           const d = nv-ov;
           const delta = (it.kind==="weapon"||it.kind==="armor") ? (d>0?` <b style="color:#7dcea0">(+${d})</b>`:d<0?` <b style="color:#e74c3c">(${d})</b>`:` <span class="tiny">(+0)</span>`) : "";
           const offOk = it.kind==="weapon" && canOffhand(p, it);
           const off = offOk ? catalog("weapon", p.offhand) : null;
-          const offNow = off ? (itemNameHtml(off)+" +"+(off.atk||0)+" ATK") : "empty";
+          const offNow = off ? (itemNameHtml(off)+" "+(isShield(off)?"+"+(off.def||0)+" DEF":"+"+(off.atk||0)+" ATK")) : "empty";
           const shield = isShield(it);
           const hands = offOk
             ? `<div class="tiny">Main: ${now}${delta}</div><div class="tiny">Off: ${offNow}</div><div class="row" style="gap:6px;margin-top:4px">${shield?"":`<button type="button" class="act" data-equip="${it.uid}|${p.id}|main" style="flex:1">Main hand</button>`}${(isTwoHand(it)||isTwoHand(catalog("weapon", p.weapon)))?"":`<button type="button" class="ghost" data-equip="${it.uid}|${p.id}|off" style="flex:1">Off hand</button>`}</div>`
@@ -10807,20 +11213,22 @@ function unequip(pid, slot){
   openPerson(pid);
 }
 function offStatText(p){
-  const o = WEAPONS.find(x=>x.id===p.offhand) || {};
-  if(o.fam==="shield") return " — +"+(o.def||0)+" DEF";
-  return " — +"+((o.atk||0)/2)+" ATK (half of +"+(o.atk||0)+")";
+  const o = catalog("weapon",p.offhand) || {};
+  const ab = abilityText(o);
+  const abBit = ab ? `<br><span class="tiny">✦ ${ab}</span>` : "";
+  if(isShield(o)) return " — +"+(o.def||0)+" DEF"+abBit;
+  return " — +"+((o.atk||0)/2)+" ATK (half of +"+(o.atk||0)+")"+abBit;
 }
 function gearLine(p){
-  const w = WEAPONS.find(x=>x.id===p.weapon) || WEAPONS[0];
-  const a = ARMORS.find(x=>x.id===p.armor) || ARMORS[0];
+  const w = (p.weapon && catalog("weapon",p.weapon)) || BARE_HANDS;
   const f = foodOf(p);
-  const slots = ["head","chest","arms","legs","feet","hands"];
-  const slotBtns = slots.map(s=>p.slots&&p.slots[s]?`<button class="ghost" data-off="${s}" style="margin:2px">${s}</button>`:"").join("");
-  return `<p><b>Weapon</b> ${p.weapon?itemNameHtml(w)+" — +"+w.atk+" ATK":"empty"} ${p.weapon?`<button class="ghost" data-off="weapon">to armory</button>`:""}</p>
+  ensureSlots(p);
+  const slotBtns = ARMOR_SLOTS.map(s=>p.slots&&p.slots[s]?`<button class="ghost" data-off="${s}" style="margin:2px">${SLOT_LABEL[s].toLowerCase()}</button>`:"").join("");
+  const wAb = p.weapon ? abilityText(w) : "";
+  return `<p><b>Weapon</b> ${p.weapon?itemNameHtml(w)+" — +"+w.atk+" ATK"+(wAb?`<br><span class="tiny">✦ ${wAb}</span>`:""):"empty"} ${p.weapon?`<button class="ghost" data-off="weapon">to armory</button>`:""}</p>
     <p><b>Offhand</b> ${p.offhand?itemNameHtml(catalog("weapon", p.offhand))+offStatText(p):"empty"} ${p.offhand?`<button class="ghost" data-off="offhand">to armory</button>`:""}</p>
     <p><b>Armor</b> +${wornArmor(p).reduce((n,x)=>n+(x.def||0),0)} DEF ${slotBtns}</p>
-    <p class="tiny">${ARMOR_SLOTS.map(s=>{ const it=catalog("armor",(p.slots||{})[s]); return s+": "+(it?itemNameHtml(it)+" +"+it.def:"empty"); }).join("<br>")}</p>
+    <p class="tiny">${ARMOR_SLOTS.map(s=>{ const it=catalog("armor",(p.slots||{})[s]); return SLOT_LABEL[s]+": "+(it?itemNameHtml(it)+" +"+it.def:"empty"); }).join("<br>")}</p>
     <p><b>Food</b> ${f?foodBlurb(f)+(p.foodEaten?" · used, bonus waits":""):"empty slot"}</p>
     <p><b>Kit</b> ${kitOf(p)?(kitOf(p).icon||"")+" "+kitOf(p).n+" · "+(kitBits(kitOf(p))||kitOf(p).desc||""):"empty slot"}</p>
     ${f?`<p class="tiny">${f.desc||""}${p.foodEaten?" Heal already applied. Power / gold / XP still hit the next job.":""}</p>`:""}
@@ -10849,8 +11257,8 @@ function openSheetEquip(pid){
     <p class="tiny">From the armory. The number is the change against what they wear.</p>
     ${items.map(it=>{
       const cur = it.kind==="armor" ? catalog("armor", (p.slots||{})[armorSlotOf(it)]|| (armorSlotOf(it)==="chest"?p.armor:null)) : slotItem(p, it.kind);
-      const nv = it.kind==="weapon"?(it.atk||0):it.kind==="armor"?(it.def||0):0;
-      const ov = cur ? (it.kind==="weapon"?(cur.atk||0):it.kind==="armor"?(cur.def||0):0) : 0;
+      const nv = it.kind==="weapon"?(isShield(it)?0:(it.atk||0)):it.kind==="armor"?(it.def||0):0;
+      const ov = cur ? (it.kind==="weapon"?(isShield(it)?0:(cur.atk||0)):it.kind==="armor"?(cur.def||0):0) : 0;
       const d = nv-ov;
       const delta = (it.kind==="weapon"||it.kind==="armor") ? (d>0?`<b style="color:#7dcea0"> (+${d})</b>`:d<0?`<b style="color:#e74c3c"> (${d})</b>`:"") : "";
       return `<button type="button" class="ghost" data-sheq="${it.uid}" style="width:100%;text-align:left;margin-top:6px">${itemNameHtml(it)}${delta}<br><span class="tiny">Now: ${cur?itemNameHtml(cur):"empty"}</span></button>`;
@@ -11052,9 +11460,11 @@ function openSettings(){
 }
 let helpTab = "play";
 function helpWhoWields(w){
-  if(isBladedWeapon(w.id)) return "Warrior, Rogue";
-  if(/^wand/.test(w.id) || w.id==="starrod" || w.id==="oathwand") return "anyone (mages prefer wands)";
-  return "anyone";
+  const T = WTYPES[w.t];
+  if(!T) return "anyone";
+  const out = [];
+  ["Warrior","Rogue","Mage","Cleric"].forEach(c=>{ if(canWield({cls:c}, w)) out.push(c); });
+  return out.join(", ") || "nobody";
 }
 function helpPage(id){
   if(id==="bonuses"){
@@ -11080,7 +11490,7 @@ function helpPage(id){
     <h4>The loop</h4>
     <p class="tiny"><b>Tavern</b> — hire named faces. Price rises with level (1–5). Renown raises the cap and adds extra drinkers. Flawed through Gifted only.</p>
     <p class="tiny"><b>At the door</b> — every 7–14 days three faces knock. New halls start with Bank Lv1. <b>No Bank, no knock.</b> Take one at 65% of Tap price. The other two leave. Vault pays first; purse covers a shortfall. Roster icons at the top are class + level of everyone already in the hall.</p>
-    <p class="tiny">Door kit is also capped by day: no rare before day 18, no purple (epic) before day 35, no gold artifacts before day 55. Quality band starts from Renown: 0–4 none, 5–11 one, 12–23 two, 24–39 three, 40+ four. Then +1 if the vault holds 50g or more, +1 more if Bank is Lv3+ and the vault is at least 70% full. Band caps at 4. That band sets border, level, traits, and kit. Elite can appear here. They never sit the Tap.</p>
+    <p class="tiny">Door kit is also capped by day: no Blue before day 18, no Purple before day 35. Orange Legendary gear never turns up on a visitor. Quality band starts from Renown: 0–4 none, 5–11 one, 12–23 two, 24–39 three, 40+ four. Then +1 if the vault holds 50g or more, +1 more if Bank is Lv3+ and the vault is at least 70% full. Band caps at 4. That band sets border, level, traits, and kit. Elite can appear here. They never sit the Tap.</p>
     <p class="tiny"><b>Adventurers</b> — tap a name for the sheet: gear, food, dismiss, Use snack. The card shows the nightly wage, the gold actually taken. Pencil by the name edits the name, its color, and two subtitle lines. Default name color is the class (Warrior copper, Rogue green, Mage blue, Cleric violet).</p>
     <p class="tiny"><b>Quests</b> — assign ready people. Favored classes show a mark. Extra bodies past the needed seats cut gold 25% each. Jobs take days; Courier Stable shortens them.</p>
     <p class="tiny"><b>Merchant</b> — Weapons, Armor, Consumables. Buys go to the Armory.</p>
@@ -11111,7 +11521,7 @@ function helpPage(id){
     <h4>How traits get there</h4>
     <p class="tiny">Most faces roll 1 trait. Some roll 2. A few roll 3 (Notice Board helps). Opposites never sit on the same person (Lucky/Unlucky, Brave/Craven, and so on). A two-trait roll will not stack two flaws. Three-trait rolls can mix.</p>
     <p class="tiny">Roles, quirks, and gear do not change the border. Only the trait mix does.</p>
-    <p class="tiny">The two who open the hall are common or Gifted only — no flaws, no Epic mix. The two openers arrive in junk or common kit. About one in six packed a cheap snack. Tavern faces can walk in with better kit and food of any common-to-epic grade.</p>`;
+    <p class="tiny">The two who open the hall are common or Gifted only — no flaws, no Epic mix. The two openers arrive in Gray or White kit. About one in six packed a cheap snack. Tavern faces can walk in with better kit and food of any grade, Gray up to Purple.</p>`;
   if(id==="class") return `
     <p class="tiny">Four schools. Power is attack + defense + a share of HP, plus gear, traits, food, and hall schools.</p>
     ${Object.keys(CLASSES).map(n=>{
@@ -11149,19 +11559,44 @@ function helpPage(id){
     return `<p class="tiny">A kit sits in its own slot. It fires once, on the next job, then it is gone. Buy them from the merchant.</p>`+
       KITS.map(k=>`<p class="tiny">${k.icon||"🧰"} ${itemNameHtml(k)} — ${gp(k.cost)} · ${k.desc}</p>`).join("");
   }
-  if(id==="gear"){ return `<p class="tiny">Bows and crossbows are two-handed. They clear the offhand. Shields stay offhand only.</p>`+helpGearBody(); }
-function helpGearBody(){
-    const order=["junk","common","uncommon","rare","epic","artifact"];
-    const band=list=>order.map(r=>{
-      const rows=list.filter(x=>(x.r||(x.unique?"artifact":"common"))===r);
-      if(!rows.length) return "";
-      return `<p class="tiny"><b class="${rarityColor(r)}">${r}</b></p>`+rows.map(w=>`<p class="tiny">${itemNameHtml(w)} — +${w.atk!=null?w.atk+" ATK":w.def+" DEF"} · ${gp(w.cost)} · ${w.atk!=null?helpWhoWields(w):"anyone"}</p>`).join("");
+  if(id==="gear"){ return helpGearBody(); }
+  function helpGearBody(){
+    const T = GEAR_TIERS, col = r=>`<b class="${rarityColor(r)}">${T[r].color}</b>`;
+    const five = ["junk","common","uncommon","rare","epic"];
+    const typeRows = Object.keys(WTYPES).filter(t=>!WTYPES[t].shield).map(t=>{
+      const w = WTYPES[t];
+      const nums = five.map(r=>col(r)+" +"+WEAPON_ATK[r][w.hands-1]).join(" · ");
+      const who = helpWhoWields(mkWeapon(t, "junk", null));
+      return `<p class="tiny"><b>${w.n}</b> — ${w.dmg} · ${w.hands>=2?"two-hand (no offhand)":"one-hand"} · ${who}<br>${nums}</p>`;
     }).join("");
+    const shieldRows = ["buckler","shield","tower"].map(t=>{
+      const nums = five.map(r=>col(r)+" +"+shieldDefFor(t, r)).join(" · ");
+      return `<p class="tiny"><b>${WTYPES[t].n}</b> — offhand only · Warrior, Cleric<br>${nums}</p>`;
+    }).join("");
+    const abRows = GEAR_AB_KEYS.map(k=>{
+      const a = GEAR_AB[k];
+      const vals = [0,1,2].map(i=>(a.v[i]||"—")+(k==="treasure"||k==="grim"?"%":"")).join(" / ");
+      return `<p class="tiny">✦ <b>${a.n}</b> (Green / Blue / Purple: ${vals}) — ${a.t("X")}</p>`;
+    }).join("");
+    const wtRows = ["junk","common","uncommon","rare","epic"].map(r=>{
+      const cells = ["light","medium","heavy"].map(wt=>wt+": "+ARMOR_SLOTS.map(sl=>armorDefFor(sl, wt, r)).join("·")).join(" &nbsp; ");
+      return `<p class="tiny">${col(r)} — ${cells}</p>`;
+    }).join("");
+    const uniq = list=>list.filter(x=>x.unique).map(x=>`<p class="tiny">${itemNameHtml(x)} — ${gearStatText(x)}${x.ab?" · "+abilityText(x):""}${x.legend?" · Legendary placeholder (epic quest reward)":" · road exclusive"}</p>`).join("");
     return `
-    <p class="tiny">Grey junk · white common · green uncommon · blue rare · purple epic · gold artifact (unique). Outfitter level sets what the Merchant stocks. Artifacts only drop.</p>
-    <p class="tiny">Clerics and mages refuse blades and bows. Only mages and clerics use wands. Artifacts (gold unique weapons and armor) only come from finishing an epic quest.</p>
-    <h4>Weapons</h4>${band(WEAPONS)}
-    <h4>Armor</h4>${band(ARMORS)}`;
+    <p class="tiny"><b>Colours</b> (weapons and armor): ${five.map(r=>col(r)+" ("+T[r].name+")").join(" · ")} · <b class="r-artifact">Orange (Legendary)</b>. The Outfitter's level sets which colours the Merchant stocks: Lv1 Gray and White, Lv2 adds Green, Lv3 Blue, Lv4 Purple. Orange Legendary gear is never sold and never drops at random. It only comes from epic quests.</p>
+    <p class="tiny"><b>Weapons</b> are a type with a damage tag (Bladed, Blunt, Ranged). One-handed weapons can share the offhand: an offhand weapon adds half its attack. Two-handed weapons fill both hands, so no offhand. White (Masterwork) is a better version of Gray. Green, Blue and Purple have White's attack plus one ability that gets stronger with the colour. The ability is in the name, like Sword of the Lone Wolf.</p>
+    <p class="tiny">Both hands count for abilities. A weapon ability stacks with the wearer's own traits and quirks. A Wand or Staff is for Mages only. Clerics use Blunt weapons and shields. Mages use wands, staves and daggers. Rogues use one-handed weapons, no shields. Warriors use everything but wands and staves.</p>
+    <h4>Weapon types · attack by colour</h4>${typeRows}
+    <h4>Offhand shields · defense by colour</h4>${shieldRows}
+    <p class="tiny">Green, Blue and Purple shields carry an ability too.</p>
+    <h4>Weapon abilities</h4>${abRows}
+    <h4>Armor</h4>
+    <p class="tiny">Six slots: Head, Cloak, Chest, Hands, Legs, Feet. Armor has no abilities, only defense. Defense is the slot's base (Cloak ${SLOT_BASE.cloak}, Chest ${SLOT_BASE.chest}, Legs ${SLOT_BASE.legs}, Hands ${SLOT_BASE.hands}, Feet ${SLOT_BASE.feet}, Head ${SLOT_BASE.head}) plus the weight (Light +${WEIGHT_ADD.light}, Medium +${WEIGHT_ADD.medium}, Heavy +${WEIGHT_ADD.heavy}) plus ${ARMOR_STEP} for each colour above Gray, then scaled to the hall's level curve and rounded to the nearest half point. Light is Cloth or Padded. Medium is Leather, Chain or Scale. Heavy is Plate or Full Plate. Cloth and Padded are the same, and so are Plate and Full Plate. Only the name differs. Mages wear Light only. Rogues cannot wear Heavy.</p>
+    <p class="tiny">Defense per piece, in the order Head · Cloak · Chest · Hands · Legs · Feet:</p>
+    ${wtRows}
+    <h4>Unique gear</h4>
+    ${uniq(WEAPONS)}${uniq(ARMORS)}`;
   }
   if(id==="food"){
     const order=["junk","common","uncommon","rare","epic","artifact"];
@@ -11220,7 +11655,7 @@ function helpGearBody(){
     <p class="tiny"><b>Favored class</b> — a hint, not a lock. Except Dark: only people who can walk Dark may go.</p>
     <h4>👑 Epic quests</h4>
     <p class="tiny">Pinned in gold on the board once four living people sit the hall. First epic is exactly two people. Later epics are two or three, never more. No extras. Thirty days or longer. Courier Stable does not shorten them.</p>
-    <p class="tiny">Difficulty is set when the card pins: the hall's best two (or three) power times the Epic power mark in Settings (default 125%). Gear up before you send. Fail and the same card stays. Succeed and you get a gold artifact weapon or armor — the only way those drop — plus gold and extra loot. Then a new epic pins. The road does not stop an epic party.</p>
+    <p class="tiny">Difficulty is set when the card pins: the hall's best two (or three) power times the Epic power mark in Settings (default 125%). Gear up before you send. Fail and the same card stays. Succeed and you get a unique piece of gear (an Orange Legendary or a road exclusive) — the only way Legendary gear comes — plus gold and extra loot. Then a new epic pins. The road does not stop an epic party.</p>
     <h4>The board</h4>
     <p class="tiny">Usually 4 open jobs (up to 6 later). After you send someone, the hall tries to keep at least one job your people can actually walk (comfort cap from level, day, and Renown). Harder work still appears; it should not be the whole board.</p>
     <p class="tiny">If Assign party says a card has left the board, the list was stale. You can refresh it, or post a fresh contract of about the same difficulty in that slot. That does not redraw a quest that is still live.</p>
@@ -11249,6 +11684,11 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-12", t:"Gear revamp. Weapons and armor now come in six colours: Gray (Common), White (Masterwork), Green (Uncommon), Blue (Rare), Purple (Epic) and Orange (Legendary, quest-only, never random)."},
+  {d:"2026-11-12", t:"Weapons are now types: Sword, Hand Axe, Mace, Dagger, Hammer, Club, Throwing Knives, Wand (one-hand) and Greatsword, Battleaxe, Warhammer, Greatclub, Bow, Crossbow, Staff (two-hand). Each is Bladed, Blunt or Ranged. Wands and Staves are for Mages. Shields are Buckler, Shield and Tower Shield."},
+  {d:"2026-11-12", t:"Green, Blue and Purple weapons and shields carry one ability, named in the item (Sword of the Lone Wolf). 29 abilities: power, Eagle Eye, Treasure Hunter, Night Owl, Daywalker, Investor, Charming, Grim, Hardened, Keen, Stayer, Sprinter, Pack Leader, Lone Wolf, Blooded, Quick Mend, Tithe-hand, Field Aid, Oath-eater, Dawn-singer and the nine job specialists. They stack with traits and quirks, and show in the job power breakdown."},
+  {d:"2026-11-12", t:"Armor has six slots: Head, Cloak, Chest, Hands, Legs, Feet (old Arms is now Cloak). Defense = slot base + weight (Light 0, Medium +2, Heavy +3) + 1 per colour above Gray, then scaled. No armor abilities. Old saves are converted when you open the game: every item, shop stall, vault piece and worn piece."},
+  {d:"2026-11-12", t:"Scale: every number was scaled to the old level curve so the hall plays as before. Average party power matches the old build within about one point at every level. All the numbers live in one small TUNING block at the top of the gear code (WEAPON_ATK, SHIELD_DEF, SLOT_BASE, WEIGHT_ADD, ARMOR_K) so they are easy to tweak."},
   {d:"2026-11-11", t:"Racks full: the build button says how many days it takes, and after you tap it the popup shows Racks building (or queued) right there instead of a hidden message. A Hearth-hand offer no longer wipes the popup, and Cancel takes you back to your finds instead of closing everything."},
   {d:"2026-11-11", t:"Hall event buttons ignore taps for the first split second after the card opens, so a tap meant for the screen before can no longer dismiss an event you never saw. Every hall event you are shown is also written to the log."},
   {d:"2026-11-11", t:"The rival contest result gets its own scene: a gold scroll, trophy, light rays and sparks for a win; a scorched scroll, a cracking iron seal and falling embers for a loss."},
@@ -12337,12 +12777,10 @@ function dbgLevelOne(id){
   toast(p.name+" is level "+p.lv+".");
   openDbg();
 }
-function dbgBestGear(cls, kind){
+function dbgBestGear(cls, kind, slot){
   const list = kind==="weapon" ? WEAPONS : ARMORS;
-  const ok = list.filter(it=>{
-    if(kind==="weapon" && isBladedWeapon(it.id) && (cls==="Cleric"||cls==="Mage")) return false;
-    return true;
-  }).slice().sort((a,b)=>{
+  const fake = {cls};
+  const ok = list.filter(it=>canWield(fake, it) && !(kind==="weapon" && isShield(it)) && (!slot || armorSlotOf(it)===slot)).slice().sort((a,b)=>{
     const ra = rarityRank(a.r|| (a.unique?"artifact":"common"));
     const rb = rarityRank(b.r|| (b.unique?"artifact":"common"));
     if(rb!==ra) return rb-ra;
@@ -12376,7 +12814,8 @@ function dbgMakeGod(){
   const w = dbgBestGear(cls, "weapon");
   const a = dbgBestGear(cls, "armor");
   p.weapon = w.id;
-  p.armor = a.id;
+  p.slots = {}; p.armor = null;
+  ARMOR_SLOTS.forEach(sl=>{ const g = dbgBestGear(cls, "armor", sl); if(g) wearArmor(p, g.id); });
   const snack = FOODS.filter(f=>f.r==="epic"||f.unique).sort((x,y)=>rarityRank(y.r)-rarityRank(x.r))[0];
   if(snack) p.food = snack.id;
   p.foodEaten = false;
