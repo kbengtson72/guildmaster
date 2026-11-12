@@ -2157,7 +2157,11 @@ function bumpLoy(p, d){
   }
 }
 
-function dayFee(p){ return Math.max(1, Math.floor(wageOf(p)/2)); }
+// Early-guild relief: full strength through day 30, fades to nothing by day 60.
+const EASE = {full:30, end:60, pay:0.35, wage:0.30};
+function easeF(){ const d=(S&&S.day)||1; return d<=EASE.full?1:d>=EASE.end?0:(EASE.end-d)/(EASE.end-EASE.full); }
+function easePay(g, m){ return (m&&m.epic) ? g : Math.max(1, Math.round(g*(1+EASE.pay*easeF()))); }
+function dayFee(p){ return Math.max(1, Math.round(Math.floor(wageOf(p)/2)*(1-EASE.wage*easeF()))); }
 function quitRenownHit(p){
   let n = 1;
   if(isElite(p)) n = 3;
@@ -3532,7 +3536,8 @@ function openRoadShop(kind, enc, m, party, after, useSheet){
           `:`<button type="button" class="act" data-eqempty="${p.id}" style="width:100%;margin-top:6px">Equip</button>`}
         </div>`;
       }).join("")}
-      <button type="button" class="ghost" id="holdRack" style="width:100%;margin-top:8px">Send to Armory</button>`;
+      <button type="button" class="ghost" id="holdRack" style="width:100%;margin-top:8px">Send to Armory</button>
+      <button type="button" class="ghost" id="holdSell" style="width:100%;margin-top:6px">Sell it · ${gp(sellPrice(it))}</button>`;
     box.querySelectorAll("[data-eqempty]").forEach(b=>b.onclick=()=>{
       const per = party.find(x=>x.id===b.dataset.eqempty);
       if(per) putOn(per, it, false);
@@ -3545,6 +3550,12 @@ function openRoadShop(kind, enc, m, party, after, useSheet){
       const per = party.find(x=>x.id===b.dataset.eqrack);
       if(per) putOn(per, it, false);
     });
+    document.getElementById("holdSell").onclick=()=>{
+      S.gold += sellPrice(it);
+      note("Sold "+it.n+" · "+gp(sellPrice(it))+".", "success");
+      save();
+      paint();
+    };
     document.getElementById("holdRack").onclick=()=>{
       if(!rackItem(it)) return toast("Armory full. Equip it or sell something.");
       save();
@@ -5344,7 +5355,7 @@ function lockPay(m){
   if(!m) return 0;
   if(m.pay==null){
     const a=m.gold?m.gold[0]:8, b=m.gold?m.gold[1]:16;
-    const v = rng(Math.min(a,b), Math.max(a,b));
+    const v = easePay(rng(Math.min(a,b), Math.max(a,b)), m);
     try { m.pay = v; } catch(e){ return v; }
   }
   return m.pay;
@@ -5517,7 +5528,7 @@ function questLootLine(m){
 }
 function payLabel(m){
   if((S.buildings&&S.buildings.seer||0)>=1) return gp(lockPay(m));
-  return gp(m.gold[0])+"–"+gp(m.gold[1]);
+  return gp(easePay(m.gold[0], m))+"–"+gp(easePay(m.gold[1], m));
 }
 function questFlavor(m, names, success, pwr){
   const ratio = pwr/Math.max(1,(m.diff||1)*8);
@@ -5597,7 +5608,7 @@ function resolveMission(m){
     save(); return;
   }
   tickBonds(party, success);
-  let gold = (m.pay!=null?m.pay:rng(m.gold[0], m.gold[1]));
+  let gold = (m.pay!=null?m.pay:easePay(rng(m.gold[0], m.gold[1]), m));
   let ren = Math.max(1, m.diff||m.need||1);
   if(success){
     // trait: +20% (+40% if Epic); weapon ability Treasure Hunter: +20/25/30%. They add together.
@@ -8833,7 +8844,7 @@ function openMakeSpace(keepUid){
         <p class="tiny">${itemNameHtml(it)} leaves the racks. Their old piece in that slot is sold, not stored.</p>
         <p class="tiny">New: ${itemNameHtml(it)} · ${it.kind==="weapon"?"+"+(it.atk||0)+" ATK":it.kind==="armor"?"+"+(it.def||0)+" DEF":foodBits(it)}</p>
         ${ready.map(p=>{
-          const cur = it.kind==="weapon" ? (catalog("weapon",p.weapon)||{}) : it.kind==="armor" ? (catalog("armor",p.armor)||{}) : (p.food ? (FOODS.find(x=>x.id===p.food)||{n:p.food}) : {n:"empty"});
+          const cur = it.kind==="food" ? (p.food ? (FOODS.find(x=>x.id===p.food)||{n:p.food}) : {n:"empty"}) : (catalog(it.kind, slotOf(p, it.kind, it))||{});
           const ok = canWield(p, it);
           const curStat = it.kind==="weapon"?(cur.atk||0):it.kind==="armor"?(cur.def||0):0;
           const newStat = it.kind==="weapon"?(it.atk||0):it.kind==="armor"?(it.def||0):0;
@@ -8852,15 +8863,11 @@ function openMakeSpace(keepUid){
           const piece = (S.vault||[]).find(x=>x.uid===equipUid);
           if(!ppl || !piece) return;
           let old = null;
-          if(piece.kind==="weapon") old = catalog("weapon", ppl.weapon);
-          else if(piece.kind==="armor") old = catalog("armor", ppl.armor);
-          else if(ppl.food) old = catalog("food", ppl.food);
+          { const oid = slotOf(ppl, piece.kind, piece); if(oid && !isBaseSlot(ppl, piece.kind, piece)) old = catalog(piece.kind, oid); }
           const ix = S.vault.findIndex(x=>x.uid===equipUid);
           if(ix<0) return;
           S.vault.splice(ix,1);
-          if(piece.kind==="weapon") ppl.weapon = piece.id;
-          else if(piece.kind==="armor") ppl.armor = piece.id;
-          else { ppl.food = piece.id; ppl.foodEaten = false; }
+          setSlot(ppl, piece.kind, piece.id);
           if(old){
             const pay = sellPrice(old);
             S.gold += pay;
@@ -10883,7 +10890,7 @@ function finishSendGate(mid, ids, skipArmoryFood){
       <button type="button" class="act" id="epicYes" style="width:100%;margin-top:8px">Send them anyway</button>
       <button type="button" class="ghost" id="epicNo" style="width:100%;margin-top:6px">Back</button>`;
     document.getElementById("epicYes").onclick=()=>send(mid, ids);
-    document.getElementById("epicNo").onclick=()=>openSend(mid);
+    document.getElementById("epicNo").onclick=()=>{ _sendPre={mid, ids:ids.slice()}; openSend(mid); };
     return;
   }
   send(mid, ids);
@@ -10980,7 +10987,7 @@ function askFoodUse(mid, ids, packed, ix){
         <button type="button" class="act" id="epicYes" style="width:100%;margin-top:8px">Send them anyway</button>
         <button type="button" class="ghost" id="epicNo" style="width:100%;margin-top:6px">Back</button>`;
       document.getElementById("epicYes").onclick=()=>send(mid, ids);
-      document.getElementById("epicNo").onclick=()=>openSend(mid);
+      document.getElementById("epicNo").onclick=()=>{ _sendPre={mid, ids:ids.slice()}; openSend(mid); };
       return;
     }
     send(mid, ids);
@@ -11027,8 +11034,9 @@ function askFoodUse(mid, ids, packed, ix){
     save();
     askFoodUse(mid, ids, packed, ix);
   };
-  document.getElementById("foodCancel").onclick=()=>openSend(mid);
+  document.getElementById("foodCancel").onclick=()=>{ _sendPre={mid, ids:ids.slice()}; openSend(mid); };
 }
+let _sendPre = null;
 function openSend(mid, hint){
   try { openSendReal(mid, hint); }
   catch(err){ const sheet=document.getElementById("sheet"); const modal=document.getElementById("modal"); if(sheet&&modal){ modal.classList.add("show"); modal.style.display="flex"; sheet.innerHTML=`<h3>Could not open</h3><p class="tiny">${(err&&err.message)||err}</p><button class="act" id="errClose" style="width:100%">OK</button>`; const c=document.getElementById("errClose"); if(c) c.onclick=()=>{closeModal();render();}; } else { toast(String(err&&err.message||err)); } }
@@ -11044,6 +11052,11 @@ function openSendReal(mid, hint){
   const chosen = {};
   let seeded = false;
   let descOpen = false;
+  if(_sendPre && _sendPre.mid===mid){
+    _sendPre.ids.forEach(id=>{ const q=(S.people||[]).find(x=>x.id===id); if(q && q.status==="ready" && !whyNoSend(q, m)) chosen[id]=true; });
+    if(Object.keys(chosen).length) seeded = true;
+  }
+  _sendPre = null;
   const sheet = document.getElementById("sheet");
   function paint(){
     sheet.classList.add("tall");
@@ -11531,7 +11544,7 @@ function helpPage(id){
     <p class="tiny"><b>End Day</b> — wages, healing, returns, night report (who is still in the field and days left). Parties still out may hit a road event (⚙ slider, default 10%). The road can be a fight, a merchant, a healer, a priest, a beggar, or a rescue. Combat can give XP, gold, Renown, or −1 day — or wound people and add a day. Gear from a fight or a finished quest opens a Finds window to keep, sell, or equip. Unclaimed finds stay and come back until you deal with them. If you close the app mid-road, the choice or result comes back when you reopen. Forced-fight slider is the chance you cannot skip a fight (default 50%).</p>
     <p class="tiny"><b>Hall events</b> — each dawn has an 8% chance of a hall note (a leak, a levy, a purse, a peddler, and the like). A note you have not seen yet comes back the next day until you close it, and it is not thrown away by a writ, a contest warning, or reopening the app. Last hall event: ${(typeof hallEventDiagText==="function"?hallEventDiagText().last:"none yet")}. Pending: ${(typeof hallEventDiagText==="function"?hallEventDiagText().pending:"none")}.</p>
     <h4>Money and people</h4>
-    <p class="tiny"><b>Wages</b> — half the listed wage, rounded down, paid to people at the hall (ready or wounded). Away and dead are not paid. Each Renown cuts hire price and wages 1%, cap 50% at 50 Renown.</p>
+    <p class="tiny"><b>Wages</b> — half the listed wage, rounded down, paid to people at the hall (ready or wounded). Away and dead are not paid. Each Renown cuts hire price and wages 1%, cap 50% at 50 Renown. Early relief: nightly wages are 30% lower through day 30, fading to normal by day 60.</p>
     <p class="tiny"><b>Loyalty</b> — starts 1–5, max 10. +1 on a successful job. −1 if wounded. −1 if unpaid. At 0 they pack. A popup lets you pay their daily fee from the Bank vault to keep them at loyalty 1, or let them walk. A walkout costs Renown: 1 common/flawed, 2 Gifted, 3 Elite, +1 if level 5+. Dismiss does not. After 7 days idle a face who can leave reads becoming restless. Each further day they may demand current Tap price or leave (same Renown hit).</p>
     <p class="tiny"><b>Renown</b> — every 12 raises max hire level by 1 (max 5). Every 20 adds one extra tavern face (max 6).</p>
     <h4>Hires at a glance</h4>
@@ -11682,7 +11695,7 @@ function helpPage(id){
     <p class="tiny"><b>Four-seat jobs</b> — ten larger contracts stay out of the pool until four living faces sit the hall.</p>
     <p class="tiny"><b>Seats</b> — how many people the contract wants. Extra bodies past that cut the gold 25% each.</p>
     <p class="tiny"><b>Days</b> — how long they are gone. Courier Stable shortens each job 1 day per level (min 1). Your Stable is Lv ${slv}.</p>
-    <p class="tiny"><b>Pay</b> — a gold range. Success rolls inside it. Fail pays little or nothing and can wound.</p>
+    <p class="tiny"><b>Pay</b> — a gold range. Success rolls inside it. Through day 30 job pay is 35% higher, fading to normal by day 60 (epic quests excluded). Fail pays little or nothing and can wound.</p>
     <p class="tiny"><b>Board-thief</b> — a face with the quirk puts a swap button under each idle quest. It greys out for 7 days after use.</p>
     <p class="tiny"><b>Recovery</b> — a death posts a quest to bring the body home. Needs a Cleric and one other. A Grave-watcher in the party stays with the body, gives the recovery +10 power, and both come home.</p>
     <p class="tiny"><b>Favored class</b> — a hint, not a lock. Except Dark: only people who can walk Dark may go.</p>
@@ -11717,6 +11730,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-12", t:"Early economy eased so a small guild is less likely to spiral to 0 gold: job pay +35% and nightly wages -30% through day 30, fading in a straight line to normal by day 60 (epic quests unchanged). Cancel at the food prompt, and Back on the epic confirm, now reopens the party picker with your party still selected. A stall buy with nobody home and a full Armory is no longer a dead end: there is now a Sell it button. Fixed the Racks-full Equip to make room path, which put armor in the wrong slot and could put a shield in the main hand."},
   {d:"2026-11-12", t:"Playtest fixes after a 100-day run. Road stall purchases work again. Taking gear off now puts it in the Armory (and asks if full) instead of losing it. A two-hander can no longer sit beside an off-hand; swapping a main hand asks what to do with the old weapon. Mages' starter weapon is a dagger and hire pools respect who can wield armor. Fixed a food-prompt loop on sending, End Day while a hall door waits, gear-stat deltas on Off-hand buttons, and hall raise costs showing blank."},
   {d:"2026-11-12", t:"Gear revamp. Weapons and armor now come in six colours: Gray (Common), White (Masterwork), Green (Uncommon), Blue (Rare), Purple (Epic) and Orange (Legendary, quest-only, never random)."},
   {d:"2026-11-12", t:"Weapons are now types: Sword, Hand Axe, Mace, Dagger, Hammer, Club, Throwing Knives, Wand (one-hand) and Greatsword, Battleaxe, Warhammer, Greatclub, Bow, Crossbow, Staff (two-hand). Each is Bladed, Blunt or Ranged. Wands and Staves are for Mages. Shields are Buckler, Shield and Tower Shield."},
