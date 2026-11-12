@@ -361,6 +361,49 @@
 .fw{position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden}
 .fw i{position:absolute;width:6px;height:6px;border-radius:50%;animation:boom 1.2s ease-out forwards}
 @keyframes boom{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--x),var(--y)) scale(.3);opacity:0}}
+.ws-wrap{position:relative;text-align:center;padding:6px 0 2px;overflow:hidden}
+.ws-rays{position:absolute;left:50%;top:92px;width:520px;height:520px;margin:-260px 0 0 -260px;border-radius:50%;
+  background:repeating-conic-gradient(rgba(255,214,102,.22) 0 10deg,transparent 10deg 24deg);
+  -webkit-mask:radial-gradient(circle,#000 18%,transparent 62%);mask:radial-gradient(circle,#000 18%,transparent 62%);
+  opacity:0;animation:wsRays 1.2s .55s ease-out forwards, wsSpin 24s linear infinite;pointer-events:none}
+.ws-scroll{position:relative;margin:0 auto;width:86%;max-width:300px;padding:22px 16px 18px;border-radius:6px;
+  background:linear-gradient(#f1dfb4,#e2c78c 60%,#d6b673);color:#3b2410;box-shadow:0 8px 24px rgba(0,0,0,.5),inset 0 0 22px rgba(120,80,30,.35);
+  transform-origin:top;transform:scaleY(.04);animation:wsUnroll .5s cubic-bezier(.2,.9,.3,1.2) forwards}
+.ws-scroll:before,.ws-scroll:after{content:"";position:absolute;left:-6px;right:-6px;height:12px;border-radius:6px;background:linear-gradient(#8a5a22,#5b3810)}
+.ws-scroll:before{top:-6px}.ws-scroll:after{bottom:-6px}
+.ws-kicker{font:600 11px Georgia,serif;letter-spacing:.25em;text-transform:uppercase;opacity:0;animation:wsFade .4s .4s forwards}
+.ws-title{font:700 20px Georgia,serif;margin:6px 0 2px;opacity:0;animation:wsFade .4s .5s forwards}
+.ws-seal{width:86px;height:86px;margin:10px auto 4px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:38px;color:#ffe9b0;background:radial-gradient(circle at 38% 34%,#d9473a,#8e1a14 70%,#5e0d09);
+  box-shadow:0 0 0 5px rgba(142,26,20,.55),0 0 0 9px rgba(142,26,20,.2),0 6px 14px rgba(0,0,0,.45);
+  opacity:0;transform:scale(3) rotate(-25deg);animation:wsStamp .38s .75s cubic-bezier(.3,1.6,.5,1) forwards}
+.ws-done .ws-scroll{animation:wsUnroll .5s cubic-bezier(.2,.9,.3,1.2) forwards, wsThud .28s 1.1s ease-out}
+.ws-rew{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.ws-rew span{background:rgba(59,36,16,.12);border:1px solid rgba(59,36,16,.35);border-radius:999px;padding:4px 10px;font:600 13px Georgia,serif;
+  opacity:0;transform:translateY(8px);animation:wsUp .35s forwards}
+.ws-btn{opacity:0;animation:wsFade .4s 1.9s forwards}
+.ws-glint{position:absolute;inset:0;border-radius:6px;pointer-events:none;
+  background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.55) 50%,transparent 60%);background-size:250% 100%;background-position:150% 0;animation:wsGlint 1s 1.3s ease-in-out forwards}
+@keyframes wsUnroll{to{transform:scaleY(1)}}
+@keyframes wsFade{to{opacity:1}}
+@keyframes wsUp{to{opacity:1;transform:none}}
+@keyframes wsStamp{60%{opacity:1;transform:scale(.88) rotate(4deg)}100%{opacity:1;transform:scale(1) rotate(-6deg)}}
+@keyframes wsThud{0%{transform:translateY(0)}30%{transform:translateY(5px) scale(1.01)}100%{transform:none}}
+@keyframes wsRays{to{opacity:1}}
+@keyframes wsSpin{to{rotate:360deg}}
+@keyframes wsGlint{to{background-position:-50% 0}}
+.ws-lose .ws-scroll{background:linear-gradient(#8f8170,#6d5f50 60%,#54483c);color:#1e1610;filter:saturate(.7)}
+.ws-lose .ws-seal{background:radial-gradient(circle at 38% 34%,#7a7a80,#3c3c44 70%,#222228);color:#d8d0c0;box-shadow:0 0 0 5px rgba(40,40,48,.6),0 6px 14px rgba(0,0,0,.5);
+  animation:wsCrack .5s .75s ease-out forwards}
+.ws-lose .ws-scroll{animation:wsUnroll .5s cubic-bezier(.2,.9,.3,1.2) forwards, wsShake .45s 1.1s ease-in-out}
+.ws-lose .ws-title{color:#2a0e0a}
+.ws-ash{position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden}
+.ws-ash i{position:absolute;top:-12px;width:5px;height:5px;border-radius:50%;background:#c25a2a;box-shadow:0 0 6px #ff7a30;opacity:0;animation:wsFall linear forwards}
+.ws-win .ws-rays{background:repeating-conic-gradient(rgba(255,214,102,.28) 0 9deg,transparent 9deg 20deg)}
+@keyframes wsCrack{0%{opacity:0;transform:scale(2.4) rotate(-20deg)}55%{opacity:1;transform:scale(.92) rotate(3deg)}75%{transform:scale(1.02) rotate(-8deg)}100%{opacity:1;transform:scale(1) rotate(-14deg) translateY(3px)}}
+@keyframes wsShake{0%,100%{transform:none}20%{transform:translateX(-6px) rotate(-1deg)}40%{transform:translateX(5px) rotate(1deg)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+@keyframes wsFall{0%{opacity:0;transform:translate(0,0)}15%{opacity:.9}100%{opacity:0;transform:translate(var(--x),105vh)}}
+@media (prefers-reduced-motion: reduce){.ws-wrap *,.ws-rays{animation-duration:.01s!important;animation-delay:0s!important}}
 </style>
 </head>
 <body>
@@ -4661,25 +4704,42 @@ function grantWritHallAuto(){
   S.writChoice = {title:(S.writ&&S.writ.title)||"Writ", opts:pool};
   return {kind:"choice", opts:pool};
 }
-function writCongrats(w, grant, ren){
+function ceremonyHtml(o){
+  let fx="";
+  if(o.mood==="lose"){
+    for(let i=0;i<26;i++) fx+=`<i style="left:${(Math.random()*100).toFixed(1)}%;--x:${(Math.random()*80-40).toFixed(0)}px;animation-duration:${(3+Math.random()*3).toFixed(2)}s;animation-delay:${(.9+Math.random()*2).toFixed(2)}s"></i>`;
+    fx=`<div class="ws-ash">${fx}</div>`;
+  } else {
+    const colors=["#ffd700","#ffe9a0","#e0b84a","#ff8f5a","#fff3c4","#d9473a"];
+    for(let i=0;i<46;i++){
+      const ang=Math.random()*Math.PI*2, dist=90+Math.random()*170;
+      const sz=4+Math.random()*6;
+      fx+=`<i style="left:50%;top:38%;width:${sz}px;height:${sz}px;background:${colors[i%colors.length]};--x:${(Math.cos(ang)*dist).toFixed(0)}px;--y:${(Math.sin(ang)*dist-40).toFixed(0)}px;animation-delay:${(1.05+Math.random()*.25).toFixed(2)}s;animation-duration:${(1+Math.random()*.8).toFixed(2)}s;opacity:0"></i>`;
+    }
+    fx=`<div class="fw">${fx}</div>`;
+  }
+  return `${fx}<div class="ws-wrap ws-done ws-${o.mood||"win"}">
+      ${o.mood==="lose"?"":`<div class="ws-rays"></div>`}
+      <div class="ws-scroll">${o.mood==="lose"?"":`<div class="ws-glint"></div>`}
+        <div class="ws-kicker">${o.kicker}</div>
+        <div class="ws-title">${o.title}</div>
+        <div class="ws-seal">${o.emblem}</div>
+        <div class="ws-kicker" style="animation-delay:1.1s">${o.label}</div>
+        ${o.line?`<p class="tiny" style="color:inherit;margin:8px 0 0;opacity:0;animation:wsFade .4s 1.2s forwards">${o.line}</p>`:""}
+        <div class="ws-rew">${(o.rew||[]).map((r,k)=>`<span style="animation-delay:${(1.3+k*.15).toFixed(2)}s">${r}</span>`).join("")}</div>
+      </div>
+    </div>`;
+}
+function writCongrats(w, grant, ren, gold){
   const sheet=document.getElementById("sheet");
   const modal=document.getElementById("modal");
-  const hall = grant&&grant.hall ? grant.hall.n+" raised to Lv "+grant.hall.lv : "the town's favor";
-  const colors=["#ffd700","#ff6b6b","#7dcea0","#85c1e9","#f5b041"];
-  let sparks="";
-  for(let i=0;i<24;i++){
-    const x=(Math.random()*200-100)+"px", y=(Math.random()*-180-20)+"px";
-    const c=colors[i%colors.length];
-    sparks+=`<i style="left:${40+Math.random()*20}%;top:30%;background:${c};--x:${x};--y:${y};animation-delay:${Math.random()*.4}s"></i>`;
-  }
-  sheet.innerHTML=`<div class="fw">${sparks}</div>
-    <div style="text-align:center;padding:8px 0">
-      <div style="font-size:48px">🎉</div>
-      <h3>Writ sealed</h3>
-      <p>${w.title}</p>
-      <p class="tiny">+${ren} renown · ${hall}</p>
-      <button type="button" class="act" id="writOk" style="width:100%;margin-top:12px">Well done</button>
-    </div>`;
+  if(!sheet||!modal) return;
+  const rew=[`⭐ +${ren} renown`];
+  if(grant&&grant.hall) rew.push(`${BLD_ICON[grant.hall.key||grant.hall.k]||"🏛️"} ${grant.hall.n} → Lv ${grant.hall.lv}`);
+  if(gold) rew.push(`🪙 +${gold} gold`);
+  rew.push(`📜 Writ #${S.writWins||1}`);
+  sheet.innerHTML=ceremonyHtml({mood:"win", kicker:"By order of the town", title:escHtml(w.title||"Writ"), emblem:w.icon||"⚜️", label:"Writ sealed", rew})
+    +`<button type="button" class="act ws-btn" id="writOk" style="width:100%;margin-top:16px">Well done</button>`;
   modal.classList.add("show"); modal.style.display="flex";
   document.getElementById("writOk").onclick=()=>closeModal();
 }
@@ -4705,6 +4765,7 @@ function sealWrit(ok){
       S.gold += gold;
       note("📜 Writ sealed: "+w.title+" — the hall is already built out. The town paid "+gp(gold)+" and +"+ren+" "+rn()+".", "success");
       log("Writ sealed: "+w.title+". Hall maxed. +"+gold+"g, +"+ren+" renown.");
+      writCongrats(w, null, ren, gold);
     }
   } else {
     S.writFails = (S.writFails||0)+1;
@@ -6798,7 +6859,7 @@ function openHallEvent(){
     <button type="button" class="act" id="featBuy" style="width:100%;margin-top:10px">Buy it</button>
     <button type="button" class="ghost" id="hallEvOk" style="width:100%;margin-top:6px">Not now</button>` : e.id==="rival_writ" ? `
     <button type="button" class="act" id="rivOk" style="width:100%;margin-top:10px">Understood</button>` : e.id==="rival_contest_done" ? `
-    <button type="button" class="act" id="rivOk" style="width:100%;margin-top:10px">So be it</button>` : e.id==="rival_contest" ? `
+    <button type="button" class="act ws-btn" id="rivOk" style="width:100%;margin-top:16px">${e.win?"Raise a cup":"So be it"}</button>` : e.id==="rival_contest" ? `
     <button type="button" class="act" id="conYes" ${contestReady<2?"disabled":""} style="width:100%;margin-top:10px;${contestReady<2?"opacity:.45":""}">${contestReady<2?"Not enough adventurers available":"Contest · two faces, four days"}</button>
     <button type="button" class="ghost" id="conNo" style="width:100%;margin-top:6px">Refuse · they gain ${contestRefuseGain()} renown${((ensureRival().renown||0)>=(S.renown||0))?", you −1":""}</button>` : e.id==="season_turn" ? seasonBtns(e) : e.id==="writ_shame" ? `
     <button type="button" class="act" id="shameRen" style="width:100%;margin-top:10px">Burn 1 Renown</button>
@@ -6933,8 +6994,10 @@ function openHallEvent(){
   }
   if(e.id==="rival_contest_done"){
     body = e.win
-      ? `<h3>Contest won</h3><p>${e.name} blinked. You +${e.gain||5} renown (${e.us}) and ${e.gold||0} gold. They sit at ${e.them}.</p>`
-      : `<h3>Contest lost</h3><p>${e.name} kept the street. Your two are wounded. They +${e.gain||5}. Them ${e.them} · you ${e.us}.</p>`;
+      ? ceremonyHtml({mood:"win", kicker:"The guild contest", title:"Victory", emblem:"🏆", label:escHtml(e.name||"The rival")+" yields",
+          line:"They blinked first. The street is yours.", rew:[`⭐ +${e.gain||5} renown (${e.us})`, `🪙 +${e.gold||0} gold`, `⚔️ They sit at ${e.them}`]})
+      : ceremonyHtml({mood:"lose", kicker:"The guild contest", title:"Defeat", emblem:"🗡️", label:escHtml(e.name||"The rival")+" holds the street",
+          line:"Your two limp home wounded.", rew:[`⚔️ They +${e.gain||5} (${e.them})`, `⭐ You ${e.us}`, `🩹 Both wounded`]});
   }
   if(e.id==="season_turn"){
     const s = e.season||seasonOf();
@@ -11163,6 +11226,8 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-11", t:"The rival contest result gets its own scene: a gold scroll, trophy, light rays and sparks for a win; a scorched scroll, a cracking iron seal and falling embers for a loss."},
+  {d:"2026-11-11", t:"New Writ sealed celebration: a scroll unrolls, a wax seal stamps down with a burst of sparks and light, and the rewards pop in one by one. It now also plays when the hall is maxed and the town pays gold."},
   {d:"2026-11-11", t:"Loot lines for shields no longer claim a weapon attack bonus. A shield only adds defense, from the offhand."},
   {d:"2026-11-11", t:"Offhand weapons now add an exact half of their attack instead of rounding down, so a +1 offhand adds +0.5."},
   {d:"2026-11-11", t:"The Job power breakdown splits attack and armor into its parts: class base, level, weapon, offhand, traits, role, and each defense source at 70%."},
