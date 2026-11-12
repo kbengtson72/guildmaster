@@ -8412,6 +8412,7 @@ function openMakeSpace(keepUid){
     const full = vaultFull();
     const rk = racksNext();
     const goldLine = `<p class="tiny">On hand ${gp(S.gold)} · racks ${S.vault.length}/${vaultCap()}</p>`;
+    const rkJob = (S.raise && S.raise.k==="racks") ? S.raise : (S.raiseQ||[]).find(x=>x.k==="racks") || null;
     if(equipUid){
       const it = (S.vault||[]).find(x=>x.uid===equipUid);
       if(!it){ paint(); return; }
@@ -8464,8 +8465,9 @@ function openMakeSpace(keepUid){
     }
     sheet.innerHTML = `<h3>Racks full</h3>
       ${goldLine}
-      <p class="tiny">Sell or equip something already stored, or buy more racks, to keep the new piece.</p>
-      ${rk?`<button type="button" class="act" id="buyRacks" style="width:100%;margin-bottom:8px">Buy Racks Lv ${rk.lv+1} · ${gp(rk.cost)} · ${rk.nextCap} slots</button>`:`<p class="tiny">Racks are maxed.</p>`}
+      <p class="tiny">Sell or equip something already stored to keep the new piece. More racks take days to build.</p>
+      ${rkJob?`<div class="card" style="border-color:var(--gold);padding:8px 10px;margin-bottom:8px"><p style="margin:0">🗄️ <b>Racks Lv ${rkJob.to}</b> ${rkJob===S.raise?`is building · ${rkJob.left}d left`:`is queued behind the current build · ${rkJob.left||rkJob.span}d once it starts`}.</p><p class="tiny" style="margin:4px 0 0">The new slots arrive when it finishes. To keep this find now, sell or equip something below.</p></div>`
+        : rk?`<button type="button" class="act" id="buyRacks" style="width:100%;margin-bottom:8px">Build Racks Lv ${rk.lv+1} · ${gp(rk.cost)} · ${rk.nextCap} slots · ${raiseDays(rk.lv+1)}d</button>`:`<p class="tiny">Racks are maxed.</p>`}
       ${(S.vault||[]).map(it=>`<div class="card"><div class="row"><strong>${itemNameHtml(it)}</strong><span class="muted">${lootLabel(it)}</span></div>
         <button class="ghost" data-dump="${it.uid}" style="width:100%;margin-top:6px">Sell this · ${gp(sellPrice(it))}</button>
         <button class="ghost" data-eq="${it.uid}" style="width:100%;margin-top:6px">Equip to a face</button>
@@ -8477,9 +8479,15 @@ function openMakeSpace(keepUid){
       const n = racksNext();
       if(!n) return;
       if((S.raise && S.raise.k==="racks") || (S.raiseQ||[]).some(x=>x.k==="racks")) return toast("Racks are already building or queued.");
-      if(funds() < n.cost) return toast("Need "+gp(n.cost)+". Have "+gp(S.gold)+".");
+      if(funds() < n.cost){ br.textContent = "Need "+(n.cost)+" gold · you have "+funds(); br.disabled = true; br.style.opacity=".5"; return; }
       upgrade("racks");
-      toast("Racks queued.");
+      const hy = document.getElementById("hearthYes"), hn = document.getElementById("hearthNo");
+      if(hy || hn){
+        const back = ()=>{ wrap.style.display="flex"; paint(); };
+        if(hy){ const f=hy.onclick; hy.onclick=()=>{ f&&f(); back(); }; }
+        if(hn){ const f=hn.onclick; hn.onclick=()=>{ f&&f(); back(); }; }
+        return;
+      }
       paint();
     };
     const tap=(b, fn)=>{ b.onclick=(e)=>{ e.preventDefault(); e.stopPropagation(); fn(); }; b.ontouchend=(e)=>{ e.preventDefault(); e.stopPropagation(); fn(); }; };
@@ -8491,7 +8499,7 @@ function openMakeSpace(keepUid){
     });
     const go = document.getElementById("afterDump");
     if(go) go.onclick=()=>finishKeep();
-    document.getElementById("cancelDump").onclick = ()=>{ S._buyHold=null; closeModal(); };
+    document.getElementById("cancelDump").onclick = ()=>{ S._buyHold=null; if(keepUid && (S.pendingLoot||[]).length && showFindsPopup()) return; wrap.style.display="none"; closeModal(); render(); };
   }
   paint();
 }
@@ -11241,6 +11249,7 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-11", t:"Racks full: the build button says how many days it takes, and after you tap it the popup shows Racks building (or queued) right there instead of a hidden message. A Hearth-hand offer no longer wipes the popup, and Cancel takes you back to your finds instead of closing everything."},
   {d:"2026-11-11", t:"Hall event buttons ignore taps for the first split second after the card opens, so a tap meant for the screen before can no longer dismiss an event you never saw. Every hall event you are shown is also written to the log."},
   {d:"2026-11-11", t:"The rival contest result gets its own scene: a gold scroll, trophy, light rays and sparks for a win; a scorched scroll, a cracking iron seal and falling embers for a loss."},
   {d:"2026-11-11", t:"New Writ sealed celebration: a scroll unrolls, a wax seal stamps down with a burst of sparks and light, and the rewards pop in one by one. It now also plays when the hall is maxed and the town pays gold."},
