@@ -6530,6 +6530,19 @@ function hallEventOverdue(){
   if(e.shown) return false;
   return (S.day||1) > (e.day!=null ? e.day : S.day);
 }
+function guardSheetTaps(sheet, ms){
+  if(!sheet) return;
+  sheet.dataset.guardUntil = String(Date.now()+ms);
+  if(sheet.dataset.guardOn) return;
+  sheet.dataset.guardOn = "1";
+  const stop = ev=>{
+    if(Date.now() < +(sheet.dataset.guardUntil||0) && ev.target && ev.target.closest && ev.target.closest("button")){
+      ev.stopPropagation(); ev.preventDefault();
+    }
+  };
+  sheet.addEventListener("click", stop, true);
+  sheet.addEventListener("touchend", stop, true);
+}
 function showHallEvent(){
   stampHallEvent();
   if(!S.hallEvent) return;
@@ -7080,6 +7093,8 @@ function openHallEvent(){
   modal.classList.add("show"); modal.style.display="flex"; modal.style.zIndex="10100";
   e.shown = true;
   recordHallEvent(e, "show");
+  guardSheetTaps(sheet, 650);
+  { const h = (sheet.querySelector("h3")||{}).textContent || e.id; log("Hall event: "+h.replace(/\s+/g," ").trim()+"."); }
   const ok = document.getElementById("hallEvOk");
   if(ok) ok.onclick=()=>{ S.hallEvent=null; save(); closeModal(); nextDoorQueue(); render(); };
   const fallOk = document.getElementById("fallOk");
@@ -11226,6 +11241,7 @@ function helpGearBody(){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-11", t:"Hall event buttons ignore taps for the first split second after the card opens, so a tap meant for the screen before can no longer dismiss an event you never saw. Every hall event you are shown is also written to the log."},
   {d:"2026-11-11", t:"The rival contest result gets its own scene: a gold scroll, trophy, light rays and sparks for a win; a scorched scroll, a cracking iron seal and falling embers for a loss."},
   {d:"2026-11-11", t:"New Writ sealed celebration: a scroll unrolls, a wax seal stamps down with a burst of sparks and light, and the rewards pop in one by one. It now also plays when the hall is maxed and the town pays gold."},
   {d:"2026-11-11", t:"Loot lines for shields no longer claim a weapon attack bonus. A shield only adds defense, from the offhand."},
