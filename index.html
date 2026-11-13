@@ -8396,18 +8396,23 @@ function openOldHandAsk(p, oldId){
   const wrap = document.getElementById("finds");
   const inFinds = !!(wrap && getComputedStyle(wrap).display!=="none");
   const done = ()=>{ save(); if(inFinds){ try{ paintDayReport(); }catch(e){} render(); afterFind(); } else { closeModal(); render(); } };
-  if(!old || p.offhand || isTwoHand(catalog("weapon", p.weapon)) || !canOffhand(p, old)){ done(); return; }
+  if(!old || isTwoHand(catalog("weapon", p.weapon)) || !canOffhand(p, old)){ done(); return; }
+  const curOff = p.offhand ? catalog("weapon", p.offhand) : null;   // something already in the off hand: offer a swap
   const box = document.getElementById(inFinds ? "findsBox" : "sheet");
   if(!box){ done(); return; }
   if(!inFinds){ const modal = document.getElementById("modal"); modal.classList.add("show"); modal.style.display = "flex"; }
   box.innerHTML = `<h3>${itemNameHtml(old)}</h3>
-    <p>${p.name.split(" ")[0]}'s old weapon is in the armory. Keep it in the off hand?</p>
+    <p>${p.name.split(" ")[0]}'s old weapon is in the armory. ${curOff?"Move it to the off hand? "+itemNameHtml(curOff)+" goes to the armory.":"Keep it in the off hand?"}</p>
     <p class="tiny">Offhand · half attack${gearDeltaHtml(p, old, "off")}</p>
     <button type="button" class="act" id="ohYes" style="width:100%;margin-top:8px">Off hand</button>
     <button type="button" class="ghost" id="ohNo" style="width:100%;margin-top:6px">Leave it in the armory</button>`;
   document.getElementById("ohYes").onclick = ()=>{
     const ix = (S.vault||[]).findIndex(x=>x.id===oldId);
-    if(ix>=0){ S.vault.splice(ix,1); p.offhand = oldId; }
+    if(ix>=0){
+      S.vault.splice(ix,1);
+      if(p.offhand) stashPush("weapon", p.offhand);
+      p.offhand = oldId;
+    }
     done();
   };
   document.getElementById("ohNo").onclick = done;
@@ -11753,6 +11758,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-12", t:"Putting a new weapon in the main hand asks again whether to move the old one to the off hand, even when the off hand is already holding something. If you say yes, the old off-hand item goes to the armory."},
   {d:"2026-11-12", t:"No more half points. Armor defense is whole numbers now, and a full set of one weight and colour adds up to the same total as before. Offhand weapons add half their attack rounded up."},
   {d:"2026-11-12", t:"Food is only eaten when you say Use it. Any send that skipped the question now leaves the food packed instead of eating it."},
   {d:"2026-11-12", t:"Bank interest no longer shows in the Ledger."},
