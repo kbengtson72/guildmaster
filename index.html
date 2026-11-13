@@ -4240,7 +4240,11 @@ function fightCombat(enc, m, party, names, road){
     const ren = roll ? (roll.renown||0) : (Math.random()<0.35 ? 1 : 0);
     if(ren){ S.renown += ren; bits.push("+"+ren+" Renown"); }
     const drop = roll ? grantRoadLoot(roll.loot) : roadCombatLoot(diff);
-    if(drop) bits.push("took "+itemNameHtml(drop));
+    if(drop){
+      bits.push("took "+itemNameHtml(drop));
+      const lp = (S.pendingLoot||[])[(S.pendingLoot||[]).length-1];
+      if(lp){ lp.party = party.filter(p=>p&&p.status!=="dead").map(p=>p.id); lp.mid = m.id; }
+    }
     if(enc.id==="wargs"){
       const pelt = {kind:"loot", n:"Warg pelt", cost:14, story:"Skinned off the pair on the trail."};
       if(stashRaw(pelt)) bits.push("kept a Warg pelt");
@@ -6126,6 +6130,7 @@ function tickMissions(){
     m.left = Math.max(0, (Number(m.left)||1)-1);
     if(m.left<=0 || members.every(p=>p.daysOut<=0)){
       resolveMission(m);
+      releaseCarried(m.id);
       if(m.recovery && (S.missions||[]).some(x=>x.id===m.id)){
         m.party = [];
         m.left = null;
@@ -6141,6 +6146,7 @@ function tickMissions(){
     }
   });
   S.missions = S.missions.filter(m=>!m.done);
+  releaseCarried(null);
   S.day++;
   const before = S.missions.filter(m=>!m.party || !m.party.length).length;
   refreshMissions();
@@ -6226,14 +6232,17 @@ function showFindsPopup(){
   }
   wrap.style.display="flex";
   raiseFindsLayer();
-  box.innerHTML = `<h3>Finds</h3>
-    <p class="tiny">Armory ${(S.vault||[]).length}/${vaultCap()}. Equip puts it on someone. Keep racks it. Sell is half price.</p>
+  const homeN = list.filter(x=>x.home).length, homeOnly = homeN===list.length;
+  const anyJob = list.some(findOnJob);
+  box.innerHTML = `<h3>${homeOnly?"Brought home":"Finds"}</h3>
+    ${homeN?`<p>You brought home ${homeN===1?itemNameHtml(list.find(x=>x.home)):homeN+" road finds"}. Equip ${homeN===1?"it":"them"} to someone, or put ${homeN===1?"it":"them"} in the Armory?</p>`:""}
+    <p class="tiny">Armory ${(S.vault||[]).length}/${vaultCap()}. Equip puts it on someone. Keep racks it. Sell is half price.${anyJob?" Road finds can only go to the party that won them. Carry home brings it back with them.":""}</p>
     ${list.map(it=>`<div class="card" style="margin:8px 0">
       <div class="row"><strong>${itemNameHtml(it)}</strong><span class="tag">${escHtml(it.from||"")}</span></div>
       <p class="tiny">${lootLabel(it)}</p>
       <div class="row" style="gap:6px;margin-top:6px">
         ${it.kind && it.kind!=="loot"?`<button type="button" class="act" data-fact="eq" data-uid="${it.uid}" style="flex:1">Equip</button>`:""}
-        <button type="button" class="ghost" data-fact="keep" data-uid="${it.uid}" style="flex:1">Keep</button>
+        <button type="button" class="ghost" data-fact="keep" data-uid="${it.uid}" style="flex:1">${findOnJob(it)?"Carry home":it.home?"Armory":"Keep"}</button>
         <button type="button" class="ghost" data-fact="sell" data-uid="${it.uid}" style="flex:1">Sell · ${gp(Math.floor((it.cost||0)/2))}</button>
       </div>
     </div>`).join("")}
@@ -6250,6 +6259,7 @@ function showFindsPopup(){
   if(done) done.onclick=()=>{
     const left = (S.pendingLoot||[]).slice();
     for(const it of left){
+      if(findOnJob(it)){ keepPending(it.uid); continue; }
       if(vaultFull()){ openMakeSpace(it.uid); return; }
       keepPending(it.uid);
     }
@@ -8863,6 +8873,14 @@ function keepPending(uid){
   const ix = S.pendingLoot.findIndex(x=>x.uid===uid);
   if(ix<0) return;
   const it = S.pendingLoot[ix];
+  if(findOnJob(it)){
+    S.pendingLoot.splice(ix,1);
+    carryHome(it);
+    markFindDone(it.n, "carried home");
+    toast("The party carries "+it.n+" home.");
+    save(); paintDayReport(); render();
+    return;
+  }
   if(vaultFull()){
     openMakeSpace(uid);
     return;
@@ -8884,6 +8902,21 @@ function slotItem(p, kind){
   if(kind==="kit") return kitOf(p);
   return null;
 }
+function findOnJob(it){
+  return !!(it && it.party && it.mid && (S.missions||[]).some(m=>m.id===it.mid && m.party && m.party.length && !m.done));
+}
+function carryHome(it){
+  if(!S.carried) S.carried = [];
+  S.carried.push(it);
+}
+function releaseCarried(mid){
+  if(!(S.carried||[]).length) return 0;
+  const keep=[], back=[];
+  S.carried.forEach(it=>{ (mid ? it.mid===mid : !findOnJob(it)) ? back.push(it) : keep.push(it); });
+  S.carried = keep;
+  back.forEach(it=>{ delete it.party; delete it.mid; it.from="brought home"; it.home=true; (S.pendingLoot=S.pendingLoot||[]).push(it); });
+  return back.length;
+}
 function openEquipFind(findUid){
   if(!S.pendingLoot) S.pendingLoot = [];
   const it = S.pendingLoot.find(x=>x.uid===findUid);
@@ -8895,11 +8928,17 @@ function openEquipFind(findUid){
   const wrap = document.getElementById("finds");
   if(!sheet || !wrap) return;
   wrap.style.display="flex";
-  const wear = ready.filter(p=>canWield(p, it));
+  const onJob = findOnJob(it);
+  const inParty = p => !onJob || (it.party||[]).indexOf(p.id)>=0;
+  const wear = ready.filter(p=>canWield(p, it)).sort((a,b)=>(inParty(b)?1:0)-(inParty(a)?1:0));
   sheet.innerHTML = `<h3>Equip ${itemNameHtml(it)}</h3>
     <p class="tiny">${lootLabel(it)}</p>
+    ${onJob?`<p class="tiny" style="color:#e0b84a">Only adventurers on this job can take it. Anyone else gets a turn once it is brought home.</p>`:""}
     <p class="tiny">Who takes it. Their current ${kind} is listed.</p>
     ${wear.map(p=>{
+      if(!inParty(p)){
+        return `<div class="card" style="margin-top:6px;text-align:left;opacity:.45">${CLASSES[p.cls].icon} ${p.name.split(" ")[0]}${p.status==="away"?" · on another job":""} · ${p.cls} ${p.lv} · HP ${p.hp||0}/${p.maxhp||0}<div class="tiny" style="margin-top:4px;padding:8px;border:1px solid #555;border-radius:8px">Cannot equip. Not on this job.</div></div>`;
+      }
       const cur = kind==="armor" ? catalog("armor", (p.slots||{})[armorSlotOf(it)]|| (armorSlotOf(it)==="chest"?p.armor:null)) : slotItem(p, kind);
       const now = cur ? itemNameHtml(cur)+(kind==="weapon"?" · +"+cur.atk+" ATK":kind==="armor"?" · +"+cur.def+" DEF":" · "+foodBits(cur)) : "empty";
       const delta = (kind==="weapon"||kind==="armor") ? gearDeltaHtml(p, it, isShield(it)?"off":"main") : "";
@@ -9677,7 +9716,7 @@ function writeSlots(){
 function snapshot(){
   return JSON.parse(JSON.stringify({
     day:S.day, gold:S.gold, renown:S.renown, buildings:S.buildings,
-    deposit:S.deposit||0, people:S.people, missions:S.missions, shop:S.shop, vault:S.vault||[], pendingLoot:S.pendingLoot||[], hire:S.hire, log:S.log,
+    deposit:S.deposit||0, people:S.people, missions:S.missions, shop:S.shop, vault:S.vault||[], pendingLoot:S.pendingLoot||[], carried:S.carried||[], hire:S.hire, log:S.log,
     writ:S.writ||null, writWins:S.writWins||0, writFails:S.writFails||0, writChoice:S.writChoice||null,
     epicWins:S.epicWins||0,
     nextSeek:S.nextSeek||null, seekers:S.seekers||null, quitAsk:S.quitAsk||null, restlessAsk:S.restlessAsk||null, raise:S.raise||null,
@@ -9714,7 +9753,7 @@ function applySnap(d){
   S.nextSeek=d.nextSeek||null; S.seekers=d.seekers||null; S.quitAsk=d.quitAsk||null; S.restlessAsk=d.restlessAsk||null; S.raise=d.raise||null;
   S.people=d.people||[]; S.missions=d.missions||[]; S.shop=d.shop||[]; S.vault=d.vault||[];
   try { ensureMissionIds(); } catch(e){}
-  S.hire=d.hire||[]; S.log=d.log||[]; S.deposit=d.deposit||0; S.pendingLoot=d.pendingLoot||[];
+  S.hire=d.hire||[]; S.log=d.log||[]; S.deposit=d.deposit||0; S.pendingLoot=d.pendingLoot||[]; S.carried=d.carried||[];
   S.writ=d.writ||null; S.writWins=d.writWins||0; S.writFails=d.writFails||0; S.writChoice=d.writChoice||null;
   S.epicWins=d.epicWins||0;
   S.buildings.bank = S.buildings.bank||0;
@@ -11799,7 +11838,7 @@ function helpPage(id){
     <p class="tiny"><b>Quests</b> — assign ready people. Favored classes show a mark. Extra bodies past the needed seats cut gold 25% each. Jobs take days; Courier Stable shortens them.</p>
     <p class="tiny"><b>Merchant</b> — Weapons, Armor, Consumables. Buys go to the Armory.</p>
     <p class="tiny"><b>Armory</b> — 4 slots to start. Equip someone home; old gear returns here. Sell at half list. Racks add +3 slots per level. Jobs and the road can drop salvage, gear, or food.</p>
-    <p class="tiny"><b>End Day</b> — wages, healing, returns, night report (who is still in the field and days left). Parties still out may hit a road event (⚙ slider, default 10%). The road can be a fight, a merchant, a healer, a priest, a beggar, or a rescue. Combat can give XP, gold, Renown, or −1 day — or wound people and add a day. Gear from a fight or a finished quest opens a Finds window to keep, sell, or equip. Unclaimed finds stay and come back until you deal with them. If you close the app mid-road, the choice or result comes back when you reopen. Forced-fight slider is the chance you cannot skip a fight (default 50%).</p>
+    <p class="tiny"><b>End Day</b> — wages, healing, returns, night report (who is still in the field and days left). Parties still out may hit a road event (⚙ slider, default 10%). The road can be a fight, a merchant, a healer, a priest, a beggar, or a rescue. Combat can give XP, gold, Renown, or −1 day — or wound people and add a day. Gear from a fight or a finished quest opens a Finds window to keep, sell, or equip. Gear won in a road fight can only be equipped by the party on that job; everyone else shows greyed out. If nobody takes it, Carry home keeps it with the party, and when they return a Brought home window asks you to equip it or put it in the Armory. Unclaimed finds stay and come back until you deal with them. If you close the app mid-road, the choice or result comes back when you reopen. Forced-fight slider is the chance you cannot skip a fight (default 50%).</p>
     <p class="tiny"><b>Hall events</b> — each dawn has an 8% chance of a hall note (a leak, a levy, a purse, a peddler, and the like). A note you have not seen yet comes back the next day until you close it, and it is not thrown away by a writ, a contest warning, or reopening the app. Last hall event: ${(typeof hallEventDiagText==="function"?hallEventDiagText().last:"none yet")}. Pending: ${(typeof hallEventDiagText==="function"?hallEventDiagText().pending:"none")}.</p>
     <h4>Money and people</h4>
     <p class="tiny"><b>Wages</b> — half the listed wage, rounded down, paid to people at the hall (ready or wounded). Away and dead are not paid. Each Renown cuts hire price and wages 1%, cap 50% at 50 Renown. Early relief: nightly wages are 30% lower through day 30, fading to normal by day 60.</p>
@@ -11988,6 +12027,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-13", t:"Road finds can only be equipped by the party that won them. Others show greyed out. Unequipped finds ride home and ask again on return."},
   {d:"2026-11-13", t:"Armory says only adventurers at home can be equipped, lists who is out on a job, and warns when everyone is away."},
   {d:"2026-11-13", t:"Road choices: the soft-step Skip button sits at the bottom, set apart from the other choices, so it is harder to hit by mistake."},
   {d:"2026-11-13", t:"New writ popup: when the town posts a writ, a still scroll shows its name, what it asks for, how many jobs, and the deadline."},
@@ -13251,7 +13291,7 @@ function newGame(){
   S.hallEvent=null; S.hallEventLog=null; S._roadStall=null; S.seasonAsk=null; S.contestAsk=null; S.contestDue=null; S.contestWarn=null; S.contestWarned=false; S.contestUntil=null; S.contestParty=null; S.rivalWritAsk=null;
   S.buildings = {barracks:1, armory:1, infirmary:1, grounds:0, alley:0, sanctum:0, chapel:0, tavern:1, bank:1, racks:0, board:0, bell:0, briefs:0, seer:0, stables:0};
   S.deposit = 40;
-  S.people = []; S.missions = []; S.shop = []; S.vault = []; S.pendingLoot = []; S.hire = []; S.log = []; S.selected = null;
+  S.people = []; S.missions = []; S.shop = []; S.vault = []; S.pendingLoot = []; S.carried = []; S.hire = []; S.log = []; S.selected = null;
   S.writ = null; S.writWins = 0; S.writFails = 0; S.writChoice = null; S.nextSeek = 1+rng(7,14); S.seekers = null; S.quitAsk = null; S.restlessAsk = null; S.raise = null; S.epicWins = 0;
   const start = Object.keys(CLASSES).slice().sort(()=>Math.random()-0.5);
   S.people.push(makePerson(true, start[0]), makePerson(true, start[1]));
