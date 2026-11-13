@@ -2353,9 +2353,11 @@ function foodOf(p){
   if(!p || !p.food) return null;
   return FOODS.find(x=>x.id===p.food) || null;
 }
+/* food only counts once the player said Use it (at send or in the hall) */
+function foodOn(p){ return !!(p && p.food && p.foodEaten && !p.foodSkip); }
 function foodPwr(p, m){
   const f = foodOf(p);
-  if(!f || p.foodSkip) return 0;
+  if(!f || !foodOn(p)) return 0;
   let n = f.pwr||0;
   if(f.dark && m && isDarkMission(m)) n += f.dark;
   return n;
@@ -4919,7 +4921,7 @@ function power(party, m, detail){
     if(p.quirk==="cup_bearer" && party){
       let cup = 0;
       party.forEach(o=>{
-        if(o && o.id!==p.id && !o.foodSkip) cup += Math.floor(foodPwr(o, m)/2);
+        if(o && o.id!==p.id && foodOn(o)) cup += Math.floor(foodPwr(o, m)/2);
       });
       pwr += pwrPart(parts, who+"Cup-bearer (half of the party's food)", cup);
     }
@@ -5668,7 +5670,7 @@ function resolveMission(m){
   if(success){
     party.forEach(p=>{
       const f = foodOf(p);
-      if(f && f.gold && !p.foodSkip){
+      if(f && f.gold && foodOn(p)){
         const before = gold;
         gold = Math.max(1, Math.floor(gold * (1 + f.gold)));
         p._foodGold = gold - before;
@@ -5679,7 +5681,7 @@ function resolveMission(m){
   const icon = (typeof MISSION_ICON!=="undefined" && MISSION_ICON[m.t]) ? MISSION_ICON[m.t]+" " : "";
 
   party.forEach(p=>{
-    const f = p.foodSkip ? null : foodOf(p);
+    const f = foodOn(p) ? foodOf(p) : null;   // only food the player chose to use
     let healed = 0;
     const ateAtHall = !!(f && p.foodEaten);
     if(f && f.heal && !ateAtHall){
@@ -11734,6 +11736,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-12", t:"Food is only eaten when you say Use it. Any send that skipped the question now leaves the food packed instead of eating it."},
   {d:"2026-11-12", t:"Bank interest no longer shows in the Ledger."},
   {d:"2026-11-12", t:"New hires and starting guild members always get a real main weapon. Shields only go in the offhand now. Anyone already stuck holding just a shield gets a free Gray weapon."},
   {d:"2026-11-12", t:"Weapon labels drop \"one-hand\" and \"mages\". Two-hand weapons still say two-hand."},
