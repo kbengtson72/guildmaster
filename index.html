@@ -6091,7 +6091,7 @@ function tickMissions(){
   [tickRaise, tickWrit, tickRestless, tickSeekers, tickSeason, tickRival, tickHallEvent, tickFeatured].forEach(fn=>{
     try { if(typeof fn==="function") fn(); } catch(e){}
   });
-  log("A new day in the hall.");
+  // (no "new day" ledger line; Kevin asked to drop it)
   save();
   render();
   showDayReport();
@@ -11924,6 +11924,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-13", t:"Ledger no longer shows \"A new day in the hall.\" lines; old ones are hidden too."},
   {d:"2026-11-13", t:"A short-funds notice now sits on top of the open sheet, so its OK button can be tapped. Tithe day and other hall payments show Need X and stay disabled when you cannot pay. Closing a sheet no longer lets that same tap hit End Day or another button underneath."},
   {d:"2026-11-13", t:"Kits now ask Use it? when you send someone on a job or to a guild contest, the same way food does. The kit only applies, and is only used up, if you say yes. Keep it packed leaves it in their slot."},
   {d:"2026-11-13", t:"Guild contest counts kits: a kit's power bonus (Whetstone +2) adds to that fighter's contest power, shows on the contest sheet, and the kit is used up when the contest ends."},
@@ -12894,7 +12895,7 @@ function openLedger(){
   const sheet = document.getElementById("sheet");
   const modal = document.getElementById("modal");
   if(!sheet||!modal) return;
-  const rows = (S.log||[]).filter(t=>!/Bank paid \d+ interest/.test(String(t))).map(t=>`<p>${t}</p>`).join("") || "<p class='muted'>Quiet so far.</p>";
+  const rows = (S.log||[]).filter(t=>!/Bank paid \d+ interest|A new day in the hall/.test(String(t))).map(t=>`<p>${t}</p>`).join("") || "<p class='muted'>Quiet so far.</p>";
   sheet.innerHTML = `<h3>📒 Ledger</h3><div class="log" style="max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch">${rows}</div>
     <button type="button" class="act" id="ledgerClose" style="width:100%;margin-top:10px">Close</button>`;
   modal.classList.add("show"); modal.style.display="flex";
