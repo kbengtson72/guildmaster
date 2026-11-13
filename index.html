@@ -7447,10 +7447,13 @@ function tickHallEvent(){
 
 function seasonBtns(e){
   const s = e.season||seasonOf();
-  if(s==="spring") return `<button type="button" class="act" id="szYes" style="width:100%;margin-top:10px">Plant · 10g · +2g per win this season</button><button type="button" class="ghost" id="szNo" style="width:100%;margin-top:6px">Let the yard sit</button>`;
-  if(s==="summer") return `<button type="button" class="act" id="szYes" style="width:100%;margin-top:10px">Shade · 12g · ignore heat</button><button type="button" class="ghost" id="szNo" style="width:100%;margin-top:6px">March in the sun</button>`;
-  if(s==="autumn") return `<button type="button" class="act" id="szYes" style="width:100%;margin-top:10px">Store grain · 8g · skip winter wage bump</button><button type="button" class="ghost" id="szNo" style="width:100%;margin-top:6px">Eat it now</button>`;
-  return `<button type="button" class="act" id="szYes" style="width:100%;margin-top:10px">Firewood · 20g · skip winter wage bump</button><button type="button" class="ghost" id="szNo" style="width:100%;margin-top:6px">Pay the cold</button>`;
+  const cost = s==="spring"?10:s==="summer"?12:s==="autumn"?8:20;
+  const yes = s==="spring" ? "Plant · 10g · +2g per win this season"
+    : s==="summer" ? "Shade · 12g · ignore heat"
+    : s==="autumn" ? "Store grain · 8g · skip winter wage bump"
+    : "Firewood · 20g · skip winter wage bump";
+  const no = s==="spring"?"Let the yard sit":s==="summer"?"March in the sun":s==="autumn"?"Eat it now":"Pay the cold";
+  return payBtnHtml("szYes", cost, yes)+`<button type="button" class="ghost" id="szNo" style="width:100%;margin-top:6px">${no}</button>`;
 }
 function openHallEvent(){
   S.tapCloseSheet = false;
@@ -7497,39 +7500,39 @@ function openHallEvent(){
     <button type="button" class="act" id="shameRen" style="width:100%;margin-top:10px">Burn 1 Renown</button>
     <button type="button" class="ghost" id="shameTime" style="width:100%;margin-top:6px">Due 2 days sooner</button>
     ${(e.have||0)>=1?`<button type="button" class="ghost" id="shameMark" style="width:100%;margin-top:6px">Lose 1 mark</button>`:""}` : e.id==="desertion" ? `
-    <button type="button" class="act" id="desPay" style="width:100%;margin-top:10px">Pay ${gp(e.fee||4)} · +1 loyalty</button>
+    ${payBtnHtml("desPay", e.fee||4, "Pay "+gp(e.fee||4)+" · +1 loyalty")}
     <button type="button" class="ghost" id="desNo" style="width:100%;margin-top:6px">Do nothing · −2 loyalty</button>` : e.id==="rats" ? `
-    <button type="button" class="act" id="ratPay" style="width:100%;margin-top:10px">Pay ${gp(e.fee||8)} · keep it</button>
+    ${payBtnHtml("ratPay", e.fee||8, "Pay "+gp(e.fee||8)+" · keep it")}
     <button type="button" class="ghost" id="ratEat" style="width:100%;margin-top:6px">Let the rats have ${e.name}</button>` : e.id==="taxman" ? `
-    <button type="button" class="act" id="taxPay" style="width:100%;margin-top:10px" ${funds()<(e.fee||15)?"disabled":""}>${funds()<(e.fee||15)?"Not enough gold · "+gp(e.fee||15):"Pay "+gp(e.fee||15)}</button>
+    ${payBtnHtml("taxPay", e.fee||15, "Pay "+gp(e.fee||15))}
     <button type="button" class="ghost" id="taxNo" style="width:100%;margin-top:6px">Refuse · −2 Renown</button>` : e.id==="fever" ? `
     <button type="button" class="act" id="feverLock" style="width:100%;margin-top:10px">Quarantine · 3 days after they stand</button>
     <button type="button" class="ghost" id="feverShare" style="width:100%;margin-top:6px">Share the blankets</button>` : e.id==="broke_strap" ? `
-    <button type="button" class="act" id="strapPay" style="width:100%;margin-top:10px">Stitch it · ${gp(e.fee||3)}</button>
+    ${payBtnHtml("strapPay", e.fee||3, "Stitch it · "+gp(e.fee||3))}
     <button type="button" class="ghost" id="strapScrap" style="width:100%;margin-top:6px">Tear it off · cloth</button>` : e.id==="quiet_mass" ? `
-    <button type="button" class="act" id="massPay" style="width:100%;margin-top:10px">Pay ${gp(e.fee||4)} · ${e.name} +1 loyalty</button>
+    ${payBtnHtml("massPay", e.fee||4, "Pay "+gp(e.fee||4)+" · "+(e.name||"they")+" +1 loyalty")}
     <button type="button" class="ghost" id="massNo" style="width:100%;margin-top:6px">Pass</button>` : e.id==="mouse_scare" ? `
     <button type="button" class="act" id="mouseMove" style="width:100%;margin-top:10px">Move ${gp(e.vault||0)} to the purse · safe</button>
     <button type="button" class="ghost" id="mouseLeave" style="width:100%;margin-top:6px">Leave it · ${Math.min(60, Math.round((e.vault||0)/2))}% it is robbed</button>
-    <button type="button" class="ghost" id="mousePay" style="width:100%;margin-top:6px">Pay ${gp(e.fee||5)} · safe, extra interest once</button>` : e.id==="praise" ? `
+    ${payBtnHtml("mousePay", e.fee||5, "Pay "+gp(e.fee||5)+" · safe, extra interest once", 6)}` : e.id==="praise" ? `
     <button type="button" class="act" id="praiseGold" style="width:100%;margin-top:10px">Take ${gp(e.gold||12)} in the purse</button>
     <button type="button" class="act" id="praiseRen" style="width:100%;margin-top:6px">Take +1 Renown</button>
     <button type="button" class="ghost" id="praiseVault" style="width:100%;margin-top:6px">${(bankCap()-(S.deposit||0))>=(e.gold||12)?"Put "+gp(e.gold||12)+" in the vault":"Vault full"}</button>` : e.id==="night_watch" ? `
     <button type="button" class="act" id="watchA" style="width:100%;margin-top:10px">${e.an} sits two nights</button>
     <button type="button" class="ghost" id="watchB" style="width:100%;margin-top:6px">${e.bn} sits two nights</button>` : e.id==="rain_board" ? `
-    <button type="button" class="act" id="rainPay" style="width:100%;margin-top:10px">Pay the runner · ${gp(e.fee||8)}</button>
+    ${payBtnHtml("rainPay", e.fee||8, "Pay the runner · "+gp(e.fee||8))}
     <button type="button" class="ghost" id="rainWash" style="width:100%;margin-top:6px">Let the rain redraw idle quests</button>` : e.id==="broke_blade" ? `
-    <button type="button" class="act" id="bladePay" style="width:100%;margin-top:10px">Reforge · ${gp(e.fee||3)}</button>
+    ${payBtnHtml("bladePay", e.fee||3, "Reforge · "+gp(e.fee||3))}
     <button type="button" class="ghost" id="bladeScrap" style="width:100%;margin-top:6px">Scrap it · they hold a stick</button>` : e.id==="brawl" ? `
-    <button type="button" class="act" id="brawlPay" style="width:100%;margin-top:10px">Buy a round · ${gp(e.fee||6)}</button>
+    ${payBtnHtml("brawlPay", e.fee||6, "Buy a round · "+gp(e.fee||6))}
     <button type="button" class="ghost" id="brawlFight" style="width:100%;margin-top:6px">Let them finish it</button>` : e.id==="poach" ? `
-    <button type="button" class="act" id="poachStay" style="width:100%;margin-top:10px" ${funds()<(e.fee||15)?"disabled":""}>${funds()<(e.fee||15)?"Not enough gold · "+gp(e.fee||15):"Pay "+gp(e.fee||15)+" · they stay"}</button>
+    ${payBtnHtml("poachStay", e.fee||15, "Pay "+gp(e.fee||15)+" · they stay")}
     <button type="button" class="ghost" id="poachGo" style="width:100%;margin-top:6px">Let them go</button>` : (e.id||"").indexOf("peddle_")==0 ? `
     <button type="button" class="act" id="peddleYes" style="width:100%;margin-top:10px">Open the stall</button>
     <button type="button" class="ghost" id="peddleNo" style="width:100%;margin-top:6px">Wave them off</button>` : e.id==="tithe_day" ? `
-    <button type="button" class="act" id="tithePay" style="width:100%;margin-top:10px">Pay ${gp(e.cost||6)}</button>
+    ${payBtnHtml("tithePay", e.cost||6, "Pay "+gp(e.cost||6))}
     <button type="button" class="ghost" id="titheNo" style="width:100%;margin-top:6px"${(S.renown||0)<=0?" disabled":""}>Refuse · −1 Renown</button>` : e.id==="leaky_roof" ? `
-    <button type="button" class="act" id="roofPay" style="width:100%;margin-top:10px">Pay ${gp(e.cost||8)}</button>
+    ${payBtnHtml("roofPay", e.cost||8, "Pay "+gp(e.cost||8))}
     <button type="button" class="ghost" id="roofLeave" style="width:100%;margin-top:6px">Leave it · +2 days on the raise</button>` : `<button type="button" class="act" id="hallEvOk" style="width:100%;margin-top:10px">So be it</button>`;
   if(e.id==="leaky_roof"){
     body = `<h3>Leaky roof</h3>
@@ -8212,6 +8215,17 @@ function openSeekersBody(){
     if(plannedLv(key) > before || (S.raise && S.raise.k===key)) S._raisedNote = key;
     openSeekers();
   });
+}
+function affordGold(){
+  return Math.max(0, S.gold||0) + (bankLv() ? Math.max(0, S.deposit||0) : 0);
+}
+function payBtnHtml(id, cost, paidLabel, top){
+  const c = Math.max(0, cost||0);
+  const mt = (top==null ? 10 : top);
+  if(affordGold() >= c){
+    return `<button type="button" class="act" id="${id}" style="width:100%;margin-top:${mt}px">${paidLabel||("Pay "+gp(c))}</button>`;
+  }
+  return `<button type="button" class="ghost" id="${id}" disabled style="width:100%;margin-top:${mt}px;opacity:.45">Need ${gp(c)}</button>`;
 }
 function payWithBank(cost, why){
   cost = Math.max(0, cost||0);
@@ -9531,6 +9545,9 @@ function toast(t){
   const box = document.getElementById("report");
   if(box){
     box.style.display = "block";
+    box.style.position = "fixed";
+    box.style.zIndex = "21000";
+    box.style.pointerEvents = "auto";
     box.innerHTML = `<p>${t}</p><button class="act" id="btnDismissReport" style="width:100%">OK</button>`;
     const d = document.getElementById("btnDismissReport");
     if(d) d.onclick = ()=>{ box.style.display = "none"; };
@@ -11907,6 +11924,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-13", t:"A short-funds notice now sits on top of the open sheet, so its OK button can be tapped. Tithe day and other hall payments show Need X and stay disabled when you cannot pay. Closing a sheet no longer lets that same tap hit End Day or another button underneath."},
   {d:"2026-11-13", t:"Kits now ask Use it? when you send someone on a job or to a guild contest, the same way food does. The kit only applies, and is only used up, if you say yes. Keep it packed leaves it in their slot."},
   {d:"2026-11-13", t:"Guild contest counts kits: a kit's power bonus (Whetstone +2) adds to that fighter's contest power, shows on the contest sheet, and the kit is used up when the contest ends."},
   {d:"2026-11-13", t:"Armory kit lines show the kit's real effect (Whetstone: +2 power on the next job) instead of +0 ATK."},
@@ -12924,14 +12942,32 @@ function openHelp(page){
     b.onclick = e=>{ e.stopPropagation(); openHelp(b.dataset.helptab); };
   });
 }
+function guardPageTaps(ms){
+  ms = Math.max(0, ms||650);
+  let el = document.getElementById("tapShield");
+  if(!el){
+    el = document.createElement("div");
+    el.id = "tapShield";
+    el.setAttribute("aria-hidden","true");
+    el.style.cssText = "position:fixed;inset:0;z-index:20000;background:transparent;display:none;";
+    document.body.appendChild(el);
+    const eat = ev=>{ ev.preventDefault(); ev.stopPropagation(); };
+    ["click","touchstart","touchend","pointerdown","pointerup","mousedown","mouseup"].forEach(t=>el.addEventListener(t, eat, true));
+  }
+  el.style.display = "block";
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>{ el.style.display = "none"; }, ms);
+}
 function closeModal(){
   S.tapCloseSheet = false;
   const modal = document.getElementById("modal");
+  const wasOn = !!(modal && (modal.classList.contains("show") || modal.style.display==="flex"));
   modal.classList.remove("show");
   modal.style.display = "none";
   const sheet = document.getElementById("sheet");
   if(sheet) sheet.classList.remove("tall");
   if(sheet) sheet.onclick = null;
+  if(wasOn) guardPageTaps(650);
 }
 
 /* === DEBUG CHEATS start ===
