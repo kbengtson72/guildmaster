@@ -5972,7 +5972,7 @@ function endDay(){
       /* interest stays off the night report */
     } else {
     }
-    log("Bank paid "+interest+" interest.");
+    /* interest stays out of the Ledger too */
   }
 
   const chance = encChance();
@@ -11734,6 +11734,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-12", t:"Bank interest no longer shows in the Ledger."},
   {d:"2026-11-12", t:"New hires and starting guild members always get a real main weapon. Shields only go in the offhand now. Anyone already stuck holding just a shield gets a free Gray weapon."},
   {d:"2026-11-12", t:"Weapon labels drop \"one-hand\" and \"mages\". Two-hand weapons still say two-hand."},
   {d:"2026-11-12", t:"The 📒 Ledger opens as a popup again, with its own scroll and a Close button."},
@@ -12695,7 +12696,7 @@ function openLedger(){
   const sheet = document.getElementById("sheet");
   const modal = document.getElementById("modal");
   if(!sheet||!modal) return;
-  const rows = (S.log||[]).map(t=>`<p>${t}</p>`).join("") || "<p class='muted'>Quiet so far.</p>";
+  const rows = (S.log||[]).filter(t=>!/Bank paid \d+ interest/.test(String(t))).map(t=>`<p>${t}</p>`).join("") || "<p class='muted'>Quiet so far.</p>";
   sheet.innerHTML = `<h3>📒 Ledger</h3><div class="log" style="max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch">${rows}</div>
     <button type="button" class="act" id="ledgerClose" style="width:100%;margin-top:10px">Close</button>`;
   modal.classList.add("show"); modal.style.display="flex";
