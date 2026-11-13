@@ -6447,6 +6447,8 @@ function fleshRival(r){
 }
 function rivalPower(f){ return pwrOf(f); }
 function rivalPowerOld(f){ return (f.lv||1)*8 + (f.atk||0) + (f.def||0); }
+function kitPwrOf(p){ const k=kitOf(p); return k&&k.pwr?k.pwr:0; }
+function contestPwr(p){ return pwrOf(p)+kitPwrOf(p); }
 function rivalPairPower(){
   const r = ensureRival();
   const best = (r.faces||[]).slice().sort((a,b)=>rivalPower(b)-rivalPower(a)).slice(0,2);
@@ -6585,8 +6587,17 @@ function tickRival(){
     });
     const pwr = ids.reduce((n,id)=>{
       const p=(S.people||[]).find(x=>x.id===id);
-      return n+(p?(pwrOf(p)||((p.lv||1)*8)):0);
+      return n+(p?(contestPwr(p)||((p.lv||1)*8)):0);
     },0);
+    ids.forEach(id=>{
+      const p=(S.people||[]).find(x=>x.id===id);
+      const kk=kitOf(p);
+      if(!p||!kk||p.status==="dead") return;
+      if(kk.heal) p.hp=Math.min(p.maxhp,(p.hp||0)+kk.heal);
+      if(kk.loy) bumpLoy(p,kk.loy);
+      p.kit=null;
+      log(p.name+" used "+kk.n+" in the contest.");
+    });
     const theirs = S.contestTheir!=null ? S.contestTheir : Math.ceil(1.25*pwr);
     S.contestTheir = null;
     const mine = pwr + ((S.buildings.seer||0)>=4?4:0);
@@ -6954,7 +6965,7 @@ function openContestSheet(){
   S.tapCloseSheet = false;
   const seer = S.buildings.seer||0;
   const yours = byPower(ready).slice(0,2);
-  const yourP = yours.reduce((n,p)=>n+pwrOf(p),0) + (seer>=4?4:0);
+  const yourP = yours.reduce((n,p)=>n+contestPwr(p),0) + (seer>=4?4:0);
   const theirP = rivalPairPower();
   const their = (r.faces||[]).slice().sort((a,b)=>rivalPower(b)-rivalPower(a)).slice(0,2);
   const ratio = yourP/Math.max(1,theirP);
@@ -6966,7 +6977,7 @@ function openContestSheet(){
     <p>${contestTerms()}</p>
     <p class="tiny">Them ${r.renown||0} · you ${S.renown||0}. Ready ${ready.length}.</p>
     ${cmp}${faces}
-    ${seer>=3?`<p class="tiny">Pick two. Gold edge is the strongest pair.</p>`+byPower(ready).map((p,i)=>`<button type="button" class="ghost" data-cpick="${p.id}" style="width:100%;text-align:left;margin-top:6px;${i<2?"border-color:#e0b84a":""}">${CLASSES[p.cls].icon} ${p.name.split(" ")[0]} · PWR ${pwrOf(p)}</button>`).join(""):""}
+    ${seer>=3?`<p class="tiny">Pick two. Gold edge is the strongest pair.</p>`+byPower(ready).map((p,i)=>`<button type="button" class="ghost" data-cpick="${p.id}" style="width:100%;text-align:left;margin-top:6px;${i<2?"border-color:#e0b84a":""}">${CLASSES[p.cls].icon} ${p.name.split(" ")[0]} · PWR ${contestPwr(p)}${kitPwrOf(p)?" (kit +"+kitPwrOf(p)+")":""}</button>`).join(""):""}
     <button type="button" class="ghost" id="conShop" style="width:100%;margin-top:8px">Buy from Merchant</button>
     <button type="button" class="ghost" id="conArm" style="width:100%;margin-top:6px">Open Armory</button>
     <button type="button" class="act" id="conYes" ${ready.length<2?"disabled":""} style="width:100%;margin-top:10px;${ready.length<2?"opacity:.45":""}">${ready.length<2?"Not enough adventurers available":"Contest · two faces, four days"}</button>
@@ -11785,6 +11796,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-13", t:"Guild contest counts kits: a kit's power bonus (Whetstone +2) adds to that fighter's contest power, shows on the contest sheet, and the kit is used up when the contest ends."},
   {d:"2026-11-13", t:"Armory kit lines show the kit's real effect (Whetstone: +2 power on the next job) instead of +0 ATK."},
   {d:"2026-11-13", t:"Buying with a full Armory no longer freezes the screen. After you make a slot and pick who gets the new piece, the overlay closes and buttons work again; if you opened the merchant from the guild contest, you go back to that sheet. Kits can be equipped to make rack space (they used to land in the food slot). Unequip's Armory-full Open armory / Upgrade racks now close the sheet properly."},
   {d:"2026-11-12", t:"Putting a new weapon in the main hand asks again whether to move the old one to the off hand, even when the off hand is already holding something. If you say yes, the old off-hand item goes to the armory."},
