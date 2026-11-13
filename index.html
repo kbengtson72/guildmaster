@@ -403,6 +403,9 @@
 @keyframes wsCrack{0%{opacity:0;transform:scale(2.4) rotate(-20deg)}55%{opacity:1;transform:scale(.92) rotate(3deg)}75%{transform:scale(1.02) rotate(-8deg)}100%{opacity:1;transform:scale(1) rotate(-14deg) translateY(3px)}}
 @keyframes wsShake{0%,100%{transform:none}20%{transform:translateX(-6px) rotate(-1deg)}40%{transform:translateX(5px) rotate(1deg)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
 @keyframes wsFall{0%{opacity:0;transform:translate(0,0)}15%{opacity:.9}100%{opacity:0;transform:translate(var(--x),105vh)}}
+.ws-still,.ws-still *{animation:none!important;opacity:1!important}
+.ws-still .ws-scroll{transform:none!important}
+.ws-still .ws-seal{transform:rotate(-6deg)!important}
 @media (prefers-reduced-motion: reduce){.ws-wrap *,.ws-rays{animation-duration:.01s!important;animation-delay:0s!important}}
 </style>
 </head>
@@ -5306,6 +5309,30 @@ function ceremonyHtml(o){
       </div>
     </div>`;
 }
+function openNewWritSheet(){
+  S.writNewAsk = false;
+  const w = S.writ;
+  const sheet=document.getElementById("sheet");
+  const modal=document.getElementById("modal");
+  if(!w || w.done || !sheet || !modal) return nextDoorQueue();
+  S.tapCloseSheet = false;
+  const left = Math.max(0,(w.due||S.day)-S.day);
+  const rew = [`📋 ${w.need||1} ${escHtml(w.type||"Any")} job${(w.need||1)===1?"":"s"}`, `⏳ ${left} days · by day ${w.due}`];
+  sheet.innerHTML = `<div class="ws-wrap ws-done ws-win ws-still">
+      <div class="ws-scroll">
+        <div class="ws-kicker">By order of the town</div>
+        <div class="ws-title">${escHtml(w.title||"Writ")}</div>
+        <div class="ws-seal">${w.icon||"📜"}</div>
+        <div class="ws-kicker">New writ posted</div>
+        ${w.blurb?`<p class="tiny" style="color:inherit;margin:8px 0 0">${escHtml(w.blurb)}</p>`:""}
+        <div class="ws-rew">${rew.map(r=>`<span>${r}</span>`).join("")}</div>
+      </div>
+    </div>
+    <button type="button" class="act" id="writNewOk" style="width:100%;margin-top:16px">To work</button>`;
+  modal.classList.add("show"); modal.style.display="flex";
+  document.getElementById("writNewOk").onclick=()=>{ save(); closeModal(); nextDoorQueue(); render(); };
+  save();
+}
 function writCongrats(w, grant, ren, gold){
   const sheet=document.getElementById("sheet");
   const modal=document.getElementById("modal");
@@ -5366,6 +5393,7 @@ function tickWrit(){
   if(!S.writ){
     postWrit();
     note("📜 NEW WRIT: "+S.writ.title+". Need "+S.writ.need+" "+S.writ.type+" jobs by day "+S.writ.due+".", "success");
+    S.writNewAsk = true;
     return;
   }
   if(!S.writ.done && S.day > S.writ.due){
@@ -5376,6 +5404,7 @@ function tickWrit(){
     if(S.day >= (S.writ.due||0)+wait || S.day >= (S.writ.posted||0)+wait+writSpan()){
       postWrit();
       note("📜 NEW WRIT: "+S.writ.title+". Need "+S.writ.need+" "+S.writ.type+" jobs by day "+S.writ.due+".", "success");
+      S.writNewAsk = true;
     }
   } else if(S.writ && !S.writ.done){
     const left = (S.writ.due||S.day)-S.day;
@@ -7259,6 +7288,8 @@ function nextDoorQueue(){
     if(S.hallEvent && !S.hallEvent.shown && hallEventOverdue()) return showHallEvent();
     return openSeasonSheet();
   }
+  if(S.writNewAsk && S.writ && !S.writ.done) return openNewWritSheet();
+  S.writNewAsk = false;
   if(S.contestWarn && !(S.contestUntil>S.day) && !S.contestDue){
     if(S.hallEvent) return showHallEvent();
     S.hallEvent = S.contestWarn; S.contestWarn = null; stampHallEvent(); recordHallEvent(S.hallEvent, "roll"); return showHallEvent();
@@ -9658,7 +9689,7 @@ function snapshot(){
     nextFeat:S.nextFeat||null, featItem:S.featItem||null, featAsk:S.featAsk||null, featBadge:!!S.featBadge,
     bloodAsk:S.bloodAsk||null, saintAsk:S.saintAsk||null, graveAsk:S.graveAsk||null,
     bonusInterest:S.bonusInterest||0, doubleWrit:!!S.doubleWrit, dawnSing:S.dawnSing||null, dawnSingV:S.dawnSingV||0,
-    poached:S.poached||null, gameOver:!!S.gameOver, lastHero:S.lastHero||null, forceSeek:!!S.forceSeek, writPing:!!S.writPing,
+    poached:S.poached||null, gameOver:!!S.gameOver, lastHero:S.lastHero||null, forceSeek:!!S.forceSeek, writPing:!!S.writPing, writNewAsk:!!S.writNewAsk,
     hallEventLog:S.hallEventLog||null,
     _roadStall:S._roadStall||null
   }));
@@ -9676,7 +9707,7 @@ function applySnap(d){
   if(d.nextFeat!=null) S.nextFeat=d.nextFeat; S.featItem=d.featItem||null; S.featAsk=d.featAsk||null; S.featBadge=!!d.featBadge;
   S.bloodAsk=d.bloodAsk||null; S.saintAsk=d.saintAsk||null; S.graveAsk=d.graveAsk||null;
   S.bonusInterest=d.bonusInterest||0; S.doubleWrit=!!d.doubleWrit; if(d.dawnSing!=null) S.dawnSing=d.dawnSing; S.dawnSingV=d.dawnSingV||0;
-  S.poached=d.poached||null; S.gameOver=!!d.gameOver; if(d.lastHero!=null) S.lastHero=d.lastHero; S.forceSeek=!!d.forceSeek; S.writPing=!!d.writPing;
+  S.poached=d.poached||null; S.gameOver=!!d.gameOver; if(d.lastHero!=null) S.lastHero=d.lastHero; S.forceSeek=!!d.forceSeek; S.writPing=!!d.writPing; S.writNewAsk=!!d.writNewAsk;
   S.hallEventLog=d.hallEventLog||null;
   S._roadStall=d._roadStall||null;
   S.buildings=Object.assign({barracks:1,armory:1,infirmary:1,grounds:0,alley:0,sanctum:0,chapel:0,tavern:1,bank:0,racks:0,board:0,bell:0,briefs:0,seer:0,stables:0}, d.buildings||{});
@@ -11953,6 +11984,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-13", t:"New writ popup: when the town posts a writ, a still scroll shows its name, what it asks for, how many jobs, and the deadline."},
   {d:"2026-11-13", t:"First names never repeat: a new game, the tavern, and the knock at the door only roll first names nobody on the roster, in the tavern, or at the door already has. Repeats only come back once the name list runs out."},
   {d:"2026-11-13", t:"Sending someone at full HP with heal-only food no longer asks Use food?; the food stays packed for later."},
   {d:"2026-11-13", t:"Night watch: the two choice cards stack top to bottom inside the box instead of spilling off the side."},
