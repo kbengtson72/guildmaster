@@ -2740,6 +2740,39 @@ function writCovered(){
   note("An extra "+m.t+" was posted so the writ can be walked.","info");
 }
 function ensureWritJob(){
+  ensureWritJobCore();
+  try{ ensureWritMin(); }catch(e){}
+}
+function writLevelOk(m){
+  const cap = hallComfort();
+  const d = m.diff||1;
+  return d <= cap+2 && (m.need||1) <= Math.max(1, livingRoster().length);
+}
+function ensureWritMin(){
+  const w = S.writ;
+  if(!w || w.done || S.day < WRIT_UNLOCK) return;
+  if(!S.missions) S.missions = [];
+  const sacred = w.type==="Dark" || w.type==="Holy";
+  for(let guard=0; guard<4; guard++){
+    const open = S.missions.filter(m=>m && !m.epic && (!m.party||!m.party.length) && writMatches(m) && writLevelOk(m));
+    if(open.length >= 2) return;
+    const taken = {};
+    S.missions.forEach(x=>{ if(x && x.t) taken[x.t]=true; });
+    const cap = hallComfort();
+    const fits = missionPool().map(src=>hardenDark(Object.assign({}, src))).filter(m=>{
+      if(taken[m.t] || m.epic) return false;
+      if(!writMatches(m) || !writLevelOk(m)) return false;
+      if(!sacred && (isDarkMission(m)||isHolyMission(m))) return false;
+      return sacred || canPost(m);
+    });
+    if(!fits.length) return;
+    const soft = fits.filter(m=>(m.diff||1)<=cap);
+    const m = pick(soft.length ? soft : fits);
+    m.id = uid(); m.party = [];
+    S.missions.push(m);
+  }
+}
+function ensureWritJobCore(){
   const w = S.writ;
   if(!w || w.done) return;
   if(!S.missions) S.missions = [];
@@ -12012,7 +12045,7 @@ function helpPage(id){
     <p class="tiny"><b>Lapse after day 20</b> — one ready person may lose 1 loyalty.</p>
     <h4>Writs that can post</h4>
     ${(typeof WRIT_POOL!=="undefined"?WRIT_POOL:[]).map(w=>`<p class="tiny">${w.icon||"📜"} <b>${w.title}</b> — ${w.type}. ${w.blurb||""}</p>`).join("")}
-    <p class="tiny">Matching quests on the board show 📜 writ mark and sit on a parchment card with a red Town Writ ribbon. Failed jobs do not count.</p>`;
+    <p class="tiny">Matching quests on the board show 📜 writ mark and sit on a parchment card with a red Town Writ ribbon. While a writ is live, the board always keeps at least two open writ quests at your level; if it runs short, the town posts extras. Failed jobs do not count.</p>`;
   if(id==="jobs" || id==="missions"){
     const blv = S.buildings.briefs||0;
     const slv = S.buildings.stables||0;
@@ -12060,6 +12093,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-13", t:"While a writ is live, the board keeps at least two open writ quests at your level, posting extras when it runs short."},
   {d:"2026-11-13", t:"Writ quest parchment is a darker, aged tan so gold and colored text read clearly."},
   {d:"2026-11-13", t:"Quests that count toward the town writ sit on a parchment card with a red writ ribbon."},
   {d:"2026-11-13", t:"Finds at home (brought home, quest loot) can only be equipped by adventurers at home. Anyone out on a job shows greyed out."},
