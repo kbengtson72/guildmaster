@@ -10855,8 +10855,12 @@ function raiseOffer(key){
 function vaultView(){
   if(!S.vault) S.vault = [];
   const ready = S.people.filter(p=>p.status!=="dead" && p.status!=="away");
+  const away = S.people.filter(p=>p.status==="away");
+  const awayNote = !ready.length && away.length
+    ? `<p style="margin:8px 0 0;color:#e0b84a;font-weight:600">⚠ Everyone is out on a job. Only adventurers at home can be equipped from the Armory. Come back when they return.</p>`
+    : away.length ? `<p class="tiny">Only adventurers at home can be equipped. ${away.length} out on a job: ${away.map(p=>p.name.split(" ")[0]).join(", ")}.</p>` : "";
   if(!S.vault.length) return `<div class="card"><h3>Armory</h3><p class="muted">Empty racks (${vaultCap()} slots). Buy from the Merchant.</p>${raiseOffer("racks")}</div>`;
-  return `<div class="card"><h3>Armory</h3>${raiseOffer("racks")}<p class="tiny">${S.vault.length}/${vaultCap()} on the rack. Equip someone home, or sell for half price. Upgrade Racks for more slots.</p></div>
+  return `<div class="card"><h3>Armory</h3>${raiseOffer("racks")}<p class="tiny">${S.vault.length}/${vaultCap()} on the rack. Equip someone home, or sell for half price. Upgrade Racks for more slots.</p>${awayNote}</div>
     ${S.vault.map(it=>`<div class="card"><div class="row"><strong>${it.kind==="food"?(it.icon||(catalog("food",it.id)||{}).icon||"🍖")+" ":""}${itemNameHtml(it)}</strong><span class="muted">${it.kind}${tierBit(it)} · ${it.kind==="food"?foodBits(catalog("food",it.id)||it) : it.kind==="kit"?kitBits(catalog("kit",it.id)||it) : gearStatText(it)} · sell ${gp(sellPrice(it))}</span></div>
       ${it.kind==="weapon"?gearAbHtml(it):""}
       ${it.kind==="loot"?`<p class="tiny">${it.story||"Salvage. Sell it."}</p>`:`<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">
@@ -10874,7 +10878,7 @@ function vaultView(){
             ? `<div class="tiny">Main: ${now}${delta}</div><div class="tiny">Off: ${offNow}</div><div class="row" style="gap:6px;margin-top:4px">${shield?"":`<button type="button" class="act" data-equip="${it.uid}|${p.id}|main" style="flex:1">Main hand</button>`}${(isTwoHand(it)||isTwoHand(catalog("weapon", p.weapon)))?"":`<button type="button" class="ghost" data-equip="${it.uid}|${p.id}|off" style="flex:1">Off hand${gearDeltaHtml(p, it, "off")}</button>`}</div>`
             : `<button type="button" class="ghost" data-equip="${it.uid}|${p.id}|main" style="text-align:left;width:100%">${CLASSES[p.cls].icon} ${p.name.split(" ")[0]}<br><span class="tiny">Now: ${now}${delta}</span></button>`;
           return `<div class="card" style="margin:6px 0;text-align:left">${CLASSES[p.cls].icon} ${p.name.split(" ")[0]}${hands}</div>`;
-        }).join("")||"<span class='muted'>No one home can use this.</span>"}
+        }).join("")||`<span class='muted'>${!ready.length && away.length ? "Everyone is away. Equip it when they are home." : "No one home can use this."+(away.some(p=>canWield(p,it))?" Someone out on a job could, once they are back.":"")}</span>`}
       </div>`}
       <button class="ghost" data-sell="${it.uid}" style="width:100%;margin-top:8px">Sell · ${gp(sellPrice(it))}</button>
     </div>`).join("")}`;
@@ -11984,6 +11988,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-13", t:"Armory says only adventurers at home can be equipped, lists who is out on a job, and warns when everyone is away."},
   {d:"2026-11-13", t:"Road choices: the soft-step Skip button sits at the bottom, set apart from the other choices, so it is harder to hit by mistake."},
   {d:"2026-11-13", t:"New writ popup: when the town posts a writ, a still scroll shows its name, what it asks for, how many jobs, and the deadline."},
   {d:"2026-11-13", t:"First names never repeat: a new game, the tavern, and the knock at the door only roll first names nobody on the roster, in the tavern, or at the door already has. Repeats only come back once the name list runs out."},
