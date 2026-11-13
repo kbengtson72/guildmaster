@@ -1342,7 +1342,7 @@ const GEAR_RANDOM_TIERS = ["junk","common","uncommon","rare","epic"];
    numbers and add an ability. Scaled so a tier hits what comparable gear gave before the revamp.
    WEAPON_ATK  = [one-hand, two-hand] ATK per tier.   (raw notes: [1,2] [2,3] [2,3] [2,3] [2,3])
    SHIELD_DEF  = Gray DEF of each offhand; White and up add SHIELD_STEP.          (raw: step 1, no scaling)
-   ARMOR DEF   = round-to-half((SLOT_BASE + WEIGHT_ADD + ARMOR_STEP*colourStep) * ARMOR_K[tier]), min 1.  (raw: all K = 1) */
+   ARMOR DEF   = whole numbers spread across a set from ((SLOT_BASE + WEIGHT_ADD + ARMOR_STEP*colourStep) * ARMOR_K[tier]), min 1.  (raw: all K = 1) */
 const WEAPON_ATK = {junk:[1,2], common:[2,3], uncommon:[3,4], rare:[5,6], epic:[7,8]};
 const SHIELD_DEF = {buckler:1, shield:2, tower:3};
 const SHIELD_STEP = 1;
@@ -1419,9 +1419,24 @@ const ARMOR_NAMES = {
   legs:{cloth:"Cloth Trousers", padded:"Padded Breeches", leather:"Leather Leggings", chain:"Chain Chausses", scale:"Scale Greaves", plate:"Plate Greaves", fullplate:"Full Plate Greaves"},
   feet:{cloth:"Cloth Shoes", padded:"Padded Slippers", leather:"Leather Boots", chain:"Chain Boots", scale:"Scale Sabatons", plate:"Plate Boots", fullplate:"Full Plate Sabatons"}
 };
+/* whole numbers only: a full set of one weight and colour keeps the same total it had with half points,
+   and the leftover points go to the slots that were closest to the next point (chest and legs first on ties) */
+const ARMOR_DEF_ORDER = ["chest","legs","head","cloak","hands","feet"];
+const _armorDefCache = {};
 function armorDefFor(slot, wt, r){
-  const raw = (SLOT_BASE[slot]||1) + (WEIGHT_ADD[wt]||0) + ARMOR_STEP*(ARMOR_COLOR_STEP[r]||0);
-  return Math.max(1, Math.round(raw*(ARMOR_K[r]||1)*2)/2);
+  const key = wt+"|"+r;
+  if(!_armorDefCache[key]){
+    const ex = {};
+    ARMOR_DEF_ORDER.forEach(s=>{ ex[s] = ((SLOT_BASE[s]||1) + (WEIGHT_ADD[wt]||0) + ARMOR_STEP*(ARMOR_COLOR_STEP[r]||0)) * (ARMOR_K[r]||1); });
+    const total = Math.round(ARMOR_DEF_ORDER.reduce((n,s)=>n + Math.max(1, Math.round(ex[s]*2)/2), 0));
+    const out = {};
+    ARMOR_DEF_ORDER.forEach(s=>{ out[s] = Math.max(1, Math.floor(ex[s])); });
+    let left = total - ARMOR_DEF_ORDER.reduce((n,s)=>n+out[s], 0);
+    ARMOR_DEF_ORDER.slice().sort((a,b)=>((ex[b]-Math.floor(ex[b]))-(ex[a]-Math.floor(ex[a]))) || (ARMOR_DEF_ORDER.indexOf(a)-ARMOR_DEF_ORDER.indexOf(b)))
+      .forEach(s=>{ if(left>0){ out[s]++; left--; } });
+    _armorDefCache[key] = out;
+  }
+  return _armorDefCache[key][slot] || 1;
 }
 function weaponAtkFor(t, r){
   const row = WEAPON_ATK[r] || WEAPON_ATK.common;
@@ -2282,10 +2297,12 @@ function pwrOf(p){
   if((p.hp||0) < (p.maxhp||1)*0.4) n -= 2;
   return Math.max(1, Math.round(n));
 }
+/* an offhand weapon adds half its attack, rounded up to a whole number */
+function offHalf(o){ return Math.ceil((o&&o.atk||0)/2); }
 function atkOf(p){
   const w = (p.weapon && catalog("weapon",p.weapon)) || BARE_HANDS;
   const off = p.offhand ? (catalog("weapon",p.offhand)||{}) : {};
-  const half = isShield(off) ? 0 : (off.atk||0)/2;
+  const half = isShield(off) ? 0 : offHalf(off);
   const r = roleDef(p);
   return CLASSES[p.cls].atk + p.lv + w.atk + half + (hasTrait(p,"Brave")?2*emult(p):0) + (hasTrait(p,"Craven")?-2:0) + ((r&&r.atk)||0);
 }
@@ -4849,7 +4866,7 @@ function bodyParts(p, who){
   add("Base attack ("+p.cls+")", CLASSES[p.cls].atk);
   add("Level "+p.lv+" attack", p.lv);
   add("Weapon ("+(p.weapon?(w.n||"weapon"):"bare hands")+")", w.atk);
-  if(!shield) add("Offhand ("+(off.n||"offhand")+", half)", (off.atk||0)/2);
+  if(!shield) add("Offhand ("+(off.n||"offhand")+", half)", offHalf(off));
   if(hasTrait(p,"Brave")) add((em>1?"Epic ":"")+"Brave", 2*em);
   if(hasTrait(p,"Craven")) add("Craven", -2);
   if(r&&r.atk) add(r.n+" role attack", r.atk);
@@ -11272,7 +11289,7 @@ function offStatText(p){
   const ab = abilityText(o);
   const abBit = ab ? `<br><span class="tiny">✦ ${ab}</span>` : "";
   if(isShield(o)) return " — +"+(o.def||0)+" DEF"+abBit;
-  return " — +"+((o.atk||0)/2)+" ATK (half of +"+(o.atk||0)+")"+abBit;
+  return " — +"+offHalf(o)+" ATK (half of +"+(o.atk||0)+", rounded up)"+abBit;
 }
 function gearLine(p){
   const w = (p.weapon && catalog("weapon",p.weapon)) || BARE_HANDS;
@@ -11637,14 +11654,14 @@ function helpPage(id){
     const uniq = list=>list.filter(x=>x.unique).map(x=>`<p class="tiny">${itemNameHtml(x)} — ${gearStatText(x)}${x.ab?" · "+abilityText(x):""}${x.legend?" · Legendary placeholder (epic quest reward)":" · road exclusive"}</p>`).join("");
     return `
     <p class="tiny"><b>Colours</b> (weapons and armor): ${five.map(r=>col(r)+" ("+T[r].name+")").join(" · ")} · <b class="r-artifact">Orange (Legendary)</b>. The Outfitter's level sets which colours the Merchant stocks: Lv1 Gray and White, Lv2 adds Green, Lv3 Blue, Lv4 Purple. Orange Legendary gear is never sold and never drops at random. It only comes from epic quests.</p>
-    <p class="tiny"><b>Weapons</b> are a type with a damage tag (Bladed, Blunt, Ranged). One-handed weapons can share the offhand: an offhand weapon adds half its attack. Two-handed weapons fill both hands, so no offhand. White (Masterwork) is a better version of Gray. Green, Blue and Purple have White's attack plus one ability that gets stronger with the colour. The ability is in the name, like Sword of the Lone Wolf.</p>
+    <p class="tiny"><b>Weapons</b> are a type with a damage tag (Bladed, Blunt, Ranged). One-handed weapons can share the offhand: an offhand weapon adds half its attack, rounded up. Two-handed weapons fill both hands, so no offhand. White (Masterwork) is a better version of Gray. Green, Blue and Purple have White's attack plus one ability that gets stronger with the colour. The ability is in the name, like Sword of the Lone Wolf.</p>
     <p class="tiny">Both hands count for abilities. A weapon ability stacks with the wearer's own traits and quirks. A Wand or Staff is for Mages only. Clerics use Blunt weapons and shields. Mages use wands, staves and daggers. Rogues use one-handed weapons, no shields. Warriors use everything but wands and staves.</p>
     <h4>Weapon types · attack by colour</h4>${typeRows}
     <h4>Offhand shields · defense by colour</h4>${shieldRows}
     <p class="tiny">Green, Blue and Purple shields carry an ability too.</p>
     <h4>Weapon abilities</h4>${abRows}
     <h4>Armor</h4>
-    <p class="tiny">Six slots: Head, Cloak, Chest, Hands, Legs, Feet. Armor has no abilities, only defense. Defense is the slot's base (Cloak ${SLOT_BASE.cloak}, Chest ${SLOT_BASE.chest}, Legs ${SLOT_BASE.legs}, Hands ${SLOT_BASE.hands}, Feet ${SLOT_BASE.feet}, Head ${SLOT_BASE.head}) plus the weight (Light +${WEIGHT_ADD.light}, Medium +${WEIGHT_ADD.medium}, Heavy +${WEIGHT_ADD.heavy}) plus ${ARMOR_STEP} for each colour above Gray, then scaled to the hall's level curve and rounded to the nearest half point. Light is Cloth or Padded. Medium is Leather, Chain or Scale. Heavy is Plate or Full Plate. Cloth and Padded are the same, and so are Plate and Full Plate. Only the name differs. Mages wear Light only. Rogues cannot wear Heavy.</p>
+    <p class="tiny">Six slots: Head, Cloak, Chest, Hands, Legs, Feet. Armor has no abilities, only defense. Defense is the slot's base (Cloak ${SLOT_BASE.cloak}, Chest ${SLOT_BASE.chest}, Legs ${SLOT_BASE.legs}, Hands ${SLOT_BASE.hands}, Feet ${SLOT_BASE.feet}, Head ${SLOT_BASE.head}) plus the weight (Light +${WEIGHT_ADD.light}, Medium +${WEIGHT_ADD.medium}, Heavy +${WEIGHT_ADD.heavy}) plus ${ARMOR_STEP} for each colour above Gray, then scaled to the hall's level curve. All defense is whole numbers: a full set adds up to the same total as before, spread across the slots. Light is Cloth or Padded. Medium is Leather, Chain or Scale. Heavy is Plate or Full Plate. Cloth and Padded are the same, and so are Plate and Full Plate. Only the name differs. Mages wear Light only. Rogues cannot wear Heavy.</p>
     <p class="tiny">Defense per piece, in the order Head · Cloak · Chest · Hands · Legs · Feet:</p>
     ${wtRows}
     <h4>Unique gear</h4>
@@ -11736,6 +11753,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-12", t:"No more half points. Armor defense is whole numbers now, and a full set of one weight and colour adds up to the same total as before. Offhand weapons add half their attack rounded up."},
   {d:"2026-11-12", t:"Food is only eaten when you say Use it. Any send that skipped the question now leaves the food packed instead of eating it."},
   {d:"2026-11-12", t:"Bank interest no longer shows in the Ledger."},
   {d:"2026-11-12", t:"New hires and starting guild members always get a real main weapon. Shields only go in the offhand now. Anyone already stuck holding just a shield gets a free Gray weapon."},
