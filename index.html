@@ -2001,14 +2001,34 @@ function takenNames(){
 }
 const MALE_FIRST = ["Aldric","Bram","Cedric","Dain","Edric","Finn","Garrick","Holt","Idris","Jory","Kael","Liam","Magnus","Nolan","Osric","Perrin","Quinn","Rowan","Soren","Torin","Ulric","Vance","Wystan","Yves","Caleb","Hugo","Ivan","Lars","Owen","Rhys"];
 const FEMALE_FIRST = ["Ada","Anwen","Bridget","Cora","Della","Elsa","Faye","Greta","Helga","Ivy","Joss","Kestra","Lina","Mara","Nell","Orla","Petra","Quinn","Rosa","Sable","Tessa","Una","Vera","Willa","Ysabel","Hana","Iris","Lotte","Maeve","Nora"];
+/* first names never repeat anyone on the roster, in the tavern, or at the door; once a pool runs dry, repeats are allowed again */
+let _nameBatch = new Set(), _nameBatchT = null;
+function firstOf(n){ return String(n||"").split(" ")[0]; }
+function takenFirsts(){
+  const t = new Set();
+  const add = p=>{ if(p && p.name && p.status!=="dead") t.add(firstOf(p.name)); };
+  ((S&&S.people)||[]).forEach(add);
+  ((S&&S.hire)||[]).forEach(add);
+  ((S&&S.seekers)||[]).forEach(add);
+  _nameBatch.forEach(n=>t.add(n));
+  return t;
+}
 function uniqueName(sex){
   const taken = takenNames();
+  const tf = takenFirsts();
   const pool = sex==="f" ? FEMALE_FIRST : sex==="m" ? MALE_FIRST : FIRST;
-  for(let i=0;i<120;i++){
-    const n = pick(pool)+" "+pick(LAST);
-    if(!taken.has(n)) return n;
+  let firsts = [...new Set(pool)].filter(n=>!tf.has(n));
+  if(!firsts.length) firsts = [...new Set(FIRST)].filter(n=>!tf.has(n));
+  if(!firsts.length) firsts = pool.slice();
+  let out = null;
+  for(let i=0;i<120 && !out;i++){
+    const n = pick(firsts)+" "+pick(LAST);
+    if(!taken.has(n)) out = n;
   }
-  return pick(FIRST)+" "+pick(["the Quiet","the Younger","of Ash","of Vale","Grey","Reed","Two","Hill"]);
+  if(!out) out = pick(firsts)+" "+pick(["the Quiet","the Younger","of Ash","of Vale","Grey","Reed","Two","Hill"]);
+  _nameBatch.add(firstOf(out));
+  if(!_nameBatchT) _nameBatchT = setTimeout(()=>{ _nameBatch.clear(); _nameBatchT = null; }, 0);
+  return out;
 }
 function makePerson(paid, forcedClass, forcedLv){
   const cls = forcedClass && CLASSES[forcedClass] ? forcedClass : pick(Object.keys(CLASSES));
@@ -11933,6 +11953,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-13", t:"First names never repeat: a new game, the tavern, and the knock at the door only roll first names nobody on the roster, in the tavern, or at the door already has. Repeats only come back once the name list runs out."},
   {d:"2026-11-13", t:"Sending someone at full HP with heal-only food no longer asks Use food?; the food stays packed for later."},
   {d:"2026-11-13", t:"Night watch: the two choice cards stack top to bottom inside the box instead of spilling off the side."},
   {d:"2026-11-13", t:"Ledger no longer shows \"A new day in the hall.\" lines; old ones are hidden too."},
