@@ -5248,6 +5248,7 @@ function pickWritHall(key){
   if(!pending || !pending.opts || !pending.opts.some(o=>o.k===key)) return toast("That grant is gone.");
   const hall = applyWritHall(key);
   S.writChoice = null;
+  if(S.writ) S.writ.granted = true;
   const w={title:pending.title||"Writ"}; const ren=S.day<15?1:2;
   writCongrats(w, {hall}, ren);
   if(hall){
@@ -5259,9 +5260,24 @@ function pickWritHall(key){
   const box = document.getElementById("report");
   if(box && box.style.display!=="none" && DAY && DAY.length) paintDayReport();
 }
+function recoverWritChoice(){
+  const w = S.writ;
+  if(!w || w.done!=="sealed" || w.granted || S.writChoice) return false;
+  const tag = "Writ sealed: "+w.title+". Waiting on hall pick.";
+  const logs = S.log||[];
+  const ix = logs.findIndex(t=>String(t).indexOf(tag)>=0);
+  if(ix<0) return false;
+  if(logs.slice(0, ix).some(t=>/Writ hall grant:/.test(String(t)))){ w.granted = true; return false; }
+  const opts = cheapestHallKeys();
+  if(!opts.length){ w.granted = true; return false; }
+  S.writChoice = {title:w.title||"Writ", opts};
+  if(opts.length===1){ pickWritHall(opts[0].k); return false; }
+  save();
+  return true;
+}
 function showWritChoice(){
   const pending = S.writChoice;
-  if(!pending || !pending.opts || pending.opts.length<2) return;
+  if(!pending || !pending.opts || pending.opts.length<2) return false;
   const sheet = document.getElementById("sheet");
   if(!sheet) return;
   sheet.innerHTML = `<h3>📜 The town will raise one hall</h3>
@@ -5272,6 +5288,7 @@ function showWritChoice(){
   modal.classList.add("show");
   modal.style.display = "flex";
   sheet.querySelectorAll("[data-writpick]").forEach(b=>b.onclick=()=>{ closeModal(); pickWritHall(b.dataset.writpick); });
+  return true;
 }
 function grantWritHallAuto(){
   if(S.raise){
@@ -5360,6 +5377,7 @@ function sealWrit(ok){
     const ren = S.day<15 ? 1 : 2;
     S.renown += ren;
     S.writWins = (S.writWins||0)+1;
+    if(grant.kind!=="choice") w.granted = true;
     if(grant.kind==="done" && grant.hall){
       note("📜 Writ sealed: "+w.title+" — the town raised the "+grant.hall.n+" to Lv "+grant.hall.lv+" (worth "+gp(grant.hall.cost)+") and +"+ren+" "+rn()+".", "success");
       writCongrats(w, grant, ren);
@@ -7297,6 +7315,11 @@ function nextDoorQueue(){
   if(S.seasonAsk){
     if(S.hallEvent && !S.hallEvent.shown && hallEventOverdue()) return showHallEvent();
     return openSeasonSheet();
+  }
+  try{ recoverWritChoice(); }catch(e){}
+  if(S.writChoice && S.writChoice.opts && S.writChoice.opts.length>1){
+    if(S.hallEvent && !S.hallEvent.shown && hallEventOverdue()) return showHallEvent();
+    if(showWritChoice()) return;
   }
   if(S.writNewAsk && S.writ && !S.writ.done) return openNewWritSheet();
   S.writNewAsk = false;
@@ -12027,6 +12050,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-13", t:"A sealed writ's hall pick keeps coming back until you choose, instead of only after Dismiss. A pick lost in an older save is rebuilt."},
   {d:"2026-11-13", t:"Road finds can only be equipped by the party that won them. Others show greyed out. Unequipped finds ride home and ask again on return."},
   {d:"2026-11-13", t:"Armory says only adventurers at home can be equipped, lists who is out on a job, and warns when everyone is away."},
   {d:"2026-11-13", t:"Road choices: the soft-step Skip button sits at the bottom, set apart from the other choices, so it is harder to hit by mistake."},
