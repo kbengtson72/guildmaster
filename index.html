@@ -3948,7 +3948,8 @@ function eventSeerHtml(e, btns){
   if(lv<1 || !e) return "";
   if(e.id==="night_watch"){
     const block = lv>=2 ? watchCard : watchFace;
-    return `<div class="seerbox"><p class="tiny">👁 Your choices</p><div class="row" style="gap:8px">${block(e.a)}${block(e.b)}</div></div>`;
+    const wrap = lv>=2 ? `<div>${block(e.a)}${block(e.b)}</div>` : `<div class="row" style="gap:8px;flex-wrap:wrap">${block(e.a)}${block(e.b)}</div>`;
+    return `<div class="seerbox"><p class="tiny">👁 Your choices</p>${wrap}</div>`;
   }
   const exact = lv>=3;
   const table = {
@@ -11924,6 +11925,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-13", t:"Night watch: the two choice cards stack top to bottom inside the box instead of spilling off the side."},
   {d:"2026-11-13", t:"Ledger no longer shows \"A new day in the hall.\" lines; old ones are hidden too."},
   {d:"2026-11-13", t:"A short-funds notice now sits on top of the open sheet, so its OK button can be tapped. Tithe day and other hall payments show Need X and stay disabled when you cannot pay. Closing a sheet no longer lets that same tap hit End Day or another button underneath."},
   {d:"2026-11-13", t:"Kits now ask Use it? when you send someone on a job or to a guild contest, the same way food does. The kit only applies, and is only used up, if you say yes. Keep it packed leaves it in their slot."},
