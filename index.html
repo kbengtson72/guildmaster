@@ -5290,7 +5290,7 @@ function pickWritHall(key){
   const hall = applyWritHall(key);
   S.writChoice = null;
   if(S.writ) S.writ.granted = true;
-  const w={title:pending.title||"Writ"}; const ren=S.day<15?1:2;
+  const w={title:pending.title||"Writ", icon:(S.writ&&S.writ.icon)||"⚜️"}; const ren=S.day<15?1:2;
   writCongrats(w, {hall}, ren);
   if(hall){
     note("📜 The town raised the "+hall.n+" to Lv "+hall.lv+" (worth "+gp(hall.cost)+").", "success");
@@ -5298,6 +5298,7 @@ function pickWritHall(key){
     toast("Town raised "+hall.n+" to Lv "+hall.lv+".");
   }
   save(); render();
+  openWritCongrats();
   const box = document.getElementById("report");
   if(box && box.style.display!=="none" && DAY && DAY.length) paintDayReport();
 }
@@ -5396,6 +5397,17 @@ function openNewWritSheet(){
   save();
 }
 function writCongrats(w, grant, ren, gold){
+  S.writCongratsAsk = {title:(w&&w.title)||"Writ", icon:(w&&w.icon)||"⚜️", grant:grant||null, ren, gold:gold||0};
+  save();
+}
+function openWritCongrats(){
+  const a = S.writCongratsAsk;
+  S.writCongratsAsk = null;
+  if(!a) return false;
+  showWritCongrats({title:a.title, icon:a.icon}, a.grant, a.ren, a.gold);
+  return true;
+}
+function showWritCongrats(w, grant, ren, gold){
   const sheet=document.getElementById("sheet");
   const modal=document.getElementById("modal");
   if(!sheet||!modal) return;
@@ -5406,7 +5418,7 @@ function writCongrats(w, grant, ren, gold){
   sheet.innerHTML=ceremonyHtml({mood:"win", kicker:"By order of the town", title:escHtml(w.title||"Writ"), emblem:w.icon||"⚜️", label:"Writ sealed", rew})
     +`<button type="button" class="act ws-btn" id="writOk" style="width:100%;margin-top:16px">Well done</button>`;
   modal.classList.add("show"); modal.style.display="flex";
-  document.getElementById("writOk").onclick=()=>closeModal();
+  document.getElementById("writOk").onclick=()=>{ closeModal(); save(); try{ nextDoorQueue(); }catch(e){} };
 }
 function sealWrit(ok){
   const w = S.writ;
@@ -7358,6 +7370,10 @@ function nextDoorQueue(){
     return openSeasonSheet();
   }
   try{ recoverWritChoice(); }catch(e){}
+  if(S.writCongratsAsk){
+    if(S.hallEvent && !S.hallEvent.shown && hallEventOverdue()) return showHallEvent();
+    if(openWritCongrats()) return;
+  }
   if(S.writChoice && S.writChoice.opts && S.writChoice.opts.length>1){
     if(S.hallEvent && !S.hallEvent.shown && hallEventOverdue()) return showHallEvent();
     if(showWritChoice()) return;
@@ -9781,7 +9797,7 @@ function snapshot(){
   return JSON.parse(JSON.stringify({
     day:S.day, gold:S.gold, renown:S.renown, buildings:S.buildings,
     deposit:S.deposit||0, people:S.people, missions:S.missions, shop:S.shop, vault:S.vault||[], pendingLoot:S.pendingLoot||[], carried:S.carried||[], hire:S.hire, log:S.log,
-    writ:S.writ||null, writWins:S.writWins||0, writFails:S.writFails||0, writChoice:S.writChoice||null,
+    writ:S.writ||null, writWins:S.writWins||0, writFails:S.writFails||0, writChoice:S.writChoice||null, writCongratsAsk:S.writCongratsAsk||null,
     epicWins:S.epicWins||0,
     nextSeek:S.nextSeek||null, seekers:S.seekers||null, quitAsk:S.quitAsk||null, restlessAsk:S.restlessAsk||null, raise:S.raise||null,
     seasonAsk:S.seasonAsk||null, contestAsk:S.contestAsk||null, contestDue:S.contestDue||null, contestWarn:S.contestWarn||null, contestWarned:!!S.contestWarned, hallEvent:S.hallEvent||null, season:S.season||"spring", seasonLeft:S.seasonLeft,
@@ -9818,7 +9834,7 @@ function applySnap(d){
   S.people=d.people||[]; S.missions=d.missions||[]; S.shop=d.shop||[]; S.vault=d.vault||[];
   try { ensureMissionIds(); } catch(e){}
   S.hire=d.hire||[]; S.log=d.log||[]; S.deposit=d.deposit||0; S.pendingLoot=d.pendingLoot||[]; S.carried=d.carried||[];
-  S.writ=d.writ||null; S.writWins=d.writWins||0; S.writFails=d.writFails||0; S.writChoice=d.writChoice||null;
+  S.writ=d.writ||null; S.writWins=d.writWins||0; S.writFails=d.writFails||0; S.writChoice=d.writChoice||null; S.writCongratsAsk=d.writCongratsAsk||null;
   S.epicWins=d.epicWins||0;
   S.buildings.bank = S.buildings.bank||0;
   if(S.deposit > bankCap()) S.deposit = bankCap();
@@ -12093,6 +12109,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-13", t:"The Writ sealed celebration waits its turn with the other popups instead of being closed by the night's results."},
   {d:"2026-11-13", t:"While a writ is live, the board keeps at least two open writ quests at your level, posting extras when it runs short."},
   {d:"2026-11-13", t:"Writ quest parchment is a darker, aged tan so gold and colored text read clearly."},
   {d:"2026-11-13", t:"Quests that count toward the town writ sit on a parchment card with a red writ ribbon."},
@@ -13363,7 +13380,7 @@ function newGame(){
   S.buildings = {barracks:1, armory:1, infirmary:1, grounds:0, alley:0, sanctum:0, chapel:0, tavern:1, bank:1, racks:0, board:0, bell:0, briefs:0, seer:0, stables:0};
   S.deposit = 40;
   S.people = []; S.missions = []; S.shop = []; S.vault = []; S.pendingLoot = []; S.carried = []; S.hire = []; S.log = []; S.selected = null;
-  S.writ = null; S.writWins = 0; S.writFails = 0; S.writChoice = null; S.nextSeek = 1+rng(7,14); S.seekers = null; S.quitAsk = null; S.restlessAsk = null; S.raise = null; S.epicWins = 0;
+  S.writ = null; S.writWins = 0; S.writFails = 0; S.writChoice = null; S.writCongratsAsk = null; S.nextSeek = 1+rng(7,14); S.seekers = null; S.quitAsk = null; S.restlessAsk = null; S.raise = null; S.epicWins = 0;
   const start = Object.keys(CLASSES).slice().sort(()=>Math.random()-0.5);
   S.people.push(makePerson(true, start[0]), makePerson(true, start[1]));
   S.people.forEach(p=>{
