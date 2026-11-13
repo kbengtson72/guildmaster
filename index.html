@@ -2392,6 +2392,14 @@ function clearKitAsk(ids){
 function kitPacked(ids){
   return (ids||[]).map(id=>typeof id==="string" ? (S.people||[]).find(x=>x.id===id) : id).filter(p=>p && p.kit && !p.kitUsed && !p.kitSkip);
 }
+/* ask about packed food at send, except heal-only food on someone already at full HP (it stays packed) */
+function foodAskable(p){
+  if(!p || !p.food || p.foodEaten) return false;
+  const f = foodOf(p);
+  if(!f) return true;
+  const healOnly = f.heal && !f.pwr && !f.dark && !f.gold && !f.xp && !f.loy;
+  return !(healOnly && (p.hp||0) >= (p.maxhp||0));
+}
 function foodPwr(p, m){
   const f = foodOf(p);
   if(!f || !foodOn(p)) return 0;
@@ -10929,7 +10937,7 @@ function askArmoryFoodAll(jobs, foods){
     sheet.querySelectorAll("[data-who]").forEach(w=>w.onclick=()=>{
       const p = S.people.find(x=>x.id===w.dataset.who);
       if(p && f){ p.food = f.id; S.vault = S.vault.filter(x=>x.uid!==f.uid); }
-      const packed = jobs.flatMap(j=>j.ids).map(id=>S.people.find(x=>x.id===id)).filter(x=>x && x.food && !x.foodEaten);
+      const packed = jobs.flatMap(j=>j.ids).map(id=>S.people.find(x=>x.id===id)).filter(foodAskable);
       if(packed.length) askFoodUseAll(jobs, packed, 0);
       else finishJobsKitGate(jobs);
     });
@@ -10947,7 +10955,7 @@ document.querySelectorAll("[data-sendall]").forEach(b=>b.onclick=()=>{
       return {mid:c.m.id, ids};
     });
     const allIds = jobs.flatMap(j=>j.ids);
-    const packed = allIds.map(id=>S.people.find(p=>p.id===id)).filter(p=>p && p.food && !p.foodEaten);
+    const packed = allIds.map(id=>S.people.find(p=>p.id===id)).filter(foodAskable);
     const loose = (S.vault||[]).filter(it=>it.kind==="food");
     if(packed.length){ askFoodUseAll(jobs, packed); return; }
     if(loose.length){ askArmoryFoodAll(jobs, loose); return; }
@@ -11012,7 +11020,7 @@ function askArmoryFood(mid, ids, foods){
     const who = ids[0];
     const p = S.people.find(x=>x.id===who);
     if(p && f){ p.food = f.id||f; S.vault = S.vault.filter(x=>x.uid!==f.uid && x!==f); }
-    const packed = ids.map(id=>S.people.find(x=>x.id===id)).filter(x=>x && x.food && !x.foodEaten);
+    const packed = ids.map(id=>S.people.find(x=>x.id===id)).filter(foodAskable);
     closeModal();
     if(packed.length) askFoodUse(mid, ids, packed, 0);
     else finishSendGate(mid, ids);
@@ -11120,7 +11128,7 @@ function askKitUseAll(jobs, packed, ix){
 }
 function finishSendGate(mid, ids, skipArmoryFood){
   const m = findMission(mid);
-  const packed = ids.map(id=>S.people.find(p=>p.id===id)).filter(p=>p && p.food && !p.foodEaten);
+  const packed = ids.map(id=>S.people.find(p=>p.id===id)).filter(foodAskable);
   if(packed.length){ askFoodUse(mid, ids, packed, 0); return; }
   const loose = (S.vault||[]).filter(it=>it.kind==="food");
   if(!skipArmoryFood && loose.length && askArmoryFood(mid, ids)) return;
@@ -11925,6 +11933,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-13", t:"Sending someone at full HP with heal-only food no longer asks Use food?; the food stays packed for later."},
   {d:"2026-11-13", t:"Night watch: the two choice cards stack top to bottom inside the box instead of spilling off the side."},
   {d:"2026-11-13", t:"Ledger no longer shows \"A new day in the hall.\" lines; old ones are hidden too."},
   {d:"2026-11-13", t:"A short-funds notice now sits on top of the open sheet, so its OK button can be tapped. Tithe day and other hall payments show Need X and stay disabled when you cannot pay. Closing a sheet no longer lets that same tap hit End Day or another button underneath."},
