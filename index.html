@@ -240,13 +240,13 @@
 .kin-ring { position:absolute; right:-4px; bottom:-4px; width:18px; height:18px; border-radius:50%; border:2px solid #e0b84a; background:#2a2114; font-size:11px; display:grid; place-items:center; }
 .facewrap { position:relative; display:flex; align-items:flex-start; gap:6px; } .badge-col { display:flex; flex-direction:column; align-items:center; gap:2px; } .wage-pip { font-size:15px; font-weight:700; color:#e0b84a; line-height:1.1; }
 
-.card.writ-job{position:relative;color:#3b2410;border:2px solid #8a5a22;
-  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .35 0 0 0 0 .22 0 0 0 0 .08 0 0 0 .32 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),radial-gradient(ellipse at 50% 40%,rgba(255,248,225,.55),rgba(0,0,0,0) 70%),radial-gradient(ellipse at center,rgba(0,0,0,0) 55%,rgba(110,70,25,.45) 100%),linear-gradient(170deg,#efdcae,#e0c58a 55%,#cfae6c);
-  box-shadow:inset 0 0 26px rgba(110,70,25,.45),0 3px 10px rgba(0,0,0,.45)}
-.card.writ-job > h3,.card.writ-job > .row h3,.card.writ-job > p,.card.writ-job > p b,.card.writ-job > .tiny,.card.writ-job > .muted{color:#3b2410}
-.card.writ-job .tag{background:rgba(90,56,16,.15);color:#3b2410;border-color:#8a5a22}
-.card.writ-job > .ok{color:#2f5d1c}
-.card.writ-job .ghost{background:rgba(60,36,10,.12);color:#3b2410;border-color:#8a5a22}
+.card.writ-job{position:relative;color:#f1e2bd;border:2px solid #b07a35;
+  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .35 0 0 0 0 .22 0 0 0 0 .08 0 0 0 .32 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),radial-gradient(ellipse at 50% 35%,rgba(255,230,170,.16),rgba(0,0,0,0) 70%),radial-gradient(ellipse at center,rgba(0,0,0,0) 50%,rgba(20,10,2,.55) 100%),linear-gradient(170deg,#6e5230,#5a4124 55%,#46311a);
+  box-shadow:inset 0 0 26px rgba(20,10,2,.6),0 3px 10px rgba(0,0,0,.45)}
+.card.writ-job > h3,.card.writ-job > .row h3,.card.writ-job > p,.card.writ-job > p b,.card.writ-job > .tiny,.card.writ-job > .muted{color:#f1e2bd}
+.card.writ-job .tag{background:rgba(0,0,0,.25);color:#f1e2bd;border-color:#b07a35}
+.card.writ-job > .ok{color:#9fdc7c}
+.card.writ-job .ghost{background:rgba(0,0,0,.22);color:#f1e2bd;border-color:#b07a35}
 .card.writ-job .writ-ribbon{display:inline-block;background:#7a1f16;color:#f6e6c0;font-weight:800;letter-spacing:.05em;font-size:.75rem;padding:3px 10px;border-radius:4px;margin:-2px 0 8px;box-shadow:0 1px 3px rgba(0,0,0,.4)}
 .loot-banner { background:#3a2e14; color:#e0b84a; font-weight:800; letter-spacing:.04em; text-align:center; padding:6px 8px; border-radius:8px; margin:-4px 0 8px; border:1px solid #e0b84a; }
 .loot-pick { box-shadow:0 0 0 2px #e0b84a inset; }
@@ -12060,6 +12060,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-13", t:"Writ quest parchment is a darker, aged tan so gold and colored text read clearly."},
   {d:"2026-11-13", t:"Quests that count toward the town writ sit on a parchment card with a red writ ribbon."},
   {d:"2026-11-13", t:"Finds at home (brought home, quest loot) can only be equipped by adventurers at home. Anyone out on a job shows greyed out."},
   {d:"2026-11-13", t:"A sealed writ's hall pick keeps coming back until you choose, instead of only after Dismiss. A pick lost in an older save is rebuilt."},
