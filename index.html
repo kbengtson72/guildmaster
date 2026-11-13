@@ -3454,6 +3454,7 @@ function stockRoad(kind){
 function slotOf(p, kind, it){
   if(kind==="weapon") return it && isShield(it) ? p.offhand : p.weapon;
   if(kind==="armor"){ if(!it) return p.armor; ensureSlots(p); return p.slots[armorSlotOf(it)] || null; }
+  if(kind==="kit") return p.kit;
   return p.food;
 }
 function setSlot(p, kind, id){
@@ -3476,11 +3477,13 @@ function setSlot(p, kind, id){
     p.slots[slot]=id;
     if(slot==="chest") p.armor=id;
   }
+  else if(kind==="kit"){ p.kit = id; }
   else { p.food = id; p.foodEaten = false; }
 }
 function isBaseSlot(p, kind, it){
   if(kind==="weapon") { const id = slotOf(p, kind, it); return !id || id===STARTER_WEAPON || id===starterWeaponFor(p); }
   if(kind==="armor") { const id = slotOf(p, kind, it); return !id || id===STARTER_ARMOR; }
+  if(kind==="kit") return !p.kit;
   return !p.food;
 }
 function catalogKind(kind, id){
@@ -3689,6 +3692,22 @@ function raiseFindsLayer(){
   if(wrap){ wrap.style.zIndex = "10250"; wrap.style.pointerEvents = "auto"; }
   const box = document.getElementById("findsBox");
   if(box) box.style.pointerEvents = "auto";
+}
+function hideFindsIfIdle(){
+  const wrap = document.getElementById("finds");
+  if(!wrap) return;
+  if(wrap.querySelector("#roadDone, #roadResultDone, #roadShopDone, #encA, #encB, #encSkip, #qresDone")) return;
+  wrap.style.display = "none";
+}
+function afterShopFlow(){
+  hideFindsIfIdle();
+  closeModal();
+  if(S._shopFromContest){
+    S._shopFromContest = null;
+    openContestSheet();
+    return;
+  }
+  render();
 }
 function finishRoadUi(){
   ENC_BUSY = false;
@@ -6962,8 +6981,8 @@ function openContestSheet(){
     sheet.querySelectorAll("[data-cpick]").forEach(x=>x.style.borderColor = (S._contestPick||[]).includes(x.dataset.cpick) ? "#e0b84a" : "");
   });
   sheet.querySelectorAll("[data-rface]").forEach(b=>b.onclick=()=>openRivalFace(+b.dataset.rface));
-  const cshop=document.getElementById("conShop"); if(cshop) cshop.onclick=()=>{ closeModal(); const b=document.querySelector('[data-tab="shop"]'); if(b) b.click(); };
-  const carm=document.getElementById("conArm"); if(carm) carm.onclick=()=>{ closeModal(); const b=document.querySelector('[data-tab="vault"]'); if(b) b.click(); };
+  const cshop=document.getElementById("conShop"); if(cshop) cshop.onclick=()=>{ S._shopFromContest=true; closeModal(); const b=document.querySelector('[data-tab="shop"]'); if(b) b.click(); };
+  const carm=document.getElementById("conArm"); if(carm) carm.onclick=()=>{ S._shopFromContest=true; closeModal(); const b=document.querySelector('[data-tab="vault"]'); if(b) b.click(); };
   const cy=document.getElementById("conYes");
   if(cy) cy.onclick=()=>{
     S.contestDue=null; S.contestAsk=null;
@@ -8395,7 +8414,7 @@ function openOldHandAsk(p, oldId){
   const old = catalog("weapon", oldId);
   const wrap = document.getElementById("finds");
   const inFinds = !!(wrap && getComputedStyle(wrap).display!=="none");
-  const done = ()=>{ save(); if(inFinds){ try{ paintDayReport(); }catch(e){} render(); afterFind(); } else { closeModal(); render(); } };
+  const done = ()=>{ save(); if(inFinds){ try{ paintDayReport(); }catch(e){} render(); afterFind(); } else if(S._shopFromContest){ afterShopFlow(); } else { closeModal(); render(); } };
   if(!old || isTwoHand(catalog("weapon", p.weapon)) || !canOffhand(p, old)){ done(); return; }
   const curOff = p.offhand ? catalog("weapon", p.offhand) : null;   // something already in the off hand: offer a swap
   const box = document.getElementById(inFinds ? "findsBox" : "sheet");
@@ -8855,9 +8874,8 @@ function openMakeSpace(keepUid){
       pullShop(item);
       stashPush(item.kind, item.id);
       log("Bought "+item.n+" for the armory.");
+      hideFindsIfIdle();
       save(); render(); openBuyEquip(item); return;
-      toast(item.n+" went to the Armory.");
-      save(); render();
     }
   }
   function paint(equipUid){
@@ -8905,6 +8923,7 @@ function openMakeSpace(keepUid){
           }
           log(ppl.name+" took "+piece.n+" off the racks.");
           save();
+          if(!vaultFull()){ finishKeep(); return; }
           paint();
         };
       });
@@ -8947,7 +8966,7 @@ function openMakeSpace(keepUid){
     });
     const go = document.getElementById("afterDump");
     if(go) go.onclick=()=>finishKeep();
-    document.getElementById("cancelDump").onclick = ()=>{ S._buyHold=null; if(keepUid && (S.pendingLoot||[]).length && showFindsPopup()) return; wrap.style.display="none"; closeModal(); render(); };
+    document.getElementById("cancelDump").onclick = ()=>{ S._buyHold=null; if(keepUid && (S.pendingLoot||[]).length && showFindsPopup()) return; hideFindsIfIdle(); if(!keepUid && S._shopFromContest){ afterShopFlow(); return; } closeModal(); render(); };
   }
   paint();
 }
@@ -8975,12 +8994,19 @@ function openBuyEquip(item){
       return `<div class="row" data-buyeq="${p.id}" style="margin:6px 0;cursor:pointer"><div class="who">${face(p)}<div class="names">${nameHtml(p,"strong")}${mottoHtml(p)}<div class="tiny">PWR ${pwrOf(p)} · ${roleLine(p)} · HP ${p.hp}/${p.maxhp}</div><div class="tiny">${quirkLine(p)} · ${traitText(p)}</div>${hpBar(p)}${xpBar(p)}</div></div></div><button type="button" class="ghost" data-buyeq="${p.id}" style="width:100%;text-align:left;margin-top:6px">${CLASSES[p.cls].icon} ${p.name.split(" ")[0]} · ${p.cls}<br><span class="tiny">Now: ${cur?itemNameHtml(cur):"empty"}</span></button>`;
     }).join("")||"<p class='muted'>No one home can use this.</p>"}
     <button type="button" class="ghost" id="buyEqNo" style="width:100%;margin-top:8px">Leave it in the armory</button>`;
-  modal.classList.add("show"); modal.style.display="flex";
+  hideFindsIfIdle();
+  modal.classList.add("show"); modal.style.display="flex"; modal.style.zIndex="10300";
+  function buyEqDone(){
+    const asking = document.getElementById("ohYes");
+    const modalEl = document.getElementById("modal");
+    if(asking && modalEl && (modalEl.classList.contains("show") || modalEl.style.display==="flex")) return;
+    afterShopFlow();
+  }
   sheet.querySelectorAll("[data-buyeq]").forEach(b=>b.onclick=()=>{
     if(uid) equipFromVault(uid, b.dataset.buyeq);
-    closeModal(); render();
+    buyEqDone();
   });
-  document.getElementById("buyEqNo").onclick=()=>{ closeModal(); render(); };
+  document.getElementById("buyEqNo").onclick=()=>afterShopFlow();
 }
 function buy(item){
   if(!item) return;
@@ -11238,12 +11264,12 @@ function armoryFullChoice(pid, slot, it, clear){
     save(); openPerson(pid);
   };
   sheet.querySelector("[data-goarm]").onclick=()=>{
-    modal.classList.remove("show");
+    closeModal();
     tab = "vault";
     render();
   };
   sheet.querySelector("[data-uprack]").onclick=()=>{
-    modal.classList.remove("show");
+    closeModal();
     tab = "hall";
     render();
     toast("Buy the next racks on the Hall tab.");
@@ -11758,6 +11784,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-13", t:"Buying with a full Armory no longer freezes the screen. After you make a slot and pick who gets the new piece, the overlay closes and buttons work again; if you opened the merchant from the guild contest, you go back to that sheet. Kits can be equipped to make rack space (they used to land in the food slot). Unequip's Armory-full Open armory / Upgrade racks now close the sheet properly."},
   {d:"2026-11-12", t:"Putting a new weapon in the main hand asks again whether to move the old one to the off hand, even when the off hand is already holding something. If you say yes, the old off-hand item goes to the armory."},
   {d:"2026-11-12", t:"No more half points. Armor defense is whole numbers now, and a full set of one weight and colour adds up to the same total as before. Offhand weapons add half their attack rounded up."},
   {d:"2026-11-12", t:"Food is only eaten when you say Use it. Any send that skipped the question now leaves the food packed instead of eating it."},
