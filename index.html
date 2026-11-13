@@ -1716,6 +1716,13 @@ function migrateGearState(root){
   }
   return changed;
 }
+function migrateKitAsk(){
+  if(!S || S._kitAsk) return;
+  S._kitAsk = true;
+  (S.people||[]).forEach(p=>{
+    if(p && p.kit && p.status==="away") p.kitUsed = true;
+  });
+}
 
 const KITS = [
   {id:"whet", n:"Whetstone", icon:"🪨", cost:6, r:"common", pwr:2, desc:"+2 power on the next job, then gone."},
@@ -2373,6 +2380,18 @@ function foodOf(p){
 }
 /* food only counts once the player said Use it (at send or in the hall) */
 function foodOn(p){ return !!(p && p.food && p.foodEaten && !p.foodSkip); }
+/* kits only count once the player said Use it at send (job or contest) */
+function kitOn(p){ return !!(p && p.kit && p.kitUsed && !p.kitSkip); }
+function useKitAtSend(p){ if(!p) return; p.kitSkip = false; p.kitUsed = true; }
+function clearKitAsk(ids){
+  (ids||[]).forEach(id=>{
+    const q = typeof id==="string" ? (S.people||[]).find(x=>x.id===id) : id;
+    if(q && q.status!=="away"){ q.kitUsed = false; q.kitSkip = false; }
+  });
+}
+function kitPacked(ids){
+  return (ids||[]).map(id=>typeof id==="string" ? (S.people||[]).find(x=>x.id===id) : id).filter(p=>p && p.kit && !p.kitUsed && !p.kitSkip);
+}
 function foodPwr(p, m){
   const f = foodOf(p);
   if(!f || !foodOn(p)) return 0;
@@ -3478,7 +3497,7 @@ function setSlot(p, kind, id){
     p.slots[slot]=id;
     if(slot==="chest") p.armor=id;
   }
-  else if(kind==="kit"){ p.kit = id; }
+  else if(kind==="kit"){ p.kit = id; p.kitUsed = false; p.kitSkip = false; }
   else { p.food = id; p.foodEaten = false; }
 }
 function isBaseSlot(p, kind, it){
@@ -4950,7 +4969,7 @@ function power(party, m, detail){
       const darkBit = fd && fd.dark && m && isDarkMission(m);
       pwr += pwrPart(parts, who+"Food ("+((fd&&fd.n)||"packed")+")"+ (darkBit?" on Dark":""), foodN);
     }
-    const kk = kitOf(p);
+    const kk = kitOn(p) ? kitOf(p) : null;
     if(kk){
       if(kk.pwr) pwr += pwrPart(parts, who+"Kit ("+(kk.n||"kit")+")", kk.pwr);
       if(kk.job && jobTypeOf(m)===kk.job) pwr += pwrPart(parts, who+"Kit ("+(kk.n||"kit")+") on "+kk.job, kk.jobp||0);
@@ -5757,7 +5776,7 @@ function resolveMission(m){
         const n = addRep(p, typ);
         if(n===3 || n===6) note(p.name+" is now "+repTier(n).n+" on "+typ+" jobs.", "success");
       }
-      const hurt = Math.random() < (0.28 + m.diff*0.045 - defOf(p)*0.008 + (hasTrait(p,"Reckless")?0.14:0)+(kitOf(p)&&kitOf(p).wound?kitOf(p).wound:0));
+      const hurt = Math.random() < (0.28 + m.diff*0.045 - defOf(p)*0.008 + (hasTrait(p,"Reckless")?0.14:0)+(kitOn(p)&&kitOf(p)&&kitOf(p).wound?kitOf(p).wound:0));
       if(hurt){
         p.hp = Math.max(1, p.hp - rng(4,11));
         p.status = p.hp < p.maxhp*0.4 ? "wounded" : "ready";
@@ -5814,7 +5833,7 @@ function resolveMission(m){
       consumeFood(p);
     }
     delete p.foodSkip;
-    const kk = kitOf(p);
+    const kk = kitOn(p) ? kitOf(p) : null;
     if(kk){
       if(kk.heal && p.status!=="dead"){
         p.hp = Math.min(p.maxhp, (p.hp||0)+kk.heal);
@@ -5823,6 +5842,8 @@ function resolveMission(m){
       p.kit = null;
       log(p.name+" used "+kk.n+".");
     }
+    delete p.kitSkip;
+    delete p.kitUsed;
   });
   const fallen = party.filter(x=>x.status==="dead");
   if(fallen.length){
@@ -6447,7 +6468,8 @@ function fleshRival(r){
 }
 function rivalPower(f){ return pwrOf(f); }
 function rivalPowerOld(f){ return (f.lv||1)*8 + (f.atk||0) + (f.def||0); }
-function kitPwrOf(p){ const k=kitOf(p); return k&&k.pwr?k.pwr:0; }
+function kitPwrAvail(p){ const k=kitOf(p); return k&&k.pwr?k.pwr:0; }
+function kitPwrOf(p){ return kitOn(p) ? kitPwrAvail(p) : 0; }
 function contestPwr(p){ return pwrOf(p)+kitPwrOf(p); }
 function rivalPairPower(){
   const r = ensureRival();
@@ -6591,7 +6613,8 @@ function tickRival(){
     },0);
     ids.forEach(id=>{
       const p=(S.people||[]).find(x=>x.id===id);
-      const kk=kitOf(p);
+      const kk=kitOn(p)?kitOf(p):null;
+      if(p){ delete p.kitSkip; delete p.kitUsed; }
       if(!p||!kk||p.status==="dead") return;
       if(kk.heal) p.hp=Math.min(p.maxhp,(p.hp||0)+kk.heal);
       if(kk.loy) bumpLoy(p,kk.loy);
@@ -6956,6 +6979,56 @@ function contestRefuseGain(){
   const r=ensureRival(); const us=S.renown||0, them=r.renown||0;
   return them>=us ? 5 : Math.max(5, Math.floor(Math.abs(us-them)/2));
 }
+function beginContestSend(pick, opt){
+  opt = opt||{};
+  if(!pick || pick.length<2) return toast("Need two ready faces.");
+  if(S.contestTheir==null) S.contestTheir = rivalPairPower();
+  const packed = (pick||[]).filter(p=>p && p.kit && !p.kitUsed);
+  function commit(){
+    if(opt.clearDue){ S.contestDue=null; S.contestAsk=null; }
+    if(opt.clearHall){ S.hallEvent=null; S.contestDue=null; }
+    pick.forEach(p=>{ p.status="away"; p.daysOut=4; p.mission="contest"; });
+    S.contestParty=pick.map(p=>p.id);
+    S.contestUntil=S.day+4;
+    const r = ensureRival();
+    log("Sent "+pick.map(p=>p.name).join(" and ")+" to contest "+((r&&r.name)||"the rival")+".");
+    save(); closeModal(); nextDoorQueue(); render();
+  }
+  function cancel(){
+    clearKitAsk(pick.map(p=>p.id));
+    if(opt.onCancel) opt.onCancel();
+    else openContestSheet();
+  }
+  if(packed.length) askContestKit(pick, packed, 0, commit, cancel);
+  else commit();
+}
+function askContestKit(pick, packed, ix, commit, cancel){
+  const p = packed[ix];
+  if(!p){ commit(); return; }
+  const k = kitOf(p) || {};
+  const c = CLASSES[p.cls]||{};
+  const sheet = document.getElementById("sheet");
+  const modal = document.getElementById("modal");
+  if(!sheet||!modal) return commit();
+  S.tapCloseSheet = false;
+  sheet.innerHTML = `<h3>Use this kit?</h3>
+    <div class="row" style="align-items:flex-start;margin:8px 0">
+      <div class="who">${face(p)}<div class="names">${nameHtml(p,"strong")}${mottoHtml(p)}
+        <div class="tiny">${c.icon||""} ${p.cls} ${p.lv} · PWR ${pwrOf(p)} · HP ${p.hp}/${p.maxhp}</div>
+      </div></div>
+    </div>
+    <p>Do you want <b>${escHtml(p.name)}</b> to use this kit in the contest?</p>
+    <p class="tiny">${k.icon||""} ${k.n||"kit"}${kitBits(k)?" · "+kitBits(k):""}</p>
+    <p class="tiny">${k.desc||""}</p>
+    <p class="tiny">${ix+1} of ${packed.length}</p>
+    <button type="button" class="act" id="ckYes" style="width:100%;margin-top:8px">Use it</button>
+    <button type="button" class="ghost" id="ckNo" style="width:100%;margin-top:6px">Keep the kit packed</button>
+    <button type="button" class="ghost" id="ckCancel" style="width:100%;margin-top:6px">Cancel</button>`;
+  modal.classList.add("show"); modal.style.display="flex"; modal.style.zIndex="10100";
+  document.getElementById("ckYes").onclick=()=>{ useKitAtSend(p); save(); askContestKit(pick, packed, ix+1, commit, cancel); };
+  document.getElementById("ckNo").onclick=()=>{ p.kitSkip=true; askContestKit(pick, packed, ix+1, commit, cancel); };
+  document.getElementById("ckCancel").onclick=()=>cancel();
+}
 function openContestSheet(){
   const r = ensureRival();
   const ready = livingRoster().filter(x=>x.status==="ready");
@@ -6977,7 +7050,7 @@ function openContestSheet(){
     <p>${contestTerms()}</p>
     <p class="tiny">Them ${r.renown||0} · you ${S.renown||0}. Ready ${ready.length}.</p>
     ${cmp}${faces}
-    ${seer>=3?`<p class="tiny">Pick two. Gold edge is the strongest pair.</p>`+byPower(ready).map((p,i)=>`<button type="button" class="ghost" data-cpick="${p.id}" style="width:100%;text-align:left;margin-top:6px;${i<2?"border-color:#e0b84a":""}">${CLASSES[p.cls].icon} ${p.name.split(" ")[0]} · PWR ${contestPwr(p)}${kitPwrOf(p)?" (kit +"+kitPwrOf(p)+")":""}</button>`).join(""):""}
+    ${seer>=3?`<p class="tiny">Pick two. Gold edge is the strongest pair.</p>`+byPower(ready).map((p,i)=>`<button type="button" class="ghost" data-cpick="${p.id}" style="width:100%;text-align:left;margin-top:6px;${i<2?"border-color:#e0b84a":""}">${CLASSES[p.cls].icon} ${p.name.split(" ")[0]} · PWR ${pwrOf(p)}${kitPwrAvail(p)?" (kit +"+kitPwrAvail(p)+" if used)":""}</button>`).join(""):""}
     <button type="button" class="ghost" id="conShop" style="width:100%;margin-top:8px">Buy from Merchant</button>
     <button type="button" class="ghost" id="conArm" style="width:100%;margin-top:6px">Open Armory</button>
     <button type="button" class="act" id="conYes" ${ready.length<2?"disabled":""} style="width:100%;margin-top:10px;${ready.length<2?"opacity:.45":""}">${ready.length<2?"Not enough adventurers available":"Contest · two faces, four days"}</button>
@@ -6997,18 +7070,12 @@ function openContestSheet(){
   const carm=document.getElementById("conArm"); if(carm) carm.onclick=()=>{ S._shopFromContest=true; closeModal(); const b=document.querySelector('[data-tab="vault"]'); if(b) b.click(); };
   const cy=document.getElementById("conYes");
   if(cy) cy.onclick=()=>{
-    S.contestDue=null; S.contestAsk=null;
     if(ready.length<2) return;
-    const best=byPower(ready).slice(0,2);
-    S.contestTheir=rivalPairPower();
     const picked = (S._contestPick||[]).map(id=>ready.find(p=>p.id===id)).filter(Boolean);
     const pick=(S.buildings.seer||0)>=3 && picked.length===2 ? picked : ready.slice().sort((a,b)=>(b.lv||1)-(a.lv||1)).slice(0,2);
     S._contestPick=null;
-    pick.forEach(p=>{ p.status="away"; p.daysOut=4; p.mission="contest"; });
-    S.contestParty=pick.map(p=>p.id);
-    S.contestUntil=S.day+4;
-    log("Sent "+pick.map(p=>p.name).join(" and ")+" to contest "+r.name+".");
-    save(); closeModal(); nextDoorQueue(); render();
+    S.contestTheir=rivalPairPower();
+    beginContestSend(pick, {clearDue:true, onCancel:()=>openContestSheet()});
   };
   const cn=document.getElementById("conNo");
   if(cn) cn.onclick=()=>{
@@ -7726,18 +7793,11 @@ function openHallEvent(){
   if(ro) ro.onclick=()=>{ S.hallEvent=null; save(); closeModal(); nextDoorQueue(); render(); };
   const cy = document.getElementById("conYes");
   if(cy) cy.onclick=()=>{
-    S.contestDue = null;
     const ready=livingRoster().filter(x=>x.status==="ready");
     if(ready.length<2) return toast("Need two ready faces.");
-    const best = byPower(ready).slice(0,2);
-    S.contestTheir = rivalPairPower();
     const pick=ready.slice().sort((a,b)=>(b.lv-a.lv)).slice(0,2);
-    pick.forEach(p=>{ p.status="away"; p.daysOut=4; p.mission="contest"; });
-    S.contestParty=pick.map(p=>p.id);
-    S.contestUntil=S.day+4;
-    S.hallEvent=null;
-    log("Sent "+pick.map(p=>p.name).join(" and ")+" to contest "+(S.rival&&S.rival.name)+".");
-    save(); closeModal(); nextDoorQueue(); render();
+    S.contestTheir = rivalPairPower();
+    beginContestSend(pick, {clearHall:true, onCancel:()=>showHallEvent()});
   };
   const cn = document.getElementById("conNo");
   if(cn) cn.onclick=()=>{
@@ -9075,6 +9135,8 @@ function equipFromVault(uid, pid, hand){
   } else if(it.kind==="kit"){
     if(p.kit) stashPush("kit", p.kit);
     p.kit = it.id;
+    p.kitUsed = false;
+    p.kitSkip = false;
   } else {
     ensureSlots(p);
     const slot = armorSlotOf(it);
@@ -9599,6 +9661,7 @@ function applySnap(d){
 function gearMigrateOnLoad(){
   let n = 0;
   try { n = migrateGearState(S); } catch(e){}
+  try { migrateKitAsk(); } catch(e){}
   if(n>0){
     S.gearRevamp = true;
     try { log("The armory re-stamped everyone's gear into the new colours and types."); } catch(e){}
@@ -10807,7 +10870,7 @@ function bindCards(){
   function askFoodUseAll(jobs, packed, ix){
   ix = ix||0;
   const p = packed[ix];
-  if(!p){ closeModal(); jobs.forEach(j=>send(j.mid, j.ids)); return; }
+  if(!p){ finishJobsKitGate(jobs); return; }
   const f = foodOf(p) || {};
   const sheet=document.getElementById("sheet");
   const modal=document.getElementById("modal");
@@ -10850,11 +10913,11 @@ function askArmoryFoodAll(jobs, foods){
       if(p && f){ p.food = f.id; S.vault = S.vault.filter(x=>x.uid!==f.uid); }
       const packed = jobs.flatMap(j=>j.ids).map(id=>S.people.find(x=>x.id===id)).filter(x=>x && x.food && !x.foodEaten);
       if(packed.length) askFoodUseAll(jobs, packed, 0);
-      else { closeModal(); jobs.forEach(j=>send(j.mid, j.ids)); }
+      else finishJobsKitGate(jobs);
     });
     document.getElementById("afaBack").onclick=()=>askArmoryFoodAll(jobs, foods);
   });
-  document.getElementById("afaSkip").onclick=()=>{ closeModal(); jobs.forEach(j=>send(j.mid, j.ids)); };
+  document.getElementById("afaSkip").onclick=()=>finishJobsKitGate(jobs);
 }
 document.querySelectorAll("[data-sendall]").forEach(b=>b.onclick=()=>{
     const jobs = lootChain().slice().map(c=>{
@@ -10870,7 +10933,7 @@ document.querySelectorAll("[data-sendall]").forEach(b=>b.onclick=()=>{
     const loose = (S.vault||[]).filter(it=>it.kind==="food");
     if(packed.length){ askFoodUseAll(jobs, packed); return; }
     if(loose.length){ askArmoryFoodAll(jobs, loose); return; }
-    jobs.forEach(j=>send(j.mid, j.ids));
+    finishJobsKitGate(jobs);
   });
   document.querySelectorAll("[data-sendall-old]").forEach(b=>b.onclick=()=>{
     lootChain().slice().forEach(c=>{
@@ -10938,28 +11001,112 @@ function askArmoryFood(mid, ids, foods){
   });
   document.getElementById("afSkip").onclick=()=>{ closeModal(); const m=S.missions.find(x=>x.id===mid); finishSendGate(mid, ids, true); };
 }
-function finishSendGate(mid, ids, skipArmoryFood){
+function finishKitGate(mid, ids){
+  const packed = kitPacked(ids);
+  if(packed.length){ askKitUse(mid, ids, packed, 0); return; }
   const m = findMission(mid);
-  const packed = ids.map(id=>S.people.find(p=>p.id===id)).filter(p=>p && p.food && !p.foodEaten);
-  if(packed.length){ askFoodUse(mid, ids, packed, 0); return; }
-  const loose = (S.vault||[]).filter(it=>it.kind==="food");
-  if(!skipArmoryFood && loose.length && askArmoryFood(mid, ids)) return;
   if(m && m.epic){
     const names = ids.map(id=>(S.people.find(x=>x.id===id)||{}).name).filter(Boolean);
     let who = names.join(", ");
     if(names.length===2) who = names[0]+" and "+names[1];
     const days = missionDays(m);
     const sheet = document.getElementById("sheet");
+    const modal = document.getElementById("modal");
+    if(modal){ modal.classList.add("show"); modal.style.display="flex"; }
     sheet.innerHTML = `<h3>👑 ${m.t}</h3>
       <p>These characters will not be available for other quests until ${days} days have passed.</p>
       <p class="tiny">${who} · ${days}d in the field. Diff ${m.diff}.</p>
       <button type="button" class="act" id="epicYes" style="width:100%;margin-top:8px">Send them anyway</button>
       <button type="button" class="ghost" id="epicNo" style="width:100%;margin-top:6px">Back</button>`;
     document.getElementById("epicYes").onclick=()=>send(mid, ids);
-    document.getElementById("epicNo").onclick=()=>{ _sendPre={mid, ids:ids.slice()}; openSend(mid); };
+    document.getElementById("epicNo").onclick=()=>{ clearKitAsk(ids); _sendPre={mid, ids:ids.slice()}; openSend(mid); };
     return;
   }
   send(mid, ids);
+}
+function askKitUse(mid, ids, packed, ix){
+  const p = packed[ix];
+  if(!p){ finishKitGate(mid, ids); return; }
+  const k = kitOf(p) || {};
+  const c = CLASSES[p.cls]||{};
+  const sheet = document.getElementById("sheet");
+  const modal = document.getElementById("modal");
+  if(modal){ modal.classList.add("show"); modal.style.display="flex"; }
+  sheet.innerHTML = `<h3>Use this kit?</h3>
+    <div class="row" style="align-items:flex-start;margin:8px 0">
+      <div class="who">${face(p)}<div class="names">${nameHtml(p,"strong")}${p.hero?'<span class="tiny" style="color:#b06bff"> ★ Hero</span>':""}${mottoHtml(p)}
+        <div class="tiny">${c.icon||""} ${p.cls} ${p.lv} · PWR ${pwrOf(p)} · HP ${p.hp}/${p.maxhp}</div>
+        <div class="tiny">${roleLine(p)} · ${specLine(p)} · ${quirkLine(p)}</div>
+      </div></div>
+    </div>
+    <p>Do you want <b>${escHtml(p.name)}</b> to use this kit on the job?</p>
+    <p class="tiny">${k.icon||""} ${k.n||"kit"}${kitBits(k)?" · "+kitBits(k):""}</p>
+    <p class="tiny">${k.desc||""}</p>
+    <p class="tiny">${ix+1} of ${packed.length}</p>
+    <button type="button" class="act" id="kitYes" style="width:100%;margin-top:8px">Use it</button>
+    <button type="button" class="ghost" id="kitNo" style="width:100%;margin-top:6px">Keep the kit packed</button>
+    <button type="button" class="ghost" id="kitRack" style="width:100%;margin-top:6px">Return to armory</button>
+    <button type="button" class="ghost" id="kitCancel" style="width:100%;margin-top:6px">Cancel send</button>`;
+  document.getElementById("kitYes").onclick=()=>{
+    useKitAtSend(p); save();
+    askKitUse(mid, ids, packed, ix+1);
+  };
+  document.getElementById("kitNo").onclick=()=>{
+    p.kitSkip = true;
+    askKitUse(mid, ids, packed, ix+1);
+  };
+  document.getElementById("kitRack").onclick=()=>{
+    const kit = kitOf(p);
+    if(!kit){ askKitUse(mid, ids, packed, ix+1); return; }
+    if(vaultFull()) return toast("Armory full. Sell or equip something first.");
+    if(!stashPush("kit", p.kit)) return toast("Could not store that.");
+    const n = kit.n;
+    p.kit = null;
+    p.kitUsed = false;
+    p.kitSkip = false;
+    packed.splice(ix,1);
+    toast(n+" went to the Armory.");
+    save();
+    askKitUse(mid, ids, packed, ix);
+  };
+  document.getElementById("kitCancel").onclick=()=>{ clearKitAsk(ids); _sendPre={mid, ids:ids.slice()}; openSend(mid); };
+}
+function finishJobsKitGate(jobs){
+  const allIds = [...new Set((jobs||[]).flatMap(j=>j.ids||[]))];
+  const packed = kitPacked(allIds);
+  if(packed.length){ askKitUseAll(jobs, packed, 0); return; }
+  closeModal();
+  jobs.forEach(j=>send(j.mid, j.ids));
+}
+function askKitUseAll(jobs, packed, ix){
+  ix = ix||0;
+  const p = packed[ix];
+  if(!p){ finishJobsKitGate(jobs); return; }
+  const k = kitOf(p) || {};
+  const sheet=document.getElementById("sheet");
+  const modal=document.getElementById("modal");
+  sheet.innerHTML=`<h3>Use this kit?</h3>
+    <div class="row" style="align-items:flex-start;margin:8px 0">
+      <div class="who">${face(p)}<div class="names">${nameHtml(p,"strong")}${mottoHtml(p)}
+      <div class="tiny">PWR ${pwrOf(p)} · ${roleLine(p)} · HP ${p.hp}/${p.maxhp}</div>
+      <div class="tiny">${quirkLine(p)} · ${traitText(p)}</div>
+      ${hpBar(p)}${xpBar(p)}</div></div>
+    </div>
+    <p class="tiny">${p.name} is carrying <b>${k.icon||""} ${k.n||"kit"}</b>. ${k.desc||""}</p>
+    <p>Use this kit on the job?</p>
+    <button type="button" class="act" id="kaYes" style="width:100%;margin-top:8px">Use it</button>
+    <button type="button" class="ghost" id="kaNo" style="width:100%;margin-top:6px">Keep the kit packed</button>`;
+  modal.classList.add("show"); modal.style.display="flex";
+  document.getElementById("kaYes").onclick=()=>{ useKitAtSend(p); save(); askKitUseAll(jobs, packed, ix+1); };
+  document.getElementById("kaNo").onclick=()=>{ p.kitSkip=true; askKitUseAll(jobs, packed, ix+1); };
+}
+function finishSendGate(mid, ids, skipArmoryFood){
+  const m = findMission(mid);
+  const packed = ids.map(id=>S.people.find(p=>p.id===id)).filter(p=>p && p.food && !p.foodEaten);
+  if(packed.length){ askFoodUse(mid, ids, packed, 0); return; }
+  const loose = (S.vault||[]).filter(it=>it.kind==="food");
+  if(!skipArmoryFood && loose.length && askArmoryFood(mid, ids)) return;
+  finishKitGate(mid, ids);
 }
 function askArmoryFood(mid, ids){
   const party = (ids||[]).map(id=>(S.people||[]).find(x=>x.id===id)).filter(Boolean);
@@ -11040,23 +11187,7 @@ function askFoodUse(mid, ids, packed, ix){
   const m = findMission(mid);
   const p = packed[ix];
   if(!p){
-    const job = findMission(mid);
-    if(job && job.epic){
-      const names = ids.map(id=>(S.people.find(x=>x.id===id)||{}).name).filter(Boolean);
-      let who = names.join(", ");
-      if(names.length===2) who = names[0]+" and "+names[1];
-      const days = missionDays(job);
-      const sheet = document.getElementById("sheet");
-      sheet.innerHTML = `<h3>👑 ${job.t}</h3>
-        <p>These characters will not be available for other quests until ${days} days have passed.</p>
-        <p class="tiny">${who} · ${days}d in the field. Diff ${job.diff}.</p>
-        <button type="button" class="act" id="epicYes" style="width:100%;margin-top:8px">Send them anyway</button>
-        <button type="button" class="ghost" id="epicNo" style="width:100%;margin-top:6px">Back</button>`;
-      document.getElementById("epicYes").onclick=()=>send(mid, ids);
-      document.getElementById("epicNo").onclick=()=>{ _sendPre={mid, ids:ids.slice()}; openSend(mid); };
-      return;
-    }
-    send(mid, ids);
+    finishKitGate(mid, ids);
     return;
   }
   const f = foodOf(p);
@@ -11216,27 +11347,7 @@ function openSendReal(mid, hint){
         err.textContent = "A recovery needs a Cleric in the party.";
         return;
       }
-      if(askArmoryFood(mid, ids)) return;
-      const packed = ids.map(id=>S.people.find(p=>p.id===id)).filter(p=>p && p.food && !p.foodEaten);
-      if(packed.length){
-        askFoodUse(mid, ids, packed, 0);
-        return;
-      }
-      if(m.epic){
-        const names = ids.map(id=>(S.people.find(p=>p.id===id)||{}).name).filter(Boolean);
-        let who = names.join(", ");
-        if(names.length===2) who = names[0]+" and "+names[1];
-        const days = missionDays(m);
-        sheet.innerHTML = `<h3>👑 ${m.t}</h3>
-          <p>These characters will not be available for other quests until ${days} days have passed.</p>
-          <p class="tiny">${who} · ${days}d in the field. Diff ${m.diff}.</p>
-          <button type="button" class="act" id="epicYes" style="width:100%;margin-top:8px">Send them anyway</button>
-          <button type="button" class="ghost" id="epicNo" style="width:100%;margin-top:6px">Back</button>`;
-        document.getElementById("epicYes").onclick=()=>send(mid, ids);
-        document.getElementById("epicNo").onclick=()=>paint();
-        return;
-      }
-      send(mid, ids);
+      finishSendGate(mid, ids);
     };
   }
   paint();
@@ -11295,7 +11406,7 @@ function unequip(pid, slot){
   if(slot==="weapon" && p.weapon){ it = catalog("weapon", p.weapon); clear = ()=>{ p.weapon = null; }; }
   else if(slot==="offhand" && p.offhand){ it = catalog("weapon", p.offhand); clear = ()=>{ p.offhand = null; }; }
   else if(slot==="food" && foodOf(p)){ it = foodOf(p); clear = ()=>{ p.food = null; }; }
-  else if(slot==="kit" && p.kit){ it = catalog("kit", p.kit); clear = ()=>{ p.kit = null; }; }
+  else if(slot==="kit" && p.kit){ it = catalog("kit", p.kit); clear = ()=>{ p.kit = null; p.kitUsed = false; p.kitSkip = false; }; }
   else if(p.slots && p.slots[slot]){ it = catalog("armor", p.slots[slot]); clear = ()=>{ p.slots[slot] = null; if(slot==="chest") p.armor = null; }; }
   if(!it) return toast("Nothing there.");
   const kind = slot==="food" ? "food" : slot==="kit" ? "kit" : (slot==="weapon"||slot==="offhand") ? "weapon" : "armor";
@@ -11345,7 +11456,7 @@ function gearLine(p){
     <p><b>Armor</b> +${wornArmor(p).reduce((n,x)=>n+(x.def||0),0)} DEF ${slotBtns}</p>
     <p class="tiny">${ARMOR_SLOTS.map(s=>{ const it=catalog("armor",(p.slots||{})[s]); return SLOT_LABEL[s]+": "+(it?itemNameHtml(it)+" +"+it.def:"empty"); }).join("<br>")}</p>
     <p><b>Food</b> ${f?foodBlurb(f)+(p.foodEaten?" · used, bonus waits":""):"empty slot"}</p>
-    <p><b>Kit</b> ${kitOf(p)?(kitOf(p).icon||"")+" "+kitOf(p).n+" · "+(kitBits(kitOf(p))||kitOf(p).desc||""):"empty slot"}</p>
+    <p><b>Kit</b> ${kitOf(p)?(kitOf(p).icon||"")+" "+kitOf(p).n+" · "+(kitBits(kitOf(p))||kitOf(p).desc||"")+" · used only if you say so when they leave":"empty slot"}</p>
     ${f?`<p class="tiny">${f.desc||""}${p.foodEaten?" Heal already applied. Power / gold / XP still hit the next job.":""}</p>`:""}
     <p class="tiny">Totals: PWR ${pwrOf(p)} · ATK ${atkOf(p)} · DEF ${defOf(p)} · HP ${p.hp}/${p.maxhp}</p>`;
 }
@@ -11668,7 +11779,7 @@ function helpPage(id){
     ${Object.keys(TYPE_TRAIT).map(k=>`<p class="tiny">${(Object.values(MISSION_TYPE).find(x=>x.type===k)||{}).icon||"📜"} ${k} → ${TYPE_TRAIT[k]} (+4 power on that type).</p>`).join("")}`;
   }
   if(id==="kits"){
-    return `<p class="tiny">A kit sits in its own slot. It fires once, on the next job, then it is gone. Buy them from the merchant.</p>`+
+    return `<p class="tiny">A kit sits in its own slot. Buy them from the merchant. When you send someone on a job or to a guild contest, you are asked whether to use their kit. Use it — the bonus applies on that job or contest, then the kit is gone. Keep it packed — it stays in their slot for later. A send that skips the question leaves the kit packed.</p>`+
       KITS.map(k=>`<p class="tiny">${k.icon||"🧰"} ${itemNameHtml(k)} — ${gp(k.cost)} · ${k.desc}</p>`).join("");
   }
   if(id==="gear"){ return helpGearBody(); }
@@ -11787,7 +11898,7 @@ function helpPage(id){
     <h4>Dark jobs</h4>
     <p class="tiny">Harder (+2 Diff) and better pay. Who can walk: Cleric, Night Owl, Occultist, Night role, Night step. “Won't walk Dark” always refuses. Chapel Bell adds +2 party power per level on Dark work (yours: Lv ${bell}).</p>
     <h4>Who you send</h4>
-    <p class="tiny">Two+ of the same class: −2 power per extra copy. Two different classes: +2. Typed roles are +4 on-type / −4 off-type, so a second Scout is for Search cards, not Assault. Short road is +5 under 4 days after Stable, −5 over 4. Long strider is the inverse. Sheet PWR is the body with no job in front of it (it also counts a flat bonus for level, health, and gift). Assign Job power starts from attack and armor on that card, then adds what the job does — favored class, role, specialty, traits, quirks, food, kit, job marks, and the rest. Tap the Job pill under the portrait to see the list. Success is party power vs Diff×8 plus a small roll — the Seer word is a hint. Food packed on a person heals and applies its bonus on the job, then is gone.</p>
+    <p class="tiny">Two+ of the same class: −2 power per extra copy. Two different classes: +2. Typed roles are +4 on-type / −4 off-type, so a second Scout is for Search cards, not Assault. Short road is +5 under 4 days after Stable, −5 over 4. Long strider is the inverse. Sheet PWR is the body with no job in front of it (it also counts a flat bonus for level, health, and gift). Assign Job power starts from attack and armor on that card, then adds what the job does — favored class, role, specialty, traits, quirks, food, kit, job marks, and the rest. Tap the Job pill under the portrait to see the list. Success is party power vs Diff×8 plus a small roll — the Seer word is a hint. Food and kits only count if you say Use it when they leave; then they are gone. A skipped kit stays packed.</p>
     <p class="tiny">A success adds 1 job mark on that type (known at 3 / +3 power, veteran at 6 / +5) and can stamp a writ if the type matches. Failed jobs do not count for the writ.</p>
     <h4>The road</h4>
     <p class="tiny">While a party is still out, End Day may fire a roadside event (⚙ chance). Combat can add XP, gold, Renown, or shave a day — or wound someone and add a day. Forced-fight slider is the chance you cannot walk away.</p>`;
@@ -11796,6 +11907,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-13", t:"Kits now ask Use it? when you send someone on a job or to a guild contest, the same way food does. The kit only applies, and is only used up, if you say yes. Keep it packed leaves it in their slot."},
   {d:"2026-11-13", t:"Guild contest counts kits: a kit's power bonus (Whetstone +2) adds to that fighter's contest power, shows on the contest sheet, and the kit is used up when the contest ends."},
   {d:"2026-11-13", t:"Armory kit lines show the kit's real effect (Whetstone: +2 power on the next job) instead of +0 ATK."},
   {d:"2026-11-13", t:"Buying with a full Armory no longer freezes the screen. After you make a slot and pick who gets the new piece, the overlay closes and buttons work again; if you opened the merchant from the guild contest, you go back to that sheet. Kits can be equipped to make rack space (they used to land in the food slot). Unequip's Armory-full Open armory / Upgrade racks now close the sheet properly."},
