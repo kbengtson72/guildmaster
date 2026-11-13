@@ -1692,6 +1692,13 @@ function migrateGearState(root){
     Object.keys(o).forEach(k=>walk(o[k], k));
   }
   try { walk(root); } catch(e){ try{ console.error("gear migration", e); }catch(_){} }
+  // one-time repair: people the old roll left holding only a shield get their free Gray weapon
+  if(root && !root._fixShieldOnly){
+    root._fixShieldOnly = true; changed++;
+    (root.people||[]).forEach(p=>{
+      if(p && p.status!=="dead" && !p.weapon){ p.weapon = starterWeaponFor(p); changed++; }
+    });
+  }
   return changed;
 }
 
@@ -2013,6 +2020,7 @@ function cheapPool(kind, p){
   const list = kind==="weapon" ? WEAPONS : kind==="armor" ? ARMORS : FOODS;
   return list.filter(x=>{
     if(!x || x.unique) return false;
+    if(kind==="weapon" && x.shield) return false;   // a shield is never the main hand
     if(rarityRank(x.r||"common")>1) return false;
     if(!canWield(p, Object.assign({}, x, {kind}))) return false;
     return true;
@@ -2058,6 +2066,7 @@ function hirePool(kind, p){
   const list = kind==="weapon" ? WEAPONS : kind==="armor" ? ARMORS : FOODS;
   return list.filter(x=>{
     if(!x || x.unique || (x.r||"") === "artifact") return false;
+    if(kind==="weapon" && x.shield) return false;   // a shield is never the main hand
     if(!canWield(p, Object.assign({}, x, {kind}))) return false;
     return true;
   });
@@ -11725,6 +11734,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-12", t:"New hires and starting guild members always get a real main weapon. Shields only go in the offhand now. Anyone already stuck holding just a shield gets a free Gray weapon."},
   {d:"2026-11-12", t:"Weapon labels drop \"one-hand\" and \"mages\". Two-hand weapons still say two-hand."},
   {d:"2026-11-12", t:"The 📒 Ledger opens as a popup again, with its own scroll and a Close button."},
   {d:"2026-11-12", t:"Weapon and armor names no longer carry the colour word (Gray, White, Green…). The name is drawn in its colour instead."},
