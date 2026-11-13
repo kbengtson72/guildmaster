@@ -5258,6 +5258,21 @@ function creditWrit(m){
   }
   return 1;
 }
+function writHallOptions(){
+  const busy = {};
+  if(S.raise) busy[S.raise.k] = true;
+  (S.raiseQ||[]).forEach(q=>{ if(q&&q.k) busy[q.k] = true; });
+  const opts = [];
+  Object.keys(BUILDINGS).forEach(k=>{
+    const b = BUILDINGS[k];
+    if(!b || b.pay==="renown" || busy[k]) return;
+    const lv = S.buildings[k]||0;
+    if(lv >= b.max) return;
+    opts.push({k, n:b.n, lv, next:lv+1, cost:b.base*(lv+1)});
+  });
+  opts.sort((a,b)=>a.lv-b.lv || a.cost-b.cost);
+  return opts.slice(0,3);
+}
 function cheapestHallKeys(){
   const opts = [];
   Object.keys(BUILDINGS).forEach(k=>{
@@ -5272,9 +5287,6 @@ function cheapestHallKeys(){
   return opts.filter(o=>o.cost===min);
 }
 function applyWritHall(key){
-  if(S.raise){
-    return finishRaise("writ");
-  }
   const b = BUILDINGS[key];
   if(!b || b.pay==="renown") return null;
   const lv = S.buildings[key]||0;
@@ -5310,7 +5322,7 @@ function recoverWritChoice(){
   const ix = logs.findIndex(t=>String(t).indexOf(tag)>=0);
   if(ix<0) return false;
   if(logs.slice(0, ix).some(t=>/Writ hall grant:/.test(String(t)))){ w.granted = true; return false; }
-  const opts = cheapestHallKeys();
+  const opts = writHallOptions();
   if(!opts.length){ w.granted = true; return false; }
   S.writChoice = {title:w.title||"Writ", opts};
   if(opts.length===1){ pickWritHall(opts[0].k); return false; }
@@ -5323,8 +5335,8 @@ function showWritChoice(){
   const sheet = document.getElementById("sheet");
   if(!sheet) return;
   sheet.innerHTML = `<h3>📜 The town will raise one hall</h3>
-    <p class="tiny">${pending.title||"Writ sealed"}. These upgrades cost the same (${gp(pending.opts[0].cost)}). Pick one.</p>
-    ${pending.opts.map(o=>`<button type="button" class="act" data-writpick="${o.k}" style="width:100%;margin-top:8px">${BLD_ICON[o.k]||"🏛️"} ${o.n} · Lv ${o.lv} → ${o.next}</button>
+    <p class="tiny">${pending.title||"Writ sealed"}. Your lowest-level halls. The town pays for one upgrade. Pick one.</p>
+    ${pending.opts.map(o=>`<button type="button" class="act" data-writpick="${o.k}" style="width:100%;margin-top:8px">${BLD_ICON[o.k]||"🏛️"} ${o.n} · Lv ${o.lv} → ${o.next} · worth ${gp(o.cost)}</button>
       <p class="tiny">${(BUILDINGS[o.k]||{}).desc||""}</p>`).join("")}`;
   const modal = document.getElementById("modal");
   modal.classList.add("show");
@@ -5333,11 +5345,7 @@ function showWritChoice(){
   return true;
 }
 function grantWritHallAuto(){
-  if(S.raise){
-    const hall = applyWritHall(S.raise.k);
-    return hall ? {kind:"done", hall} : {kind:"none"};
-  }
-  const pool = cheapestHallKeys();
+  const pool = writHallOptions();
   if(!pool.length) return {kind:"none"};
   if(pool.length===1){
     const hall = applyWritHall(pool[0].k);
@@ -5436,7 +5444,7 @@ function sealWrit(ok){
       writCongrats(w, grant, ren);
       log("Writ sealed: "+w.title+". "+grant.hall.n+" → Lv "+grant.hall.lv+". +"+ren+" renown.");
     } else if(grant.kind==="choice"){
-      note("📜 Writ sealed: "+w.title+" — +"+ren+" "+rn()+". The town will raise one "+gp(grant.opts[0].cost)+" hall. Choose which.", "success");
+      note("📜 Writ sealed: "+w.title+" — +"+ren+" "+rn()+". The town will raise one of your lowest-level halls. Choose which.", "success");
       log("Writ sealed: "+w.title+". Waiting on hall pick.");
     } else {
       const gold = 12 + S.day + w.need*6;
@@ -5526,7 +5534,7 @@ function writOil(){
 function writCard(){
   if(S.day < WRIT_UNLOCK && !S.writ){
     return `<div class="card"><div class="row"><h3>📜 Town Writ</h3><span class="tag">day ${WRIT_UNLOCK}</span></div>
-      <p class="tiny">The town will post a writ on day ${WRIT_UNLOCK}. You get a long window. Seal it and they raise your cheapest hall upgrade. Early lapses are free.</p></div>`;
+      <p class="tiny">The town will post a writ on day ${WRIT_UNLOCK}. You get a long window. Seal it and the town raises one of your lowest-level halls, your pick. Early lapses are free.</p></div>`;
   }
   const w = S.writ;
   if(!w) return "";
@@ -5547,7 +5555,7 @@ function writCard(){
     ${S.doubleWrit?`<p class="ok">Double mark · next matching job counts twice</p>`:""}
     <p class="tiny">Marks ${w.have||0}/${w.need} · due day ${w.due}</p>
     <div class="bar"><i style="width:${pct}%;background:var(--gold)"></i></div>
-    <p class="tiny">Seal it and the town raises your cheapest hall upgrade. Same-price ties let you pick. Lapse before day 20 costs nothing.</p>
+    <p class="tiny">Seal it and the town raises one of your lowest-level halls, your pick. Lapse before day 20 costs nothing.</p>
     ${oathEaterBtn()}
   </div>`;
 }
@@ -6237,8 +6245,8 @@ function writChoiceBlock(){
   const pending = S.writChoice;
   if(!pending || !pending.opts || pending.opts.length<2) return "";
   return `<div class="card" style="margin-top:8px;border-color:var(--gold)"><h3>📜 Raise one hall</h3>
-    <p class="tiny">${pending.title||"Writ sealed"}. Same price (${gp(pending.opts[0].cost)}). Pick one.</p>
-    ${pending.opts.map(o=>`<button class="act" data-writpick="${o.k}" style="width:100%;margin-top:6px">${BLD_ICON[o.k]||"🏛️"} ${o.n} · Lv ${o.lv} → ${o.next}</button>
+    <p class="tiny">${pending.title||"Writ sealed"}. Your lowest-level halls. Pick one for the town to raise.</p>
+    ${pending.opts.map(o=>`<button class="act" data-writpick="${o.k}" style="width:100%;margin-top:6px">${BLD_ICON[o.k]||"🏛️"} ${o.n} · Lv ${o.lv} → ${o.next} · worth ${gp(o.cost)}</button>
       <p class="tiny">${(BUILDINGS[o.k]||{}).desc||""}</p>`).join("")}
   </div>`;
 }
@@ -12056,7 +12064,7 @@ function helpPage(id){
   if(id==="writ") return `
     <p class="tiny">From day ${typeof WRIT_UNLOCK!=="undefined"?WRIT_UNLOCK:6} the town posts one writ on the Hall. Matching finished jobs fill marks. Seal it before the due day.</p>
     <p class="tiny">Early weeks need 2 marks and 18 days. Later 3, then 4, with 16 days on the clock. After a writ seals there is a 48-day rest early, 32 later. Dark writs stay off until day 20. Oath-eater (a quirk): completing a writ quest adds one extra mark, once per writ. Oath-breaker (a trait): that party earns no writ mark.</p>
-    <p class="tiny"><b>Seal</b> — the town raises your cheapest unfinished hall upgrade (gold-cost buildings). If several cost the same, you pick one. A little Renown is added. If the hall is fully built, they pay gold instead. Next writ after a short rest.</p>
+    <p class="tiny"><b>Seal</b> — you pick one of up to three of your lowest-level halls (gold-cost buildings) and the town raises it one level for free. A hall you are building or have queued is left out, so the reward never just finishes a build. A little Renown is added. If the hall is fully built, they pay gold instead. Next writ after a short rest.</p>
     <p class="tiny"><b>Lapse before day 20</b> — the town shrugs. No fine.</p>
     <p class="tiny"><b>Lapse after day 20</b> — one ready person may lose 1 loyalty.</p>
     <h4>Writs that can post</h4>
@@ -12109,6 +12117,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-13", t:"Writ reward: pick one of up to three of your lowest-level halls. A hall being built or queued is left out, so the reward no longer finishes a build in progress."},
   {d:"2026-11-13", t:"The Writ sealed celebration waits its turn with the other popups instead of being closed by the night's results."},
   {d:"2026-11-13", t:"While a writ is live, the board keeps at least two open writ quests at your level, posting extras when it runs short."},
   {d:"2026-11-13", t:"Writ quest parchment is a darker, aged tan so gold and colored text read clearly."},
