@@ -8952,15 +8952,15 @@ function openEquipFind(findUid){
   if(!sheet || !wrap) return;
   wrap.style.display="flex";
   const onJob = findOnJob(it);
-  const inParty = p => !onJob || (it.party||[]).indexOf(p.id)>=0;
+  const inParty = p => onJob ? (it.party||[]).indexOf(p.id)>=0 : p.status!=="away";
   const wear = ready.filter(p=>canWield(p, it)).sort((a,b)=>(inParty(b)?1:0)-(inParty(a)?1:0));
   sheet.innerHTML = `<h3>Equip ${itemNameHtml(it)}</h3>
     <p class="tiny">${lootLabel(it)}</p>
-    ${onJob?`<p class="tiny" style="color:#e0b84a">Only adventurers on this job can take it. Anyone else gets a turn once it is brought home.</p>`:""}
+    ${onJob?`<p class="tiny" style="color:#e0b84a">Only adventurers on this job can take it. Anyone else gets a turn once it is brought home.</p>`:ready.some(p=>p.status==="away")?`<p class="tiny" style="color:#e0b84a">Only adventurers at home can take it. Anyone out on a job can be equipped from the Armory once they are back.</p>`:""}
     <p class="tiny">Who takes it. Their current ${kind} is listed.</p>
     ${wear.map(p=>{
       if(!inParty(p)){
-        return `<div class="card" style="margin-top:6px;text-align:left;opacity:.45">${CLASSES[p.cls].icon} ${p.name.split(" ")[0]}${p.status==="away"?" · on another job":""} · ${p.cls} ${p.lv} · HP ${p.hp||0}/${p.maxhp||0}<div class="tiny" style="margin-top:4px;padding:8px;border:1px solid #555;border-radius:8px">Cannot equip. Not on this job.</div></div>`;
+        return `<div class="card" style="margin-top:6px;text-align:left;opacity:.45">${CLASSES[p.cls].icon} ${p.name.split(" ")[0]}${p.status==="away"?(onJob?" · on another job":" · out on a job"):""} · ${p.cls} ${p.lv} · HP ${p.hp||0}/${p.maxhp||0}<div class="tiny" style="margin-top:4px;padding:8px;border:1px solid #555;border-radius:8px">${onJob?"Cannot equip. Not on this job.":"Cannot equip. Out on a job."}</div></div>`;
       }
       const cur = kind==="armor" ? catalog("armor", (p.slots||{})[armorSlotOf(it)]|| (armorSlotOf(it)==="chest"?p.armor:null)) : slotItem(p, kind);
       const now = cur ? itemNameHtml(cur)+(kind==="weapon"?" · +"+cur.atk+" ATK":kind==="armor"?" · +"+cur.def+" DEF":" · "+foodBits(cur)) : "empty";
@@ -9035,7 +9035,7 @@ function equipPending(findUid, pid, hand){
   if(kind!=="weapon" && oldId && oldId!==it.id){
     if(!stashPush(kind, oldId)){
       const old = catalog(kind, oldId) || {id:oldId, n:oldId, kind};
-      S.pendingLoot.push(Object.assign({uid:uid(), kind, from:"taken off "+p.name.split(" ")[0]}, old));
+      S.pendingLoot.push(Object.assign({uid:uid(), kind, from:"taken off "+p.name.split(" ")[0]}, old, findOnJob(it)?{party:it.party, mid:it.mid}:{}));
       toast(p.name.split(" ")[0]+" took "+it.n+". Old gear is in Finds — racks were full.");
     } else {
       toast(p.name.split(" ")[0]+" took "+it.n+".");
@@ -11861,7 +11861,7 @@ function helpPage(id){
     <p class="tiny"><b>Quests</b> — assign ready people. Favored classes show a mark. Extra bodies past the needed seats cut gold 25% each. Jobs take days; Courier Stable shortens them.</p>
     <p class="tiny"><b>Merchant</b> — Weapons, Armor, Consumables. Buys go to the Armory.</p>
     <p class="tiny"><b>Armory</b> — 4 slots to start. Equip someone home; old gear returns here. Sell at half list. Racks add +3 slots per level. Jobs and the road can drop salvage, gear, or food.</p>
-    <p class="tiny"><b>End Day</b> — wages, healing, returns, night report (who is still in the field and days left). Parties still out may hit a road event (⚙ slider, default 10%). The road can be a fight, a merchant, a healer, a priest, a beggar, or a rescue. Combat can give XP, gold, Renown, or −1 day — or wound people and add a day. Gear from a fight or a finished quest opens a Finds window to keep, sell, or equip. Gear won in a road fight can only be equipped by the party on that job; everyone else shows greyed out. If nobody takes it, Carry home keeps it with the party, and when they return a Brought home window asks you to equip it or put it in the Armory. Unclaimed finds stay and come back until you deal with them. If you close the app mid-road, the choice or result comes back when you reopen. Forced-fight slider is the chance you cannot skip a fight (default 50%).</p>
+    <p class="tiny"><b>End Day</b> — wages, healing, returns, night report (who is still in the field and days left). Parties still out may hit a road event (⚙ slider, default 10%). The road can be a fight, a merchant, a healer, a priest, a beggar, or a rescue. Combat can give XP, gold, Renown, or −1 day — or wound people and add a day. Gear from a fight or a finished quest opens a Finds window to keep, sell, or equip. Gear won in a road fight can only be equipped by the party on that job; everyone else shows greyed out. Finds at home can only go to adventurers at home; anyone out on a job shows greyed out. If nobody takes it, Carry home keeps it with the party, and when they return a Brought home window asks you to equip it or put it in the Armory. Unclaimed finds stay and come back until you deal with them. If you close the app mid-road, the choice or result comes back when you reopen. Forced-fight slider is the chance you cannot skip a fight (default 50%).</p>
     <p class="tiny"><b>Hall events</b> — each dawn has an 8% chance of a hall note (a leak, a levy, a purse, a peddler, and the like). A note you have not seen yet comes back the next day until you close it, and it is not thrown away by a writ, a contest warning, or reopening the app. Last hall event: ${(typeof hallEventDiagText==="function"?hallEventDiagText().last:"none yet")}. Pending: ${(typeof hallEventDiagText==="function"?hallEventDiagText().pending:"none")}.</p>
     <h4>Money and people</h4>
     <p class="tiny"><b>Wages</b> — half the listed wage, rounded down, paid to people at the hall (ready or wounded). Away and dead are not paid. Each Renown cuts hire price and wages 1%, cap 50% at 50 Renown. Early relief: nightly wages are 30% lower through day 30, fading to normal by day 60.</p>
@@ -12050,6 +12050,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-13", t:"Finds at home (brought home, quest loot) can only be equipped by adventurers at home. Anyone out on a job shows greyed out."},
   {d:"2026-11-13", t:"A sealed writ's hall pick keeps coming back until you choose, instead of only after Dismiss. A pick lost in an older save is rebuilt."},
   {d:"2026-11-13", t:"Road finds can only be equipped by the party that won them. Others show greyed out. Unequipped finds ride home and ask again on return."},
   {d:"2026-11-13", t:"Armory says only adventurers at home can be equipped, lists who is out on a job, and warns when everyone is away."},
