@@ -2335,6 +2335,7 @@ function abilityText(it){
 function gearStatText(it){
   const c = gearSrc(it);
   if(!c) return "";
+  if(c.kind==="kit") return kitBits(c);
   if(c.kind==="armor") return "+"+(c.def||0)+" DEF";
   if(isShield(c)) return "+"+(c.def||0)+" DEF";
   return "+"+(c.atk||0)+" ATK";
@@ -10705,7 +10706,7 @@ function vaultView(){
   const ready = S.people.filter(p=>p.status!=="dead" && p.status!=="away");
   if(!S.vault.length) return `<div class="card"><h3>Armory</h3><p class="muted">Empty racks (${vaultCap()} slots). Buy from the Merchant.</p>${raiseOffer("racks")}</div>`;
   return `<div class="card"><h3>Armory</h3>${raiseOffer("racks")}<p class="tiny">${S.vault.length}/${vaultCap()} on the rack. Equip someone home, or sell for half price. Upgrade Racks for more slots.</p></div>
-    ${S.vault.map(it=>`<div class="card"><div class="row"><strong>${it.kind==="food"?(it.icon||(catalog("food",it.id)||{}).icon||"🍖")+" ":""}${itemNameHtml(it)}</strong><span class="muted">${it.kind}${tierBit(it)} · ${it.kind==="food"?foodBits(catalog("food",it.id)||it) : gearStatText(it)} · sell ${gp(sellPrice(it))}</span></div>
+    ${S.vault.map(it=>`<div class="card"><div class="row"><strong>${it.kind==="food"?(it.icon||(catalog("food",it.id)||{}).icon||"🍖")+" ":""}${itemNameHtml(it)}</strong><span class="muted">${it.kind}${tierBit(it)} · ${it.kind==="food"?foodBits(catalog("food",it.id)||it) : it.kind==="kit"?kitBits(catalog("kit",it.id)||it) : gearStatText(it)} · sell ${gp(sellPrice(it))}</span></div>
       ${it.kind==="weapon"?gearAbHtml(it):""}
       ${it.kind==="loot"?`<p class="tiny">${it.story||"Salvage. Sell it."}</p>`:`<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">
         ${it.kind==="food"?`<p class="tiny" style="width:100%;margin:0 0 4px">${(catalog("food",it.id)||it).desc||foodBlurb(it)}</p>`:""}
@@ -11784,6 +11785,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-13", t:"Armory kit lines show the kit's real effect (Whetstone: +2 power on the next job) instead of +0 ATK."},
   {d:"2026-11-13", t:"Buying with a full Armory no longer freezes the screen. After you make a slot and pick who gets the new piece, the overlay closes and buttons work again; if you opened the merchant from the guild contest, you go back to that sheet. Kits can be equipped to make rack space (they used to land in the food slot). Unequip's Armory-full Open armory / Upgrade racks now close the sheet properly."},
   {d:"2026-11-12", t:"Putting a new weapon in the main hand asks again whether to move the old one to the off hand, even when the off hand is already holding something. If you say yes, the old off-hand item goes to the armory."},
   {d:"2026-11-12", t:"No more half points. Armor defense is whole numbers now, and a full set of one weight and colour adds up to the same total as before. Offhand weapons add half their attack rounded up."},
