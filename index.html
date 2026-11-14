@@ -2765,7 +2765,7 @@ function ensureWritMin(){
     const open = S.missions.filter(m=>m && !m.epic && (!m.party||!m.party.length) && writMatches(m) && writLevelOk(m));
     if(open.length >= 2) return;
     const taken = {};
-    S.missions.forEach(x=>{ if(x && x.t) taken[x.t]=true; });
+    S.missions.forEach(x=>{ if(x && x.t) taken[x.t]=true; }); if(S._banT) taken[S._banT]=true;
     const cap = hallComfort();
     const fits = missionPool().map(src=>hardenDark(Object.assign({}, src))).filter(m=>{
       if(taken[m.t] || m.epic) return false;
@@ -2792,7 +2792,7 @@ function ensureWritJobCore(){
   const canDo = writMatchesOpen.some(m=>!(isDarkMission(m)&&!canDark) && !(isHolyMission(m)&&!canHoly));
   if(writMatchesOpen.length && !canDo && w.type!=="Dark" && w.type!=="Holy"){
     const taken = {};
-    S.missions.forEach(x=>{ if(x.t) taken[x.t]=true; });
+    S.missions.forEach(x=>{ if(x.t) taken[x.t]=true; }); if(S._banT) taken[S._banT]=true;
     const pool = missionPool().filter(src=>{
       if(taken[src.t]) return false;
       const probe = hardenDark(Object.assign({}, src));
@@ -2820,7 +2820,7 @@ function ensureWritJobCore(){
       return;
     }
     const taken = {};
-    S.missions.forEach(x=>{ if(x.t) taken[x.t]=true; });
+    S.missions.forEach(x=>{ if(x.t) taken[x.t]=true; }); if(S._banT) taken[S._banT]=true;
     const pool = missionPool().filter(src=>{
       if(taken[src.t]) return false;
       const probe = hardenDark(Object.assign({}, src));
@@ -2861,7 +2861,7 @@ function ensureWritJobCore(){
   }
   const pool = missionPool();
   const taken = {};
-  S.missions.forEach(x=>{ if(x.t) taken[x.t]=true; });
+  S.missions.forEach(x=>{ if(x.t) taken[x.t]=true; }); if(S._banT) taken[S._banT]=true;
   const match = pool.filter(x=>{
     const probe = {t:x.t};
     if(w.type==="Dark") return isDarkMission(probe);
@@ -4672,24 +4672,39 @@ function thiefBtn(m){
   const wait = Math.min(...thieves.map(p=>Math.max(0,(p.thiefUntil||0)-S.day)));
   return `<button class="ghost" disabled style="width:100%;margin-top:6px;opacity:.45">🃏 Board-thief · ${wait}d</button>`;
 }
+/* replacement for a swapped brief: never the same title; a writ-marked brief swaps for another writ-marked one when it can */
+function drawSwapBrief(old){
+  const taken = {};
+  S.missions.forEach(m=>{ if(m.t) taken[m.t]=true; });
+  const all = missionPool().filter(x=>x.t!==old.t);
+  let pool = all.filter(x=>!taken[x.t]);
+  const wasWrit = !old.epic && S.writ && !S.writ.done && writMatches(old);
+  if(wasWrit){
+    const wp = pool.map(src=>hardenDark(Object.assign({}, src))).filter(x=>!x.epic && writMatches(x) && writLevelOk(x));
+    if(wp.length){ const m = pick(wp); m.id = uid(); m.party = []; return m; }
+  }
+  const src = pool.length ? pick(pool) : (all.length ? pick(all) : pick(missionPool()));
+  const m = hardenDark(Object.assign({}, src));
+  m.id = uid(); m.party = [];
+  return m;
+}
+/* refill writ briefs without bringing back the one just swapped away */
+function ensureWritJobBan(t){
+  S._banT = t;
+  try { ensureWritJob(); } finally { S._banT = null; }
+}
 function doThiefSwap(pid, mid){
   const p = (S.people||[]).find(x=>x.id===pid);
   const ix = findMissionIndex(mid);
   if(ix<0 || !p) return;
   const old = S.missions[ix];
   if(old.epic || (old.party&&old.party.length)) return toast("Cannot swap that.");
-  const taken = {};
-  S.missions.forEach(m=>{ if(m.t) taken[m.t]=true; });
-  const pool = missionPool().filter(x=>!taken[x.t]);
-  const src = pool.length ? pick(pool) : pick(missionPool());
-  const m = hardenDark(Object.assign({}, src));
-  m.id = uid();
-  m.party = [];
+  const m = drawSwapBrief(old);
   S.missions[ix] = m;
   p.thiefUntil = S.day + 7;
   log(p.name+" stole a new brief: "+m.t+" (was "+old.t+").");
   toast(old.t+" becomes "+m.t);
-  ensureWritJob();
+  ensureWritJobBan(old.t);
   save(); closeModal(); render();
 }
 function redrawJob(mid){
@@ -4702,18 +4717,12 @@ function redrawJob(mid){
   const old = S.missions[ix];
   if(old.epic) return toast("An epic quest cannot have its seal broken.");
   if(old.party && old.party.length) return toast("Already in the field.");
-  const taken = {};
-  S.missions.forEach(m=>{ if(m.t) taken[m.t]=true; });
-  const pool = missionPool().filter(x=>!taken[x.t]);
-  const src = pool.length ? pick(pool) : pick(missionPool());
-  const m = hardenDark(Object.assign({}, src));
-  m.id = uid();
-  m.party = [];
+  const m = drawSwapBrief(old);
   spend(cost);
   S.missions[ix] = m;
   log("Broke the seal on "+old.t+". Drew "+m.t+".");
   toast("New brief: "+m.t);
-  ensureWritJob();
+  ensureWritJobBan(old.t);
   save(); render();
 }
 
@@ -12126,6 +12135,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-14", t:"Board-thief and Break the seal: swapping a writ-marked quest no longer brings the same quest straight back. A writ quest swaps for a different writ quest when one fits."},
   {d:"2026-11-13", t:"Armory food at send is one split screen: foods with their bonuses on the left, the party on the right. Pick both and Pack, or Never mind. Shows even with one person."},
   {d:"2026-11-13", t:"Contest sends now ask about packed food, like job sends. Food used in a contest gives its HP, PWR and loyalty, and is eaten when the contest ends."},
   {d:"2026-11-13", t:"Bring-them-home quests get a dark mourning card with a candlelit glow and a 🕯️ ribbon naming the fallen. Recovery and win-back cards say no gold instead of a fake pay range."},
