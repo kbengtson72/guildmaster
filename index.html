@@ -6768,6 +6768,13 @@ function tickRival(){
     },0);
     ids.forEach(id=>{
       const p=(S.people||[]).find(x=>x.id===id);
+      const ff=foodOn(p)?foodOf(p):null;
+      if(p){ p.foodSkip=false; }
+      if(p && ff && p.status!=="dead"){
+        if(ff.loy) bumpLoy(p,ff.loy);
+        consumeFood(p);
+        log(p.name+" ate "+ff.n+" at the contest.");
+      }
       const kk=kitOn(p)?kitOf(p):null;
       if(p){ delete p.kitSkip; delete p.kitUsed; }
       if(!p||!kk||p.status==="dead") return;
@@ -7154,8 +7161,40 @@ function beginContestSend(pick, opt){
     if(opt.onCancel) opt.onCancel();
     else openContestSheet();
   }
-  if(packed.length) askContestKit(pick, packed, 0, commit, cancel);
-  else commit();
+  function kits(){
+    if(packed.length) askContestKit(pick, packed, 0, commit, cancel);
+    else commit();
+  }
+  const fed = (pick||[]).filter(foodAskable);
+  if(fed.length) askContestFood(pick, fed, 0, kits, cancel);
+  else kits();
+}
+function askContestFood(pick, fed, ix, next, cancel){
+  const p = fed[ix];
+  if(!p){ next(); return; }
+  const f = foodOf(p);
+  const c = CLASSES[p.cls]||{};
+  const sheet = document.getElementById("sheet");
+  const modal = document.getElementById("modal");
+  if(!sheet||!modal) return next();
+  S.tapCloseSheet = false;
+  sheet.innerHTML = `<h3>Use food?</h3>
+    <div class="row" style="align-items:flex-start;margin:8px 0">
+      <div class="who">${face(p)}<div class="names">${nameHtml(p,"strong")}${mottoHtml(p)}
+        <div class="tiny">${c.icon||""} ${p.cls} ${p.lv} · PWR ${pwrOf(p)} · HP ${p.hp}/${p.maxhp}</div>
+      </div></div>
+    </div>
+    <p>Do you want <b>${escHtml(p.name)}</b> to use ${f?itemNameHtml(f):"this food"} in the contest?</p>
+    <p class="tiny">${f?foodBlurb(f):""}</p>
+    <p class="tiny">In a contest, food gives its HP, PWR and loyalty. Gold, XP and Dark bonuses only work on jobs.</p>
+    <p class="tiny">${ix+1} of ${fed.length}</p>
+    <button type="button" class="act" id="cfYes" style="width:100%;margin-top:8px">Use it</button>
+    <button type="button" class="ghost" id="cfNo" style="width:100%;margin-top:6px">Leave it packed</button>
+    <button type="button" class="ghost" id="cfCancel" style="width:100%;margin-top:6px">Cancel</button>`;
+  modal.classList.add("show"); modal.style.display="flex"; modal.style.zIndex="10100";
+  document.getElementById("cfYes").onclick=()=>{ eatAtSend(p, pick.map(x=>x.id)); save(); askContestFood(pick, fed, ix+1, next, cancel); };
+  document.getElementById("cfNo").onclick=()=>{ p.foodSkip=true; askContestFood(pick, fed, ix+1, next, cancel); };
+  document.getElementById("cfCancel").onclick=()=>{ pick.forEach(x=>{ if(x) x.foodSkip=false; }); cancel(); };
 }
 function askContestKit(pick, packed, ix, commit, cancel){
   const p = packed[ix];
@@ -12000,7 +12039,7 @@ function helpPage(id){
     ${Object.keys(TYPE_TRAIT).map(k=>`<p class="tiny">${(Object.values(MISSION_TYPE).find(x=>x.type===k)||{}).icon||"📜"} ${k} → ${TYPE_TRAIT[k]} (+4 power on that type).</p>`).join("")}`;
   }
   if(id==="kits"){
-    return `<p class="tiny">A kit sits in its own slot. Buy them from the merchant. When you send someone on a job or to a guild contest, you are asked whether to use their kit. Use it — the bonus applies on that job or contest, then the kit is gone. Keep it packed — it stays in their slot for later. A send that skips the question leaves the kit packed.</p>`+
+    return `<p class="tiny">A kit sits in its own slot. Buy them from the merchant. When you send someone on a job or to a guild contest, you are asked whether to use their kit. Use it — the bonus applies on that job or contest, then the kit is gone. Keep it packed — it stays in their slot for later. A send that skips the question leaves the kit packed. Packed food is asked about the same way on a contest send. In a contest it gives its HP, PWR and loyalty, but not gold, XP or Dark bonuses.</p>`+
       KITS.map(k=>`<p class="tiny">${k.icon||"🧰"} ${itemNameHtml(k)} — ${gp(k.cost)} · ${k.desc}</p>`).join("");
   }
   if(id==="gear"){ return helpGearBody(); }
@@ -12128,6 +12167,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-13", t:"Contest sends now ask about packed food, like job sends. Food used in a contest gives its HP, PWR and loyalty, and is eaten when the contest ends."},
   {d:"2026-11-13", t:"Bring-them-home quests get a dark mourning card with a candlelit glow and a 🕯️ ribbon naming the fallen. Recovery and win-back cards say no gold instead of a fake pay range."},
   {d:"2026-11-13", t:"Writ reward: pick one of up to three of your lowest-level halls. A hall being built or queued is left out, so the reward no longer finishes a build in progress."},
   {d:"2026-11-13", t:"The Writ sealed celebration waits its turn with the other popups instead of being closed by the night's results."},
