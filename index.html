@@ -11149,35 +11149,13 @@ function bindCards(){
   document.getElementById("faNo").onclick=()=>{ p.foodSkip=true; askFoodUseAll(jobs, packed, ix+1); };
 }
 function askArmoryFoodAll(jobs, foods){
-  const sheet=document.getElementById("sheet");
-  const modal=document.getElementById("modal");
-  const list = foods.map((f,i)=>{
-    const fd = FOODS.find(x=>x.id===f.id) || {};
-    return `<button type="button" class="act" data-afa="${i}" style="width:100%;margin-top:6px">${fd.icon||""} ${fd.n||f.id} · ${fd.desc||""}</button>`;
-  }).join("");
-  sheet.innerHTML=`<h3>Equip food from the Armory?</h3>
-    <p class="tiny">No one is carrying food. The Armory has ${foods.length}.</p>
-    ${list}
-    <button type="button" class="ghost" id="afaSkip" style="width:100%;margin-top:8px">Go without</button>`;
-  modal.classList.add("show"); modal.style.display="flex";
-  sheet.querySelectorAll("[data-afa]").forEach(b=>b.onclick=()=>{
-    const f = foods[+b.dataset.afa];
-    const ids = [...new Set(jobs.flatMap(j=>j.ids))];
-    const faces = ids.map(id=>S.people.find(x=>x.id===id)).filter(Boolean);
-    const fd = FOODS.find(x=>x.id===f.id) || {};
-    sheet.innerHTML=`<h3>Who gets ${fd.n||"the food"}?</h3>
-      ${faces.map(p=>`<div class="row" data-who="${p.id}" style="margin:6px 0;cursor:pointer"><div class="who">${face(p)}<div class="names">${nameHtml(p,"strong")}${mottoHtml(p)}<div class="tiny">PWR ${pwrOf(p)} · ${roleLine(p)} · HP ${p.hp}/${p.maxhp}</div><div class="tiny">${quirkLine(p)} · ${traitText(p)}</div>${hpBar(p)}${xpBar(p)}</div></div></div>`).join("")}
-      <button type="button" class="ghost" id="afaBack" style="width:100%;margin-top:8px">Back</button>`;
-    sheet.querySelectorAll("[data-who]").forEach(w=>w.onclick=()=>{
-      const p = S.people.find(x=>x.id===w.dataset.who);
-      if(p && f){ p.food = f.id; S.vault = S.vault.filter(x=>x.uid!==f.uid); }
-      const packed = jobs.flatMap(j=>j.ids).map(id=>S.people.find(x=>x.id===id)).filter(foodAskable);
-      if(packed.length) askFoodUseAll(jobs, packed, 0);
-      else finishJobsKitGate(jobs);
-    });
-    document.getElementById("afaBack").onclick=()=>askArmoryFoodAll(jobs, foods);
-  });
-  document.getElementById("afaSkip").onclick=()=>finishJobsKitGate(jobs);
+  const ids = [...new Set(jobs.flatMap(j=>j.ids))];
+  const party = ids.map(id=>S.people.find(x=>x.id===id)).filter(Boolean);
+  openArmoryFoodPicker(party, ()=>{
+    const packed = party.filter(foodAskable);
+    if(packed.length) askFoodUseAll(jobs, packed, 0);
+    else finishJobsKitGate(jobs);
+  }, ()=>finishJobsKitGate(jobs));
 }
 document.querySelectorAll("[data-sendall]").forEach(b=>b.onclick=()=>{
     const jobs = lootChain().slice().map(c=>{
@@ -11237,29 +11215,76 @@ document.querySelectorAll("[data-sendall]").forEach(b=>b.onclick=()=>{
   });
 }
 
+/* one screen: Armory food on the left, the party on the right. Pick both, then Pack. */
+function openArmoryFoodPicker(party, onDone, onSkip, title){
+  const sheet = document.getElementById("sheet");
+  const modal = document.getElementById("modal");
+  if(!sheet||!modal){ onSkip(); return; }
+  let selF = null, selP = null, packedAny = false, lastMsg = "";
+  const foods = () => vaultFoods();
+  if(foods().length===1) selF = foods()[0].uid;
+  if(party.length===1) selP = party[0].id;
+  function give(p, food){
+    S.vault = (S.vault||[]).filter(x=>x.uid!==food.uid);
+    if(p.food && !p.foodEaten){
+      if(!stashPush("food", p.food)){
+        const old = FOODS.find(x=>x.id===p.food);
+        if(old){ S.gold += sellPrice(old); toast(old.n+" sold to make room."); }
+      }
+    }
+    p.food = food.id; p.foodEaten = false; p.foodSkip = false;
+    packedAny = true; save();
+  }
+  function draw(){
+    const fl = foods();
+    if(selF && !fl.find(f=>f.uid===selF)) selF = fl.length===1 ? fl[0].uid : null;
+    const fCol = fl.length ? fl.map(f=>{
+      const cat = FOODS.find(x=>x.id===f.id)||f;
+      const on = selF===f.uid;
+      return `<button type="button" class="ghost" data-pf="${f.uid}" style="width:100%;text-align:left;margin:0 0 6px;padding:8px;${on?"border:2px solid #e0b84a;background:rgba(224,184,74,.15)":""}">
+        <div><b>${cat.icon||"🍖"} ${itemNameHtml(cat)}</b></div>
+        <div class="tiny">${foodBits(cat)||""}</div>
+        ${cat.desc&&cat.desc.indexOf(foodBits(cat))<0?`<div class="tiny muted">${escHtml(cat.desc)}</div>`:""}
+      </button>`;
+    }).join("") : `<p class="tiny muted">The Armory has no food left.</p>`;
+    const pCol = party.map(p=>{
+      const held = (p.food && !p.foodEaten) ? foodOf(p) : null;
+      const on = selP===p.id;
+      return `<button type="button" class="ghost" data-pp="${p.id}" style="width:100%;text-align:left;margin:0 0 6px;padding:8px;${on?"border:2px solid #e0b84a;background:rgba(224,184,74,.15)":""}">
+        <div><b>${escHtml(p.name.split(" ")[0])}</b> <span class="tiny">${(CLASSES[p.cls]||{}).icon||""} ${p.cls} ${p.lv}</span></div>
+        <div class="tiny">HP ${p.hp}/${p.maxhp} · PWR ${pwrOf(p)}</div>
+        <div class="tiny">${held?(held.icon||"🍖")+" Holding "+escHtml(held.n):"Empty food slot"}</div>
+      </button>`;
+    }).join("");
+    const f = fl.find(x=>x.uid===selF), pp = party.find(x=>x.id===selP);
+    const fc = f ? (FOODS.find(x=>x.id===f.id)||f) : null;
+    sheet.innerHTML = `<h3>${title||"Pack food from the Armory?"}</h3>
+      <p class="tiny">${lastMsg?"✅ "+escHtml(lastMsg)+" Pack another, or tap Done.":"Pick a food and who carries it."}</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;align-items:start">
+        <div><div class="tiny" style="font-weight:700;margin-bottom:4px">🍖 Armory food</div>${fCol}</div>
+        <div><div class="tiny" style="font-weight:700;margin-bottom:4px">👥 Party</div>${pCol}</div>
+      </div>
+      <button type="button" class="act" id="pfGo" style="width:100%;margin-top:8px" ${f&&pp?"":"disabled"}>${f&&pp?"Pack "+escHtml(fc.n)+" for "+escHtml(pp.name.split(" ")[0]):"Pick a food and a person"}</button>
+      ${packedAny?`<button type="button" class="act" id="pfDone" style="width:100%;margin-top:6px">Done</button>`:`<button type="button" class="ghost" id="pfSkip" style="width:100%;margin-top:6px">Never mind, go without</button>`}`;
+    modal.classList.add("show"); modal.style.display="flex";
+    sheet.querySelectorAll("[data-pf]").forEach(b=>b.onclick=()=>{ selF=b.dataset.pf; draw(); });
+    sheet.querySelectorAll("[data-pp]").forEach(b=>b.onclick=()=>{ selP=b.dataset.pp; draw(); });
+    document.getElementById("pfGo").onclick=()=>{
+      const ff = foods().find(x=>x.uid===selF), who = party.find(x=>x.id===selP);
+      if(!ff||!who) return;
+      give(who, ff);
+      lastMsg = ((FOODS.find(x=>x.id===ff.id)||ff).n)+" packed for "+who.name.split(" ")[0]+".";
+      selP = party.length===1 ? party[0].id : null;
+      if(!foods().length || party.length===1){ onDone(); return; }
+      draw();
+    };
+    const d=document.getElementById("pfDone"); if(d) d.onclick=()=>onDone();
+    const k=document.getElementById("pfSkip"); if(k) k.onclick=()=>onSkip();
+  }
+  draw();
+}
 function vaultFoods(){
   return (S.vault||[]).filter(x=>x.kind==="food" && x.id);
-}
-function askArmoryFood(mid, ids, foods){
-  const sheet=document.getElementById("sheet");
-  const modal=document.getElementById("modal");
-  const list = foods.map((f,i)=>`<button type="button" class="act" data-af="${i}" style="width:100%;margin-top:6px">${f.name}</button>`).join("");
-  sheet.innerHTML=`<h3>Use food from the Armory?</h3>
-    <p class="tiny">No one is carrying food. The Armory has ${foods.length}.</p>
-    ${list}
-    <button type="button" class="ghost" id="afSkip" style="width:100%;margin-top:8px">Go without</button>`;
-  modal.classList.add("show"); modal.style.display="flex";
-  sheet.querySelectorAll("[data-af]").forEach(b=>b.onclick=()=>{
-    const f = foods[+b.dataset.af];
-    const who = ids[0];
-    const p = S.people.find(x=>x.id===who);
-    if(p && f){ p.food = f.id||f; S.vault = S.vault.filter(x=>x.uid!==f.uid && x!==f); }
-    const packed = ids.map(id=>S.people.find(x=>x.id===id)).filter(foodAskable);
-    closeModal();
-    if(packed.length) askFoodUse(mid, ids, packed, 0);
-    else finishSendGate(mid, ids);
-  });
-  document.getElementById("afSkip").onclick=()=>{ closeModal(); const m=S.missions.find(x=>x.id===mid); finishSendGate(mid, ids, true); };
 }
 function finishKitGate(mid, ids){
   const packed = kitPacked(ids);
@@ -11371,77 +11396,10 @@ function finishSendGate(mid, ids, skipArmoryFood){
 function askArmoryFood(mid, ids){
   const party = (ids||[]).map(id=>(S.people||[]).find(x=>x.id===id)).filter(Boolean);
   if(party.length && party.every(p=>p.food && p.food!=="none")) return false;
-  const foods = vaultFoods();
-  if(!foods.length) return false;
-  const sheet = document.getElementById("sheet");
-  const modal = document.getElementById("modal");
-  if(!sheet || !modal) return false;
-  sheet.innerHTML = `<h3>Pack food?</h3>
-    <p>There ${foods.length===1?"is a snack":"are "+foods.length+" snacks"} in the Armory. Pack one for this job?</p>
-    <button type="button" class="act" id="armFoodYes" style="width:100%;margin-top:8px">Yes</button>
-    <button type="button" class="ghost" id="armFoodNo" style="width:100%;margin-top:6px">No</button>`;
-  modal.classList.add("show"); modal.style.display="flex";
-  document.getElementById("armFoodYes").onclick=()=>pickArmoryFood(mid, ids, foods);
-  document.getElementById("armFoodNo").onclick=()=>finishSendGate(mid, ids, true);
+  if(!vaultFoods().length) return false;
+  if(!document.getElementById("sheet")) return false;
+  openArmoryFoodPicker(party, ()=>finishSendGate(mid, ids, true), ()=>finishSendGate(mid, ids, true));
   return true;
-}
-function pickArmoryFood(mid, ids, foods){
-  const sheet = document.getElementById("sheet");
-  if(foods.length===1){ pickArmoryEater(mid, ids, foods[0]); return; }
-  sheet.innerHTML = `<h3>Which food?</h3>
-    ${foods.map(f=>{
-      const cat = FOODS.find(x=>x.id===f.id)||f;
-      return `<button type="button" class="ghost" data-armfood="${f.uid}" style="width:100%;text-align:left;margin-top:6px">${itemNameHtml(cat)}<div class="tiny">${foodBits(cat)||cat.desc||""}</div></button>`;
-    }).join("")}
-    <button type="button" class="ghost" id="armFoodSkip" style="width:100%;margin-top:10px">None</button>`;
-  sheet.querySelectorAll("[data-armfood]").forEach(b=>{
-    b.onclick=()=>{
-      const f = foods.find(x=>x.uid===b.dataset.armfood);
-      if(f) pickArmoryEater(mid, ids, f);
-    };
-  });
-  document.getElementById("armFoodSkip").onclick=()=>finishSendGate(mid, ids);
-}
-function pickArmoryEater(mid, ids, food){
-  const party = ids.map(id=>S.people.find(p=>p.id===id)).filter(Boolean);
-  const sheet = document.getElementById("sheet");
-  const cat = FOODS.find(x=>x.id===food.id)||food;
-  function give(p){
-    S.vault = (S.vault||[]).filter(x=>x.uid!==food.uid);
-    if(p.food && !p.foodEaten){
-      if(!stashPush("food", p.food) && p.food!==food.id){
-        // old snack sold if racks full
-        const old = FOODS.find(x=>x.id===p.food);
-        if(old){ S.gold += sellPrice(old); toast(old.n+" sold to make room."); }
-      }
-    }
-    p.food = food.id;
-    p.foodEaten = false;
-    p.foodSkip = false;
-    save();
-    finishSendGate(mid, ids);
-  }
-  if(party.length===1){ give(party[0]); return; }
-  sheet.innerHTML = `<h3>Who takes ${itemNameHtml(cat)}?</h3>
-    <p class="tiny">${foodBits(cat)}</p>
-    ${party.map(p=>{
-      const c = CLASSES[p.cls]||{};
-      const held = foodOf(p);
-      return `<button type="button" class="ghost" data-eater="${p.id}" style="width:100%;text-align:left;margin-top:6px">
-        <div class="row">${face(p)}<div>${nameHtml(p,"strong")}
-          <div class="tiny">${c.icon||""} ${p.cls} ${p.lv} · HP ${p.hp}/${p.maxhp}</div>
-          <div class="tiny">${held?"Holding "+held.n:"Empty slot"}</div>
-        </div></div>
-      </button>`;
-    }).join("")}
-    <button type="button" class="ghost" id="armFoodSkip2" style="width:100%;margin-top:10px">None</button>`;
-  sheet.querySelectorAll("[data-eater]").forEach(b=>{
-    b.onclick=()=>{
-      const p = party.find(x=>x.id===b.dataset.eater);
-      if(p) give(p);
-    };
-  });
-  document.getElementById("armFoodSkip2").onclick=()=>finishSendGate(mid, ids);
 }
 function askFoodUse(mid, ids, packed, ix){
   const m = findMission(mid);
@@ -12090,6 +12048,7 @@ function helpPage(id){
     }).join("");
     return `
     <p class="tiny">One snack slot per person. Buy it, loot it, or pick it off the road. One use. Color is rarity, same as gear.</p>
+    <p class="tiny"><b>Packing from the Armory</b> — if someone on a send has no food and the Armory has some, one screen shows the foods and their bonuses next to the party. Pick a food and a person, then Pack. Pack more or tap Done, or pick Never mind to go without.</p>
     <p class="tiny"><b>Use it when sending</b> — the heal lands right away; power / gold / XP count on that job, then the food is gone. <b>Use on the sheet</b> — heal and loyalty apply now. Power / gold / XP wait for the next job, then the food is gone. You can also Use food sitting in the Armory.</p>
     <p class="tiny"><b>Leave it packed</b> — they eat on the job: heal first, then the wound roll; bonuses apply; then it is gone.</p>
     ${rows}`;
@@ -12167,6 +12126,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-13", t:"Armory food at send is one split screen: foods with their bonuses on the left, the party on the right. Pick both and Pack, or Never mind. Shows even with one person."},
   {d:"2026-11-13", t:"Contest sends now ask about packed food, like job sends. Food used in a contest gives its HP, PWR and loyalty, and is eaten when the contest ends."},
   {d:"2026-11-13", t:"Bring-them-home quests get a dark mourning card with a candlelit glow and a 🕯️ ribbon naming the fallen. Recovery and win-back cards say no gold instead of a fake pay range."},
   {d:"2026-11-13", t:"Writ reward: pick one of up to three of your lowest-level halls. A hall being built or queued is left out, so the reward no longer finishes a build in progress."},
