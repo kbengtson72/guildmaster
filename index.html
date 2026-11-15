@@ -288,6 +288,9 @@
   .cls-badge.r { background: linear-gradient(#1e3a22,#102010); border-color: #6aaa5a; }
   .cls-badge.m { background: linear-gradient(#1e2a4a,#12182a); border-color: #6a8ad0; }
   .cls-badge.c { background: linear-gradient(#3a2a4a,#201828); border-color: #b08ad0; }
+  .cls-badge.g-flawed { box-shadow: 0 0 0 2px #1a120a, 0 0 0 4px #c45a4a; }
+  .cls-badge.g-gifted { box-shadow: 0 0 0 2px #1a120a, 0 0 0 4px #5aad5a; }
+  .cls-badge.g-elite { box-shadow: 0 0 0 2px #1a120a, 0 0 0 4px #e0b44b, 0 0 8px rgba(224,180,75,.5); }
   .lv-pip {
     position: absolute;
     right: -6px; bottom: -6px;
@@ -8445,7 +8448,7 @@ function openSeekersBody(){
   const band = fameBand();
   const hall = byPower(livingRoster());
   const rosterStrip = hall.length
-    ? `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 10px">${hall.map(p=>`<span class="cls-badge ${CLASSES[p.cls].tag}" title="${p.name} · ${p.cls} ${p.lv}">${CLASSES[p.cls].icon}<span class="lv-pip">${p.lv||1}</span></span>`).join("")}</div>`
+    ? `<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:10px 4px 12px">${hall.map(p=>`<span class="cls-badge ${CLASSES[p.cls].tag} g-${faceGrade(p)}" title="${p.name} · ${p.cls} ${p.lv} · ${faceGrade(p)}">${CLASSES[p.cls].icon}<span class="lv-pip">${p.lv||1}</span></span>`).join("")}</div>`
     : `<p class="muted">Empty hall.</p>`;
   sheet.innerHTML = `<h3>At the door</h3>
     <p class="tiny">Roster ${hall.length}/${cap()} · purse ${gp(S.gold)}${bankLv()?" · vault "+gp(S.deposit||0)+"/"+bankCap():""}</p>
@@ -12280,6 +12283,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-15", t:"At the door: each roster tile has an outer ring in the person's quality color (red flawed, none common, green gifted, gold elite), the same colors as the door cards."},
   {d:"2026-11-15", t:"Guild contest countdown: a splash pop-up each dawn for the last 5 days of the season (5, 4, 3, 2, 1) with the rival's Renown, yours, and how many are ready."},
   {d:"2026-11-15", t:"Armory, Merchant, and road stalls: each adventurer's box is a lighter shade so it stands out from the item card."},
   {d:"2026-11-15", t:"Armory gets the Merchant's tabs (Weapons, Armor, Consumables, Kits, Loot) with item counts. Each tab is sorted by sell price, highest first."},
