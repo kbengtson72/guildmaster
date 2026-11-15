@@ -3704,21 +3704,19 @@ function openRoadShop(kind, enc, m, party, after, useSheet){
     box.innerHTML = `<div class="row"><h3>🛒 ${roadShopTitle(kind)}</h3><span class="tag">${gp(S.gold)}</span></div>
       ${borrowLine()}
       <p class="tiny">${MISSION_ICON[m.t]||"📜"} ${m.t} · ${names}</p>
-      <p class="tiny">They buy what is on a body. Racks stock stays home.</p>
-      <h3>The party</h3>
-      ${party.map(p=>{
-        const wid = p.weapon, aid = p.armor, fid = p.food;
-        const w = wid?catalogKind("weapon", wid):null;
-        const a = aid?catalogKind("armor", aid):null;
-        const f = fid?catalogKind("food", fid):null;
-        return `<p class="tiny">${(CLASSES[p.cls]||{}).icon||""} ${p.name.split(" ")[0]} · ${w?w.n:"no weapon"} · ${a?a.n:"no armor"} · ${f?f.n:"no food"}</p>`;
-      }).join("")}
+      <p class="tiny">Each piece shows what the party is wearing and the stat change. Food shows current HP. Buy onto someone, buy to the Armory, or sell what they are holding. Racks stock stays home.</p>
       <h3>For sale</h3>
-      ${stock.map(it=>`<div class="card" style="margin:6px 0">
+      ${stock.map(it=>{
+        const wear = Object.assign({kind}, it);
+        const afford = funds()>=it.cost;
+        const people = shopWearCards(wear, party, {mode:"road", priceLabel:gp(it.cost), afford, offhand:false, empty:"No one in this party can use this."});
+        return `<div class="card" style="margin:6px 0">
         <div class="row">${itemNameHtml(it)}<span class="tiny">${roadStatLine(it, kind)}</span></div>
         <p class="tiny">${it.desc||""}${it.road?" · road-only":""}</p>
-        <button type="button" class="act" data-buy="${it.id}" style="width:100%;margin-top:6px" ${funds()<it.cost?"disabled":""}>${funds()<it.cost?"Not enough gold · "+gp(it.cost):"Buy · "+gp(it.cost)}</button>
-      </div>`).join("")||"<p class='muted'>Nothing left on the board.</p>"}
+        ${people}
+        <button type="button" class="${afford?"act":"ghost"}" data-buy="${it.id}" style="width:100%;margin-top:6px" ${afford?"":"disabled"}>${afford?"Buy to Armory · "+gp(it.cost):"Not enough gold · "+gp(it.cost)}</button>
+      </div>`;
+      }).join("")||"<p class='muted'>Nothing left on the board.</p>"}
       <h3>Sell what they are holding</h3>
       ${party.map(p=>{
         const id = slotOf(p, kind);
@@ -3745,7 +3743,29 @@ function openRoadShop(kind, enc, m, party, after, useSheet){
         note("Bought "+it.n+" on the road.", "success");
         log("Road stall: bought "+it.n+" for "+it.cost+"g.");
         save();
-        paintHold(Object.assign({kind}, it));
+        const wear = Object.assign({kind}, it);
+        if(!rackItem(wear)) paintHold(wear);
+        else paint();
+      };
+    });
+    box.querySelectorAll("[data-rbeq]").forEach(b=>{
+      b.onclick=()=>{
+        const [id,pid]=b.dataset.rbeq.split("|");
+        const it = stock.find(x=>x.id===id);
+        const per = party.find(x=>x.id===pid);
+        if(!it||!per) return;
+        if(funds() < it.cost) return toast("Need "+gp(it.cost)+". Have "+gp(S.gold)+".");
+        spend(it.cost);
+        S[key] = (S[key]||[]).filter(x=>x!==it.id);
+        note("Bought "+it.n+" on the road.", "success");
+        log("Road stall: bought "+it.n+" for "+it.cost+"g.");
+        save();
+        const wear = Object.assign({kind}, it);
+        const oldId = slotOf(per, kind, wear);
+        const old = oldId ? catalogKind(kind, oldId) : null;
+        const occupied = !isBaseSlot(per, kind, wear) && old;
+        if(occupied && vaultFull()){ paintHold(wear); return; }
+        putOn(per, wear, false);
       };
     });
     box.querySelectorAll("[data-sell]").forEach(b=>{
@@ -9197,14 +9217,25 @@ function openMakeSpace(keepUid){
     if(keepUid){ keepPending(keepUid); showFindsPopup(); return; }
     else if(S._buyHold){
       const item = S._buyHold; S._buyHold = null;
+      const pid = S._buyHoldPid; S._buyHoldPid = null;
+      const hand = S._buyHoldHand; S._buyHoldHand = null;
+      const stashOnly = S._buyHoldStash; S._buyHoldStash = null;
       const price = shopCost(item);
       if(funds() < price) return toast("Can't afford that.");
       spend(price);
       pullShop(item);
+      const who = pid ? (S.people||[]).find(x=>x.id===pid) : null;
       stashPush(item.kind, item.id);
-      log("Bought "+item.n+" for the armory.");
+      log(who ? ("Bought "+item.n+" for "+who.name+".") : ("Bought "+item.n+" for the armory."));
       hideFindsIfIdle();
-      save(); render(); openBuyEquip(item); return;
+      save(); render();
+      if(pid){
+        const uid=((S.vault||[]).slice().reverse().find(x=>x.id===item.id && x.kind===item.kind)||{}).uid;
+        if(uid) equipFromVault(uid, pid, hand||"main");
+        return;
+      }
+      if(stashOnly) return;
+      openBuyEquip(item); return;
     }
   }
   function paint(equipUid){
@@ -9295,7 +9326,7 @@ function openMakeSpace(keepUid){
     });
     const go = document.getElementById("afterDump");
     if(go) go.onclick=()=>finishKeep();
-    document.getElementById("cancelDump").onclick = ()=>{ S._buyHold=null; if(keepUid && (S.pendingLoot||[]).length && showFindsPopup()) return; hideFindsIfIdle(); if(!keepUid && S._shopFromContest){ afterShopFlow(); return; } closeModal(); render(); };
+    document.getElementById("cancelDump").onclick = ()=>{ S._buyHold=null; S._buyHoldPid=null; S._buyHoldHand=null; S._buyHoldStash=null; if(keepUid && (S.pendingLoot||[]).length && showFindsPopup()) return; hideFindsIfIdle(); if(!keepUid && S._shopFromContest){ afterShopFlow(); return; } closeModal(); render(); };
   }
   paint();
 }
@@ -9337,12 +9368,15 @@ function openBuyEquip(item){
   });
   document.getElementById("buyEqNo").onclick=()=>afterShopFlow();
 }
-function buy(item){
+function buy(item, pid, hand, stashOnly){
   if(!item) return;
   const price = shopCost(item);
   if(vaultFull()){
     if(funds() < price) return toast("Can't afford that. Have "+gp(S.gold)+".");
     S._buyHold = item;
+    S._buyHoldPid = pid || null;
+    S._buyHoldHand = hand || "main";
+    S._buyHoldStash = !!stashOnly;
     openMakeSpace(null);
     return;
   }
@@ -9350,9 +9384,16 @@ function buy(item){
   spend(price);
   if(item.feat || (S.featItem && S.featItem.id===item.id && S.featItem.kind===item.kind)) S.featItem = null;
   pullShop(item);
+  const who = pid ? (S.people||[]).find(x=>x.id===pid) : null;
   stashPush(item.kind, item.id);
-  log("Bought "+item.n+" for the armory.");
+  log(who ? ("Bought "+item.n+" for "+who.name+".") : ("Bought "+item.n+" for the armory."));
   save(); render();
+  if(pid){
+    const uid=((S.vault||[]).slice().reverse().find(x=>x.id===item.id && x.kind===item.kind)||{}).uid;
+    if(uid) equipFromVault(uid, pid, hand||"main");
+    return;
+  }
+  if(stashOnly) return;
   openBuyEquip(item);
 }
 function equipFromVault(uid, pid, hand){
@@ -10998,9 +11039,53 @@ function shopCost(it){
   if(wo && it && it.kind==="kit" && it.id===wo.id) n = Math.max(1, Math.floor(n*0.8));
   return n;
 }
+function foodHpHtml(p){
+  if(!p) return "";
+  const col = p.hp<(p.maxhp||0)*0.5?"#e07a5f":p.hp<(p.maxhp||0)?"#e0b84a":"#8fc98f";
+  return ` <span class="tiny" style="color:${col}">· HP ${p.hp}/${p.maxhp}</span>`;
+}
+function wearNowLine(p, it){
+  ensureSlots(p);
+  const kind = it.kind;
+  const cur = kind==="armor" ? catalog("armor", (p.slots||{})[armorSlotOf(it)]|| (armorSlotOf(it)==="chest"?p.armor:null)) : slotItem(p, kind);
+  const now = cur ? (itemNameHtml(cur)+(kind==="weapon"?" +"+cur.atk+" ATK":kind==="armor"?" +"+cur.def+" DEF":kind==="food"?" "+foodBits(cur):"")) : "empty";
+  const delta = (kind==="weapon"||kind==="armor") ? gearDeltaHtml(p, it, isShield(it)?"off":"main") : "";
+  return {now, delta};
+}
+function shopWearCards(it, people, opts){
+  opts = opts||{};
+  if(!it || (it.kind!=="weapon" && it.kind!=="armor" && it.kind!=="food")) return "";
+  const afford = !!opts.afford;
+  const price = opts.priceLabel||"";
+  const ready = (people||[]).filter(p=>canWield(p, it));
+  const away = opts.away||[];
+  const attr = (p, hand)=>{
+    if(opts.mode==="shop") return `data-buyeqto="${it.kind}|${it.id}|${p.id}|${hand}"`;
+    if(opts.mode==="road") return `data-rbeq="${it.id}|${p.id}"`;
+    return "";
+  };
+  const cards = ready.map(p=>{
+    const {now, delta} = wearNowLine(p, it);
+    const hp = it.kind==="food"?foodHpHtml(p):"";
+    const offOk = !!opts.offhand && it.kind==="weapon" && canOffhand(p, it);
+    const off = offOk ? catalog("weapon", p.offhand) : null;
+    const offNow = off ? (itemNameHtml(off)+" "+(isShield(off)?"+"+(off.def||0)+" DEF":"+"+(off.atk||0)+" ATK")) : "empty";
+    const shield = isShield(it);
+    const buyLbl = afford ? ("Buy for "+p.name.split(" ")[0]+" · "+price) : ("Not enough gold · "+price);
+    const dis = afford?"":"disabled";
+    const hands = offOk
+      ? `<div class="tiny">Main: ${now}${delta}</div><div class="tiny">Off: ${offNow}</div>${afford?"":`<p class="tiny" style="color:#e0b84a;margin:4px 0 0">Not enough gold · ${price}</p>`}<div class="row" style="gap:6px;margin-top:4px">${shield?"":`<button type="button" class="${afford?"act":"ghost"}" ${attr(p,"main")} ${dis} style="flex:1">Main hand</button>`}${(isTwoHand(it)||isTwoHand(catalog("weapon", p.weapon)))?"":`<button type="button" class="ghost" ${attr(p,"off")} ${dis} style="flex:1">Off hand${gearDeltaHtml(p, it, "off")}</button>`}</div>`
+      : `<button type="button" class="ghost" ${attr(p,"main")} ${dis} style="text-align:left;width:100%">${CLASSES[p.cls].icon} ${p.name.split(" ")[0]}${hp}<br><span class="tiny">Now: ${now}${delta}</span><br><span class="tiny">${buyLbl}</span></button>`;
+    return `<div class="card" style="margin:6px 0;text-align:left">${offOk?`${CLASSES[p.cls].icon} ${p.name.split(" ")[0]}${hp}`:""}${hands}</div>`;
+  }).join("");
+  const empty = !ready.length ? `<span class='muted'>${opts.empty || (!(people||[]).length && away.length ? "Everyone is away. Buy it for the Armory, then equip when they are home." : "No one home can use this."+(away.some(p=>canWield(p,it))?" Someone out on a job could, once they are back.":""))}</span>` : "";
+  return `<div style="margin-top:6px">${cards}${empty}</div>`;
+}
 function shopView(){
   ensureFoodStock();
   if(!S.shop) S.shop = [];
+  const ready = (S.people||[]).filter(p=>p.status!=="dead" && p.status!=="away");
+  const away = (S.people||[]).filter(p=>p.status==="away");
   const glutLine = raiseOffer("armory") + ((S.glutUntil||0)>S.day ? `<p class="ok">Market glut · ${S.glutUntil-S.day}d · 20% off</p>` : "");
   const cats = [
     {id:"weapon", label:"Weapons", icon:"⚔️"},
@@ -11014,15 +11099,25 @@ function shopView(){
   const writOilLine = writOil()?`<p class="ok">Writ oil: ${writOil().n} · +3 ${writOil().job}</p>`:"";
   return `${glutLine}${writOilLine}${(S.featItem)?`<p class="ok">Limited: ${S.featItem.n} · ${S.featItem.r||rarityOf(S.featItem)} · ${S.nextFeat? (S.nextFeat-S.day)+"d left":""}</p>`:""}<div class="card"><h3>Merchant</h3>
     ${borrowLine()}
-    <p class="tiny">Buy stock for the Armory (${(S.vault||[]).length}/${vaultCap()} slots). Outfitter Lv ${S.buildings.armory} sets the colour (Gray, White, Green, Blue, Purple). Orange Legendary gear is never for sale. Food is one-use.</p>
+    <p class="tiny">Each weapon, armor, and food shows what your people at home already wear, the stat change, and current HP on food. Buy onto someone, or buy to the Armory (${(S.vault||[]).length}/${vaultCap()} slots). Outfitter Lv ${S.buildings.armory} sets the colour (Gray, White, Green, Blue, Purple). Orange Legendary gear is never for sale. Food is one-use.</p>
     <div class="subnav">
       ${cats.map(c=>`<button class="${shopCat===c.id?"on":""}" data-shopcat="${c.id}">${c.icon} ${c.label}</button>`).join("")}
     </div>
     </div>
-    ${list.length?list.map(it=>`<div class="card"><div class="row"><strong>${it.kind==="food"?(it.icon||"🍖")+" ":""}${itemNameHtml(it)}</strong><span class="muted">${it.kind==="food"?foodBits(it) : it.kind==="kit"?kitBits(it) : gearStatText(it)}${tierBit(it)} · ${gp(shopCost(it))}${(S.glutUntil||0)>S.day?" · glut":""}</span></div>
+    ${list.length?list.map(it=>{
+      const price = shopCost(it);
+      const afford = funds() >= price;
+      const priceLbl = gp(price)+((S.glutUntil||0)>S.day?" · glut":"");
+      const buyLbl = afford ? ((it.kind==="kit"?"Buy · ":"Buy to Armory · ")+gp(price)) : ("Not enough gold · "+gp(price));
+      const people = (it.kind==="weapon"||it.kind==="armor"||it.kind==="food")
+        ? shopWearCards(it, ready, {mode:"shop", priceLabel:gp(price), afford, offhand:true, away})
+        : "";
+      return `<div class="card"><div class="row"><strong>${it.kind==="food"?(it.icon||"🍖")+" ":""}${itemNameHtml(it)}</strong><span class="muted">${it.kind==="food"?foodBits(it) : it.kind==="kit"?kitBits(it) : gearStatText(it)}${tierBit(it)} · ${priceLbl}</span></div>
       ${it.kind==="food"&&it.desc?`<p class="tiny">${it.desc}</p>`:""}${(it.kind==="weapon")?gearAbHtml(it):""}
-      <button class="act" data-buy="${it.kind}|${it.id}" style="width:100%;margin-top:8px">Buy · ${gp(shopCost(it))}</button>
-    </div>`).join(""):`<div class="card"><p class="muted">Nothing in ${labels[shopCat]||shopCat} today.</p></div>`}`;
+      ${people}
+      <button class="${afford?"act":"ghost"}" data-buy="${it.kind}|${it.id}" ${it.kind==="kit"?"":`data-buyarm="1"`} ${afford?"":"disabled"} style="width:100%;margin-top:8px">${buyLbl}</button>
+    </div>`;
+    }).join(""):`<div class="card"><p class="muted">Nothing in ${labels[shopCat]||shopCat} today.</p></div>`}`;
 }
 
 function raiseOffer(key){
@@ -11210,7 +11305,14 @@ document.querySelectorAll("[data-sendall]").forEach(b=>b.onclick=()=>{
     b.onclick=()=>{
       const [kind,id]=b.dataset.buy.split("|");
       const item = S.shop.find(x=>x.kind===kind && x.id===id);
-      buy(item);
+      buy(item, null, null, b.dataset.buyarm==="1");
+    };
+  });
+  document.querySelectorAll("[data-buyeqto]").forEach(b=>{
+    b.onclick=()=>{
+      const [kind,id,pid,hand]=b.dataset.buyeqto.split("|");
+      const item = S.shop.find(x=>x.kind===kind && x.id===id);
+      buy(item, pid, hand||"main");
     };
   });
   document.querySelectorAll("[data-equip]").forEach(b=>{
@@ -11943,7 +12045,7 @@ function helpPage(id){
     <p class="tiny">Door kit is also capped by day: no Blue before day 18, no Purple before day 35. Orange Legendary gear never turns up on a visitor. Quality band starts from Renown: 0–4 none, 5–11 one, 12–23 two, 24–39 three, 40+ four. Then +1 if the vault holds 50g or more, +1 more if Bank is Lv3+ and the vault is at least 70% full. Band caps at 4. That band sets border, level, traits, and kit. Elite can appear here. They never sit the Tap.</p>
     <p class="tiny"><b>Adventurers</b> — tap a name for the sheet: gear, food, dismiss, Use snack. The card shows the nightly wage, the gold actually taken. Pencil by the name edits the name, its color, and two subtitle lines. Default name color is the class (Warrior copper, Rogue green, Mage blue, Cleric violet).</p>
     <p class="tiny"><b>Quests</b> — assign ready people. Favored classes show a mark. Extra bodies past the needed seats cut gold 25% each. Jobs take days; Courier Stable shortens them.</p>
-    <p class="tiny"><b>Merchant</b> — Weapons, Armor, Consumables. Buys go to the Armory.</p>
+    <p class="tiny"><b>Merchant</b> — Weapons, Armor, Consumables, Kits. Weapons, armor, and food show what each adventurer already wears, the stat change, and current HP on food. Buy onto someone, or buy to the Armory. Road stalls use the same comparisons for the party on the job.</p>
     <p class="tiny"><b>Armory</b> — 4 slots to start. Equip someone home; old gear returns here. Sell at half list. Racks add +3 slots per level. Jobs and the road can drop salvage, gear, or food.</p>
     <p class="tiny"><b>End Day</b> — wages, healing, returns, night report (who is still in the field and days left). Parties still out may hit a road event (⚙ slider, default 10%). The road can be a fight, a merchant, a healer, a priest, a beggar, or a rescue. Combat can give XP, gold, Renown, or −1 day — or wound people and add a day. Gear from a fight or a finished quest opens a Finds window to keep, sell, or equip. Gear won in a road fight can only be equipped by the party on that job; everyone else shows greyed out. Finds at home can only go to adventurers at home; anyone out on a job shows greyed out. If nobody takes it, Carry home keeps it with the party, and when they return a Brought home window asks you to equip it or put it in the Armory. Unclaimed finds stay and come back until you deal with them. If you close the app mid-road, the choice or result comes back when you reopen. Forced-fight slider is the chance you cannot skip a fight (default 50%).</p>
     <p class="tiny"><b>Hall events</b> — each dawn has an 8% chance of a hall note (a leak, a levy, a purse, a peddler, and the like). A note you have not seen yet comes back the next day until you close it, and it is not thrown away by a writ, a contest warning, or reopening the app. Last hall event: ${(typeof hallEventDiagText==="function"?hallEventDiagText().last:"none yet")}. Pending: ${(typeof hallEventDiagText==="function"?hallEventDiagText().pending:"none")}.</p>
@@ -12135,6 +12237,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-15", t:"Merchant and road vendors now show Armory-style cards for each adventurer: current gear, the stat change, and current HP on food. You can buy a piece onto someone, or still buy it to the Armory. Comparisons stay visible when you cannot afford it."},
   {d:"2026-11-14", t:"Armory food cards now show each adventurer's current HP: green when full, gold when hurt, red under half."},
   {d:"2026-11-14", t:"Board-thief and Break the seal: swapping a writ-marked quest no longer brings the same quest straight back. A writ quest swaps for a different writ quest when one fits."},
   {d:"2026-11-13", t:"Armory food at send is one split screen: foods with their bonuses on the left, the party on the right. Pick both and Pack, or Never mind. Shows even with one person."},
