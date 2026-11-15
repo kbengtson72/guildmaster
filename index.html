@@ -417,6 +417,11 @@
 .ws-lose .ws-title{color:#2a0e0a}
 .ws-ash{position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden}
 .ws-ash i{position:absolute;top:-12px;width:5px;height:5px;border-radius:50%;background:#c25a2a;box-shadow:0 0 6px #ff7a30;opacity:0;animation:wsFall linear forwards}
+.ws-warn .ws-rays{background:repeating-conic-gradient(rgba(214,72,52,.26) 0 9deg,transparent 9deg 20deg)}
+.ws-warn .ws-scroll{background:linear-gradient(#e9d3a4,#cfae74 60%,#b38c55);color:#2a120c}
+.ws-warn .ws-title{color:#7a1a10}
+.ws-warn .ws-seal{background:radial-gradient(circle at 38% 34%,#e2543e,#a52618 65%,#5e1008);color:#fff3d8;font-size:46px;font-weight:800;box-shadow:0 0 0 5px rgba(120,20,10,.45),0 0 22px rgba(255,90,50,.55)}
+.ws-ember i{background:#ff8a4a!important;box-shadow:0 0 6px #ff6a2a}
 .ws-win .ws-rays{background:repeating-conic-gradient(rgba(255,214,102,.28) 0 9deg,transparent 9deg 20deg)}
 @keyframes wsCrack{0%{opacity:0;transform:scale(2.4) rotate(-20deg)}55%{opacity:1;transform:scale(.92) rotate(3deg)}75%{transform:scale(1.02) rotate(-8deg)}100%{opacity:1;transform:scale(1) rotate(-14deg) translateY(3px)}}
 @keyframes wsShake{0%,100%{transform:none}20%{transform:translateX(-6px) rotate(-1deg)}40%{transform:translateX(5px) rotate(1deg)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
@@ -3242,16 +3247,16 @@ function tickSeason(){
   if(!S.season) S.season = "spring";
   if(S.seasonLeft==null) S.seasonLeft = 30;
   S.seasonLeft -= 1;
-  if(S.seasonLeft===5 && !S.contestWarned && !(S.contestUntil>S.day) && !S.contestDue){
-    S.contestWarned = true;
+  if(S.seasonLeft>=1 && S.seasonLeft<=5 && S.contestWarnLeft!==S.seasonLeft && !(S.contestUntil>S.day) && !S.contestDue){
+    S.contestWarned = true; S.contestWarnLeft = S.seasonLeft;
     const r = (S.rival&&S.rival.name)||"the other hall";
-    S.contestWarn = {id:"contest_warn", name:r, left:5, them:(S.rival&&S.rival.renown)||0, us:S.renown||0};
+    S.contestWarn = {id:"contest_warn", name:r, left:S.seasonLeft, them:(S.rival&&S.rival.renown)||0, us:S.renown||0};
   }
   if(S.seasonLeft>0) return;
   const i = SEASON_ORDER.indexOf(S.season);
   S.season = SEASON_ORDER[(i+1)%4];
   S.seasonLeft = 30;
-  S.contestWarned = false;
+  S.contestWarned = false; S.contestWarnLeft = null;
   S.shade = false;
   S.plant = false;
   S.firewood = false;
@@ -5393,9 +5398,29 @@ function grantWritHallAuto(){
   S.writChoice = {title:(S.writ&&S.writ.title)||"Writ", opts:pool};
   return {kind:"choice", opts:pool};
 }
+function showContestCountdown(e){
+  const sheet=document.getElementById("sheet");
+  const modal=document.getElementById("modal");
+  if(!sheet||!modal){ S.contestWarn=null; return false; }
+  const left=e.left||5;
+  const ready=(S.people||[]).filter(p=>p.status!=="dead"&&p.status!=="away").length;
+  const them=(S.rival&&S.rival.renown)||e.them||0, us=S.renown||0;
+  const label = left===1 ? "Contest tomorrow" : left+" days to the contest";
+  const line = left===1 ? "The season turns tonight. "+escHtml(e.name)+" will call you out at dawn. Keep two faces home and rested." : escHtml(e.name)+" will call a contest when the season turns. Have two ready faces if you mean to answer. Refusing counts as a loss.";
+  const rew=[`🏛️ ${escHtml(e.name)} ${them}`,`⭐ You ${us}`,`🧑 ${ready} ready`];
+  sheet.innerHTML=ceremonyHtml({mood:"warn", kicker:"The season ends in", title:left===1?"1 day":left+" days", emblem:String(left), label, line, rew})
+    +`<button type="button" class="act ws-btn" id="cwOk" style="width:100%;margin-top:16px">${left===1?"We'll be ready":"Noted"}</button>`;
+  modal.classList.add("show"); modal.style.display="flex";
+  document.getElementById("cwOk").onclick=()=>{ S.contestWarn=null; closeModal(); save(); try{ nextDoorQueue(); }catch(err){} };
+  log("Contest countdown: "+left+" day"+(left===1?"":"s")+" left.");
+  return true;
+}
 function ceremonyHtml(o){
   let fx="";
-  if(o.mood==="lose"){
+  if(o.mood==="warn"){
+    for(let i=0;i<18;i++) fx+=`<i style="left:${(Math.random()*100).toFixed(1)}%;--x:${(Math.random()*60-30).toFixed(0)}px;animation-duration:${(3+Math.random()*3).toFixed(2)}s;animation-delay:${(.6+Math.random()*2).toFixed(2)}s"></i>`;
+    fx=`<div class="ws-ash ws-ember">${fx}</div>`;
+  } else if(o.mood==="lose"){
     for(let i=0;i<26;i++) fx+=`<i style="left:${(Math.random()*100).toFixed(1)}%;--x:${(Math.random()*80-40).toFixed(0)}px;animation-duration:${(3+Math.random()*3).toFixed(2)}s;animation-delay:${(.9+Math.random()*2).toFixed(2)}s"></i>`;
     fx=`<div class="ws-ash">${fx}</div>`;
   } else {
@@ -7468,7 +7493,7 @@ function nextDoorQueue(){
   S.writNewAsk = false;
   if(S.contestWarn && !(S.contestUntil>S.day) && !S.contestDue){
     if(S.hallEvent) return showHallEvent();
-    S.hallEvent = S.contestWarn; S.contestWarn = null; stampHallEvent(); recordHallEvent(S.hallEvent, "roll"); return showHallEvent();
+    return showContestCountdown(S.contestWarn);
   }
   if(S.contestWarn && ((S.contestUntil>S.day) || S.contestDue)) S.contestWarn = null;
   if((S.graveAsk||[]).length) return openGraveAsk();
@@ -9907,7 +9932,7 @@ function snapshot(){
     writ:S.writ||null, writWins:S.writWins||0, writFails:S.writFails||0, writChoice:S.writChoice||null, writCongratsAsk:S.writCongratsAsk||null,
     epicWins:S.epicWins||0,
     nextSeek:S.nextSeek||null, seekers:S.seekers||null, quitAsk:S.quitAsk||null, restlessAsk:S.restlessAsk||null, raise:S.raise||null,
-    seasonAsk:S.seasonAsk||null, contestAsk:S.contestAsk||null, contestDue:S.contestDue||null, contestWarn:S.contestWarn||null, contestWarned:!!S.contestWarned, hallEvent:S.hallEvent||null, season:S.season||"spring", seasonLeft:S.seasonLeft,
+    seasonAsk:S.seasonAsk||null, contestAsk:S.contestAsk||null, contestDue:S.contestDue||null, contestWarn:S.contestWarn||null, contestWarned:!!S.contestWarned, contestWarnLeft:S.contestWarnLeft||null, hallEvent:S.hallEvent||null, season:S.season||"spring", seasonLeft:S.seasonLeft,
     contestUntil:S.contestUntil||null, contestParty:S.contestParty||null, contestTheir:S.contestTheir!=null?S.contestTheir:null,
     rival:S.rival||null, rivalWritAsk:S.rivalWritAsk||null, raiseQ:S.raiseQ||[], loan:S.loan||0,
     plant:!!S.plant, shade:!!S.shade, grain:!!S.grain, firewood:!!S.firewood,
@@ -9925,7 +9950,7 @@ function applySnap(d){
   S.day=d.day||1; S.gold=d.gold||0; S.renown=d.renown||0;
   if(d.season) S.season=d.season;
   if(d.seasonLeft!=null) S.seasonLeft=d.seasonLeft;
-  S.seasonAsk=d.seasonAsk||null; S.contestAsk=d.contestAsk||null; S.contestDue=d.contestDue||null; S.contestWarn=d.contestWarn||null; S.contestWarned=!!d.contestWarned; S.hallEvent=d.hallEvent||null;
+  S.seasonAsk=d.seasonAsk||null; S.contestAsk=d.contestAsk||null; S.contestDue=d.contestDue||null; S.contestWarn=d.contestWarn||null; S.contestWarned=!!d.contestWarned; S.contestWarnLeft=d.contestWarnLeft||null; S.hallEvent=d.hallEvent||null;
   S.contestUntil=d.contestUntil||null; S.contestParty=d.contestParty||null; S.contestTheir=d.contestTheir!=null?d.contestTheir:null;
   S.rival=d.rival||null; S.rivalWritAsk=d.rivalWritAsk||null; S.raiseQ=d.raiseQ||[]; S.loan=d.loan||0;
   S.plant=!!d.plant; S.shade=!!d.shade; S.grain=!!d.grain; S.firewood=!!d.firewood;
@@ -12183,6 +12208,7 @@ function helpPage(id){
   }
   if(id==="hall") return `
     <p class="tiny">Upgrade on the Hall tab. Cost is base × next level. Pay now; it raises for 5 days × the level you are buying (Lv1 = 5d, Lv2 = 10d, Lv3 = 15d, Lv4 = 20d). You can queue the next raise. Tap the build ring up top to see the current build, the queue, and when each finishes. Halting a raise asks first, then returns half the cost. A finished job pays Renown equal to its difficulty. Charming +1, Sour −1. Charter is gone. Renown is prestige, not coin.</p>
+    <p class="tiny"><b>Contest countdown</b> — for the last 5 days of each season, a splash pops up each dawn (5, 4, 3, 2, 1) with their Renown, yours, and how many of your people are ready. The contest is called when the season turns.</p>
     <p class="tiny"><b>The other hall</b> starts with two faces, traits, quirks, and a specialty. No food, no kit. They do not run a board. When you finish a job they gain Renown equal to its difficulty and roll their own rewards. They pay wages, buy Barracks, and hire from the Tap. Contest uses their two best faces even if one is out. While your pair is out, a Contest ring sits with the quest rings and counts the days left. Tap it to see who went and to open the other hall.</p>
     <p class="tiny">Sealed Briefs: each level adds 2 jobs on the board, and you can pay to replace one open job. Renown still raises hire level and extra faces, and sets the door band.</p>
     <h4>🏦 Bank and the door</h4>
@@ -12254,6 +12280,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-15", t:"Guild contest countdown: a splash pop-up each dawn for the last 5 days of the season (5, 4, 3, 2, 1) with the rival's Renown, yours, and how many are ready."},
   {d:"2026-11-15", t:"Armory, Merchant, and road stalls: each adventurer's box is a lighter shade so it stands out from the item card."},
   {d:"2026-11-15", t:"Armory gets the Merchant's tabs (Weapons, Armor, Consumables, Kits, Loot) with item counts. Each tab is sorted by sell price, highest first."},
   {d:"2026-11-15", t:"Bank: new Park 50 and Park 100 buttons. If the purse or vault room is short, they park what fits."},
