@@ -44,9 +44,14 @@
   header .top { display: grid; grid-template-columns: 1fr auto; align-items: start; gap: 8px; }
   header .top h1 { min-width: 0; overflow: visible; text-overflow: unset; white-space: normal; line-height: 1.15; }
   .hdr-col { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: 0 0 auto; }
-  .meter-line { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-top: 8px; width: 100%; flex-wrap: wrap; }
-  .field-meters { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; flex: 1; min-width: 0; }
-  .raise-row { display: flex; flex-direction: row; align-items: flex-start; gap: 10px; }
+  .meter-line { display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin-top: 8px; width: 100%; }
+  .raise-row { order: 0; display: flex; flex-direction: row; align-items: flex-start; justify-content: flex-end; gap: 10px; flex-wrap: nowrap; }
+  .raise-row > .meter { width: 72px; flex: 0 0 72px; }
+  .field-meters { order: 1; display: flex; flex-wrap: nowrap; gap: 8px; align-items: flex-start; width: 100%; min-width: 0; overflow-x: auto; overflow-y: hidden; padding: 6px 2px 2px; border-top: 1px solid #3a2e22; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .field-meters::-webkit-scrollbar { display: none; }
+  .field-meters:empty { display: none; }
+  .field-meters > .meter { flex: 0 0 72px; width: 72px; }
+  .field-meters .raise-text, .field-meters .meterLbl { max-width: 72px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .meter { display: flex; flex-direction: column; align-items: center; gap: 3px; }
   .raise-text { font-size: 0.72rem; color: var(--gold); max-width: 78px; text-align: center; line-height: 1.2; }
   #woundChip .wound-fg { stroke: #c23b3b; }
@@ -10840,15 +10845,16 @@ function paintRaiseQueue(){
   if(!box){
     box = document.createElement("div");
     box.id = "raiseQ";
-    box.style.cssText = "display:flex;gap:4px;justify-content:center;margin-top:4px";
+    box.style.cssText = "display:flex;flex-wrap:nowrap;gap:3px;justify-content:center;margin-top:4px;max-width:72px";
     host.parentElement.appendChild(box);
   }
   const q = S.raiseQ || [];
-  box.innerHTML = q.map(item=>{
+  const shown = q.length>3 ? q.slice(0,2) : q;
+  box.innerHTML = shown.map(item=>{
     const b = BUILDINGS[item.k];
     const ic = BLD_ICON[item.k] || "🏛️";
     return `<div title="${b?b.n:item.k}" style="width:22px;height:22px;border-radius:50%;border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:11px;background:#241c14">${ic}</div>`;
-  }).join("");
+  }).join("") + (q.length>3 ? `<div title="${q.length} queued" style="min-width:22px;height:22px;padding:0 4px;border-radius:11px;border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--gold);background:#241c14">+${q.length-2}</div>` : "");
 }
 function paintRaiseChip(){
   paintRaiseQueue();
@@ -12297,6 +12303,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-15", t:"Tidier header rings: Wounded, Bank, Writ, and Hall stay in one fixed row. Jobs in the field get their own row below that scrolls sideways when there are many. A long build queue shows two icons and a +N count."},
   {d:"2026-11-15", t:"Seer leftover adds only offer faces who can legally walk that job (Holy, Dark, quirks). An add that is no longer allowed is dropped, and a manual add can be taken back with the ✕ button."},
   {d:"2026-11-15", t:"At the door: each roster tile has an outer ring in the person's quality color (red flawed, none common, green gifted, gold elite), the same colors as the door cards."},
   {d:"2026-11-15", t:"Guild contest countdown: a splash pop-up each dawn for the last 5 days of the season (5, 4, 3, 2, 1) with the rival's Renown, yours, and how many are ready."},
