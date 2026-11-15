@@ -5751,23 +5751,46 @@ function chainLeftovers(){
   Object.keys(adds).forEach(k=>(adds[k]||[]).forEach(id=>used[id]=true));
   return (S.people||[]).filter(p=>p.status==="ready" && !used[p.id]);
 }
+function chainLegal(m, p){ return !!(m && p && readyFor(m).some(x=>x.id===p.id)); }
+function chainManualAdds(m){
+  if(!m) return [];
+  const raw = ((S._chainAdds||{})[m.id]||[]);
+  const ok = raw.filter(id=>chainLegal(m, S.people.find(p=>p.id===id)));
+  if(ok.length!==raw.length && S._chainAdds) S._chainAdds[m.id] = ok;
+  return ok;
+}
+function chainAutoMap(){
+  const map = {};
+  if((S.buildings.seer||0)<4) return map;
+  const left = chainLeftovers().slice();
+  lootChain().forEach(c=>{
+    const i = left.findIndex(p=>chainLegal(c.m, p));
+    if(i>=0){ map[c.m.id||c.m.t] = left[i].id; left.splice(i,1); }
+  });
+  return map;
+}
+function chainExtraIds(m){
+  const ids = chainManualAdds(m).slice();
+  const a = chainAutoMap()[m.id||m.t];
+  if(a && ids.indexOf(a)<0) ids.push(a);
+  return ids;
+}
 function chainSendBtn(m){
   const slot = chainSlot(m);
   if(!slot || !slot.party.length) return "";
-  const added = ((S._chainAdds||{})[m.id]||[]).map(id=>S.people.find(p=>p.id===id)).filter(Boolean);
-  if((S.buildings.seer||0)>=4){
-    const left = chainLeftovers();
-    const idx = lootChain().findIndex(x=>(x.m.id||x.m.t)===(m.id||m.t));
-    if(left[idx]) added.push(left[idx]);
-  }
+  const manual = chainManualAdds(m);
+  const added = chainExtraIds(m).map(id=>S.people.find(p=>p.id===id)).filter(Boolean);
   const all = slot.party.concat(added);
   const names = all.map(p=>CLASSES[p.cls].icon+" "+p.name.split(" ")[0]).join(" · ");
   const idx = lootChain().findIndex(x=>(x.m.id||x.m.t)===(m.id||m.t));
   const tag = (idx===0 ? "1 BEST" : (idx+1)+" NEXT") + (slot.extra? " · +"+slot.extra+" extra":"");
-  const left = chainLeftovers();
-  const addBtn = left.length ? `<button class="ghost" data-add="${m.id}" data-who="${left[0].id}" style="margin-top:6px;margin-left:6px">Add ${left[0].name.split(" ")[0]}</button>` : "";
+  const auto = chainAutoMap();
+  const autoTaken = Object.values(auto);
+  const legalLeft = chainLeftovers().filter(p=>chainLegal(m,p) && autoTaken.indexOf(p.id)<0);
+  const addBtn = legalLeft.length ? `<button class="ghost" data-add="${m.id}" data-who="${legalLeft[0].id}" style="margin-top:6px;margin-left:6px">Add ${legalLeft[0].name.split(" ")[0]}</button>` : "";
+  const rmBtns = manual.map(id=>{ const p=S.people.find(x=>x.id===id); return p?`<button class="ghost" data-unadd="${m.id}|${id}" style="margin-top:6px;margin-left:6px">✕ ${p.name.split(" ")[0]}</button>`:""; }).join("");
   return `<p class="tiny" style="color:#e0b84a">Seer ${tag}: ${names}</p>
-    <button class="act" data-quick="${m.id}" data-title="${m.t}" style="margin-top:6px">Send ${names}</button>${addBtn}`;
+    <button class="act" data-quick="${m.id}" data-title="${m.t}" style="margin-top:6px">Send ${names}</button>${addBtn}${rmBtns}`;
 }
 function bestLootId(){
   const c = lootChain();
@@ -11263,13 +11286,7 @@ function bindCards(){
     const m = findMission(b.dataset.quick) || (S.missions||[]).find(x=>x && x.t===b.dataset.title);
     const slot = chainSlot(m);
     if(!slot) return;
-    const added = ((S._chainAdds||{})[m.id]||[]);
-    const ids = slot.party.map(p=>p.id).concat(added);
-    if((S.buildings.seer||0)>=4){
-      const left = chainLeftovers();
-      const idx = lootChain().findIndex(x=>(x.m.id||x.m.t)===(m.id||m.t));
-      if(left[idx]) ids.push(left[idx].id);
-    }
+    const ids = slot.party.map(p=>p.id).concat(chainExtraIds(m));
     finishSendGate(b.dataset.quick, ids);
     if(S._chainAdds) delete S._chainAdds[m.id];
   });
@@ -11305,11 +11322,7 @@ function askArmoryFoodAll(jobs, foods){
 }
 document.querySelectorAll("[data-sendall]").forEach(b=>b.onclick=()=>{
     const jobs = lootChain().slice().map(c=>{
-      const added = ((S._chainAdds||{})[c.m.id]||[]);
-      const auto = (S.buildings.seer||0)>=4 ? chainLeftovers() : [];
-      const idx = lootChain().findIndex(x=>(x.m.id||x.m.t)===(c.m.id||c.m.t));
-      const ids = c.party.map(p=>p.id).concat(added);
-      if(auto[idx]) ids.push(auto[idx].id);
+      const ids = c.party.map(p=>p.id).concat(chainExtraIds(c.m));
       return {mid:c.m.id, ids};
     });
     const allIds = jobs.flatMap(j=>j.ids);
@@ -11321,13 +11334,14 @@ document.querySelectorAll("[data-sendall]").forEach(b=>b.onclick=()=>{
   });
   document.querySelectorAll("[data-sendall-old]").forEach(b=>b.onclick=()=>{
     lootChain().slice().forEach(c=>{
-      const added = ((S._chainAdds||{})[c.m.id]||[]);
-      const auto = (S.buildings.seer||0)>=4 ? chainLeftovers() : [];
-      const idx = lootChain().findIndex(x=>(x.m.id||x.m.t)===(c.m.id||c.m.t));
-      const ids = c.party.map(p=>p.id).concat(added);
-      if(auto[idx]) ids.push(auto[idx].id);
+      const ids = c.party.map(p=>p.id).concat(chainExtraIds(c.m));
       send(c.m.id, ids);
     });
+  });
+  document.querySelectorAll("[data-unadd]").forEach(b=>b.onclick=()=>{
+    const [mid,pid]=b.dataset.unadd.split("|");
+    if(S._chainAdds && S._chainAdds[mid]) S._chainAdds[mid]=S._chainAdds[mid].filter(x=>x!==pid);
+    render();
   });
   document.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{
     if(!S._chainAdds) S._chainAdds = {};
@@ -12283,6 +12297,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-15", t:"Seer leftover adds only offer faces who can legally walk that job (Holy, Dark, quirks). An add that is no longer allowed is dropped, and a manual add can be taken back with the ✕ button."},
   {d:"2026-11-15", t:"At the door: each roster tile has an outer ring in the person's quality color (red flawed, none common, green gifted, gold elite), the same colors as the door cards."},
   {d:"2026-11-15", t:"Guild contest countdown: a splash pop-up each dawn for the last 5 days of the season (5, 4, 3, 2, 1) with the rival's Renown, yours, and how many are ready."},
   {d:"2026-11-15", t:"Armory, Merchant, and road stalls: each adventurer's box is a lighter shade so it stands out from the item card."},
