@@ -10717,6 +10717,8 @@ function openBankSheet(){
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
       <button type="button" class="act" data-dep="10">Park 10</button>
       <button type="button" class="act" data-dep="25">Park 25</button>
+      <button type="button" class="act" data-dep="50">Park 50</button>
+      <button type="button" class="act" data-dep="100">Park 100</button>
       <button type="button" class="act" data-dep="all">Park ${canPark}</button>
       <button type="button" class="ghost" data-wd="10">Take 10</button>
       <button type="button" class="ghost" data-wd="all">Take all</button>
@@ -10926,6 +10928,8 @@ function hallView(){
       ${bankLv()?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
         <button class="act" data-dep="10">Park 10</button>
         <button class="act" data-dep="25">Park 25</button>
+        <button class="act" data-dep="50">Park 50</button>
+        <button class="act" data-dep="100">Park 100</button>
         <button class="act" data-dep="all">Park what fits</button>
         <button class="ghost" data-wd="10">Take 10</button>
         <button class="ghost" data-wd="all">Take all</button>
@@ -12237,6 +12241,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-15", t:"Bank: new Park 50 and Park 100 buttons. If the purse or vault room is short, they park what fits."},
   {d:"2026-11-15", t:"Merchant and road vendors now show Armory-style cards for each adventurer: current gear, the stat change, and current HP on food. You can buy a piece onto someone, or still buy it to the Armory. Comparisons stay visible when you cannot afford it."},
   {d:"2026-11-14", t:"Armory food cards now show each adventurer's current HP: green when full, gold when hurt, red under half."},
   {d:"2026-11-14", t:"Board-thief and Break the seal: swapping a writ-marked quest no longer brings the same quest straight back. A writ quest swaps for a different writ quest when one fits."},
