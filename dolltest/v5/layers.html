@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Guildmaster — leather layers</title>
+  <style>
+    :root { --bg: #7c7c7c; --ui: #1c1c1e; --ink: #f2f2f7; --muted: #a1a1aa; --accent: #d4a574; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #111; color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { min-height: 100dvh; padding: 12px 12px calc(16px + env(safe-area-inset-bottom)); }
+    h1 { font-size: 1.05rem; font-weight: 600; margin: 0 0 2px; }
+    .sub { color: var(--muted); font-size: 0.8rem; margin-bottom: 12px; }
+    .layout { display: flex; flex-direction: column; gap: 14px; max-width: 880px; margin: 0 auto; }
+    @media (min-width: 800px) {
+      .layout { flex-direction: row; align-items: flex-start; }
+      .stage-wrap { flex: 1 1 52%; }
+      .controls { flex: 1 1 48%; }
+    }
+    .stage-wrap { background: #2a2a2a; border-radius: 12px; padding: 10px; }
+    .stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      max-height: 72dvh;
+      margin: 0 auto;
+      background: var(--bg);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .stage img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      pointer-events: none;
+      image-rendering: auto;
+    }
+    .controls { display: flex; flex-direction: column; gap: 10px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .label { min-width: 4.6rem; font-size: 0.78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+    button, select {
+      appearance: none;
+      border: 0;
+      border-radius: 8px;
+      background: var(--ui);
+      color: var(--ink);
+      font-size: 0.9rem;
+      padding: 8px 12px;
+      min-height: 40px;
+    }
+    button { cursor: pointer; }
+    button.active { background: var(--accent); color: #1a120a; font-weight: 600; }
+    select { padding-right: 28px; background-image: linear-gradient(45deg, transparent 50%, #aaa 50%), linear-gradient(135deg, #aaa 50%, transparent 50%); background-position: calc(100% - 16px) 18px, calc(100% - 11px) 18px; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; }
+    .slot { display: flex; gap: 8px; align-items: center; }
+    .slot select { flex: 1; }
+    .presets { display: flex; gap: 6px; flex-wrap: wrap; }
+    .presets button { flex: 1 1 auto; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <div class="stage-wrap">
+      <div class="stage" id="stage" aria-label="Paper doll preview">
+        <img id="layer-cloak" alt="">
+        <img id="layer-base" alt="">
+        <img id="layer-pants" alt="">
+        <img id="layer-boots" alt="">
+        <img id="layer-chest" alt="">
+        <img id="layer-gloves" alt="">
+        <img id="layer-helmet" alt="">
+      </div>
+    </div>
+    <div class="controls">
+      <div>
+        <h1>Leather paper doll</h1>
+        <div class="sub">Mix and match layers. Cloak sits behind the body. Best viewed on your phone with the page open in Safari.</div>
+      </div>
+      <div class="row">
+        <span class="label">Body</span>
+        <button type="button" id="btn-male" class="active">Male</button>
+        <button type="button" id="btn-female">Female</button>
+      </div>
+      <div class="row">
+        <span class="label">Set all</span>
+        <div class="presets" id="presets"></div>
+      </div>
+      <div id="slots"></div>
+    </div>
+  </div>
+  <script>
+    const TIERS = ["common", "masterwork", "green", "blue", "purple"];
+    const TIER_LABEL = { common: "Common", masterwork: "Masterwork", green: "Green", blue: "Blue", purple: "Purple" };
+    const SLOTS = ["helmet", "cloak", "chest", "gloves", "pants", "boots"];
+    const SLOT_LABEL = { helmet: "Helmet", cloak: "Cloak", chest: "Chest", gloves: "Gloves", pants: "Pants", boots: "Boots" };
+    // Draw order is fixed in the HTML: cloak, base, pants, boots, chest, gloves, helmet.
+    let gender = "male";
+    const pick = Object.fromEntries(SLOTS.map((s) => [s, "common"]));
+
+    const $ = (id) => document.getElementById(id);
+
+    function layerSrc(slot) {
+      const tier = pick[slot];
+      if (!tier) return "";
+      return "leather/" + tier + "/layers/" + gender + "-" + slot + ".png";
+    }
+
+    function render() {
+      $("layer-base").src = "base-" + gender + ".png";
+      for (const slot of SLOTS) {
+        const img = $("layer-" + slot);
+        const src = layerSrc(slot);
+        if (!src) {
+          img.removeAttribute("src");
+          img.style.display = "none";
+        } else {
+          img.style.display = "block";
+          img.src = src;
+        }
+      }
+    }
+
+    function setGender(next) {
+      gender = next;
+      $("btn-male").classList.toggle("active", gender === "male");
+      $("btn-female").classList.toggle("active", gender === "female");
+      render();
+    }
+
+    function setAll(tier) {
+      for (const s of SLOTS) {
+        pick[s] = tier;
+        const sel = document.getElementById("sel-" + s);
+        if (sel) sel.value = tier || "none";
+      }
+      for (const btn of document.querySelectorAll("#presets button")) {
+        btn.classList.toggle("active", btn.dataset.tier === (tier || "none"));
+      }
+      render();
+    }
+
+    function buildUI() {
+      const presets = $("presets");
+      for (const t of TIERS) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = TIER_LABEL[t];
+        b.dataset.tier = t;
+        if (t === "common") b.classList.add("active");
+        b.addEventListener("click", () => setAll(t));
+        presets.appendChild(b);
+      }
+      const none = document.createElement("button");
+      none.type = "button";
+      none.textContent = "Bare";
+      none.dataset.tier = "none";
+      none.addEventListener("click", () => setAll(""));
+      presets.appendChild(none);
+
+      const box = $("slots");
+      for (const s of SLOTS) {
+        const row = document.createElement("div");
+        row.className = "slot";
+        const lab = document.createElement("span");
+        lab.className = "label";
+        lab.textContent = SLOT_LABEL[s];
+        const sel = document.createElement("select");
+        sel.id = "sel-" + s;
+        const optNone = document.createElement("option");
+        optNone.value = "none";
+        optNone.textContent = "None";
+        sel.appendChild(optNone);
+        for (const t of TIERS) {
+          const o = document.createElement("option");
+          o.value = t;
+          o.textContent = TIER_LABEL[t];
+          if (t === "common") o.selected = true;
+          sel.appendChild(o);
+        }
+        sel.addEventListener("change", () => {
+          pick[s] = sel.value === "none" ? "" : sel.value;
+          for (const btn of document.querySelectorAll("#presets button")) btn.classList.remove("active");
+          render();
+        });
+        row.appendChild(lab);
+        row.appendChild(sel);
+        box.appendChild(row);
+      }
+      $("btn-male").addEventListener("click", () => setGender("male"));
+      $("btn-female").addEventListener("click", () => setGender("female"));
+    }
+
+    buildUI();
+    render();
+  </script>
+</body>
+</html>
