@@ -10321,6 +10321,8 @@ function deleteProfile(id){
 
 let tab = "hall";
 let shopCat = "weapon";
+let armCat = "";
+function armTab(it){ return ["weapon","armor","food","kit"].includes(it.kind) ? it.kind : "loot"; }
 
 
 
@@ -11148,7 +11150,13 @@ function vaultView(){
     : away.length ? `<p class="tiny">Only adventurers at home can be equipped. ${away.length} out on a job: ${away.map(p=>p.name.split(" ")[0]).join(", ")}.</p>` : "";
   if(!S.vault.length) return `<div class="card"><h3>Armory</h3><p class="muted">Empty racks (${vaultCap()} slots). Buy from the Merchant.</p>${raiseOffer("racks")}</div>`;
   return `<div class="card"><h3>Armory</h3>${raiseOffer("racks")}<p class="tiny">${S.vault.length}/${vaultCap()} on the rack. Equip someone home, or sell for half price. Upgrade Racks for more slots.</p>${awayNote}</div>
-    ${S.vault.map(it=>`<div class="card"><div class="row"><strong>${it.kind==="food"?(it.icon||(catalog("food",it.id)||{}).icon||"🍖")+" ":""}${itemNameHtml(it)}</strong><span class="muted">${it.kind}${tierBit(it)} · ${it.kind==="food"?foodBits(catalog("food",it.id)||it) : it.kind==="kit"?kitBits(catalog("kit",it.id)||it) : gearStatText(it)} · sell ${gp(sellPrice(it))}</span></div>
+    ${(()=>{
+      const acats=[{id:"weapon",label:"Weapons",icon:"⚔️"},{id:"armor",label:"Armor",icon:"🛡️"},{id:"food",label:"Consumables",icon:"🍖"},{id:"kit",label:"Kits",icon:"🧰"},{id:"loot",label:"Loot",icon:"💰"}];
+      const cnt=k=>S.vault.filter(it=>armTab(it)===k).length;
+      if(!acats.some(c=>c.id===armCat) || (!armCat)) armCat=(acats.find(c=>cnt(c.id))||acats[0]).id;
+      return `<div class="card"><div class="subnav">${acats.map(c=>`<button class="${armCat===c.id?"on":""}" data-armcat="${c.id}">${c.icon} ${c.label}${cnt(c.id)?" ("+cnt(c.id)+")":""}</button>`).join("")}</div></div>`+(cnt(armCat)?"":`<div class="card"><p class="muted">No ${(acats.find(c=>c.id===armCat)||{}).label||armCat} on the rack.</p></div>`);
+    })()}
+    ${S.vault.filter(it=>armTab(it)===armCat).sort((a,b)=>sellPrice(b)-sellPrice(a)).map(it=>`<div class="card"><div class="row"><strong>${it.kind==="food"?(it.icon||(catalog("food",it.id)||{}).icon||"🍖")+" ":""}${itemNameHtml(it)}</strong><span class="muted">${it.kind}${tierBit(it)} · ${it.kind==="food"?foodBits(catalog("food",it.id)||it) : it.kind==="kit"?kitBits(catalog("kit",it.id)||it) : gearStatText(it)} · sell ${gp(sellPrice(it))}</span></div>
       ${it.kind==="weapon"?gearAbHtml(it):""}
       ${it.kind==="loot"?`<p class="tiny">${it.story||"Salvage. Sell it."}</p>`:`<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">
         ${it.kind==="food"?`<p class="tiny" style="width:100%;margin:0 0 4px">${(catalog("food",it.id)||it).desc||foodBlurb(it)}</p>`:""}
@@ -11303,6 +11311,9 @@ document.querySelectorAll("[data-sendall]").forEach(b=>b.onclick=()=>{
   document.querySelectorAll("[data-person]").forEach(b=>b.onclick=()=>openPerson(b.dataset.person));
   document.querySelectorAll("[data-shopcat]").forEach(b=>{
     b.onclick=()=>{ shopCat = b.dataset.shopcat; render(); };
+  });
+  document.querySelectorAll("[data-armcat]").forEach(b=>{
+    b.onclick=()=>{ armCat = b.dataset.armcat; render(); };
   });
   document.querySelectorAll("[data-borrow]").forEach(b=>b.onclick=()=>openLoanSheet("shop"));
   document.querySelectorAll("[data-buy]").forEach(b=>{
@@ -12241,6 +12252,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-15", t:"Armory gets the Merchant's tabs (Weapons, Armor, Consumables, Kits, Loot) with item counts. Each tab is sorted by sell price, highest first."},
   {d:"2026-11-15", t:"Bank: new Park 50 and Park 100 buttons. If the purse or vault room is short, they park what fits."},
   {d:"2026-11-15", t:"Merchant and road vendors now show Armory-style cards for each adventurer: current gear, the stat change, and current HP on food. You can buy a piece onto someone, or still buy it to the Armory. Comparisons stay visible when you cannot afford it."},
   {d:"2026-11-14", t:"Armory food cards now show each adventurer's current HP: green when full, gold when hurt, red under half."},
