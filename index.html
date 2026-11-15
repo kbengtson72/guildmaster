@@ -369,6 +369,8 @@
   .qdesc.more { cursor: pointer; }
 
 .card { background:#1c140c; border:1px solid #8a6a32; border-radius:14px; box-shadow: inset 0 0 0 1px #3a2a16; }
+.card.pcard { background:#3b2d1d; border-color:#b8904a; box-shadow: inset 0 0 0 1px #4d3b25; }
+.card.pcard .ghost { background:#2a2016; }
 .avatar { width:72px; height:72px; border-radius:10px; border:1px solid #e0b84a; }
 .kin-ring { width:22px; height:22px; font-size:12px; }
 .name, .names strong { color:#e6c98a; font-family: Georgia, serif; letter-spacing:.02em; }
@@ -11082,7 +11084,7 @@ function shopWearCards(it, people, opts){
     const hands = offOk
       ? `<div class="tiny">Main: ${now}${delta}</div><div class="tiny">Off: ${offNow}</div>${afford?"":`<p class="tiny" style="color:#e0b84a;margin:4px 0 0">Not enough gold · ${price}</p>`}<div class="row" style="gap:6px;margin-top:4px">${shield?"":`<button type="button" class="${afford?"act":"ghost"}" ${attr(p,"main")} ${dis} style="flex:1">Main hand</button>`}${(isTwoHand(it)||isTwoHand(catalog("weapon", p.weapon)))?"":`<button type="button" class="ghost" ${attr(p,"off")} ${dis} style="flex:1">Off hand${gearDeltaHtml(p, it, "off")}</button>`}</div>`
       : `<button type="button" class="ghost" ${attr(p,"main")} ${dis} style="text-align:left;width:100%">${CLASSES[p.cls].icon} ${p.name.split(" ")[0]}${hp}<br><span class="tiny">Now: ${now}${delta}</span><br><span class="tiny">${buyLbl}</span></button>`;
-    return `<div class="card" style="margin:6px 0;text-align:left">${offOk?`${CLASSES[p.cls].icon} ${p.name.split(" ")[0]}${hp}`:""}${hands}</div>`;
+    return `<div class="card pcard" style="margin:6px 0;text-align:left">${offOk?`${CLASSES[p.cls].icon} ${p.name.split(" ")[0]}${hp}`:""}${hands}</div>`;
   }).join("");
   const empty = !ready.length ? `<span class='muted'>${opts.empty || (!(people||[]).length && away.length ? "Everyone is away. Buy it for the Armory, then equip when they are home." : "No one home can use this."+(away.some(p=>canWield(p,it))?" Someone out on a job could, once they are back.":""))}</span>` : "";
   return `<div style="margin-top:6px">${cards}${empty}</div>`;
@@ -11172,7 +11174,7 @@ function vaultView(){
           const hands = offOk
             ? `<div class="tiny">Main: ${now}${delta}</div><div class="tiny">Off: ${offNow}</div><div class="row" style="gap:6px;margin-top:4px">${shield?"":`<button type="button" class="act" data-equip="${it.uid}|${p.id}|main" style="flex:1">Main hand</button>`}${(isTwoHand(it)||isTwoHand(catalog("weapon", p.weapon)))?"":`<button type="button" class="ghost" data-equip="${it.uid}|${p.id}|off" style="flex:1">Off hand${gearDeltaHtml(p, it, "off")}</button>`}</div>`
             : `<button type="button" class="ghost" data-equip="${it.uid}|${p.id}|main" style="text-align:left;width:100%">${CLASSES[p.cls].icon} ${p.name.split(" ")[0]}${it.kind==="food"?` <span class="tiny" style="color:${p.hp<p.maxhp*0.5?"#e07a5f":p.hp<p.maxhp?"#e0b84a":"#8fc98f"}">· HP ${p.hp}/${p.maxhp}</span>`:""}<br><span class="tiny">Now: ${now}${delta}</span></button>`;
-          return `<div class="card" style="margin:6px 0;text-align:left">${CLASSES[p.cls].icon} ${p.name.split(" ")[0]}${hands}</div>`;
+          return `<div class="card pcard" style="margin:6px 0;text-align:left">${CLASSES[p.cls].icon} ${p.name.split(" ")[0]}${hands}</div>`;
         }).join("")||`<span class='muted'>${!ready.length && away.length ? "Everyone is away. Equip it when they are home." : "No one home can use this."+(away.some(p=>canWield(p,it))?" Someone out on a job could, once they are back.":"")}</span>`}
       </div>`}
       <button class="ghost" data-sell="${it.uid}" style="width:100%;margin-top:8px">Sell · ${gp(sellPrice(it))}</button>
@@ -12252,6 +12254,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-15", t:"Armory, Merchant, and road stalls: each adventurer's box is a lighter shade so it stands out from the item card."},
   {d:"2026-11-15", t:"Armory gets the Merchant's tabs (Weapons, Armor, Consumables, Kits, Loot) with item counts. Each tab is sorted by sell price, highest first."},
   {d:"2026-11-15", t:"Bank: new Park 50 and Park 100 buttons. If the purse or vault room is short, they park what fits."},
   {d:"2026-11-15", t:"Merchant and road vendors now show Armory-style cards for each adventurer: current gear, the stat change, and current HP on food. You can buy a piece onto someone, or still buy it to the Armory. Comparisons stay visible when you cannot afford it."},
