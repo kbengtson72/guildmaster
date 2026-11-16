@@ -1840,7 +1840,7 @@ const FOODS = [
 ];
 const BUILDINGS = {
   barracks: {n:"Barracks", desc:"+2 roster slots per level (Lv1 = 4)", base:40, max:5},
-  armory: {n:"Outfitter", desc:"Better gear in the merchant's stock", base:50, max:4},
+  armory: {n:"Outfitter", desc:"Better gear in the merchant's stock", base:25, max:4},
   infirmary: {n:"Infirmary", desc:"Faster recovery from wounds", base:35, max:4},
   yard: {n:"Training Grounds", desc:"All classes: +XP and a little power on jobs", base:45, max:4},
   bank: {n:"Bank", desc:"Park spare gold. Interest each dawn. The hall opens with Bank Lv1. Higher Bank is still bought. No Bank, no knock at the door. Vault pays door hires first. 50g parked raises the door band; Bank 3+ at 70% full raises it again.", base:55, max:4},
@@ -12324,6 +12324,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-16", t:"Outfitter raises now cost half as much: 50g / 75g / 100g to reach Lv2, Lv3, and Lv4."},
   {d:"2026-11-16", t:"The two who open a new hall now start with one random Gray (Common) weapon and one random Gray (Common) armor piece they can use. No Masterwork, no coloured gear, no food, no kit."},
   {d:"2026-11-15", t:"Tidier header rings: Wounded, Bank, Writ, and Hall stay in one fixed row. Jobs in the field get their own row below that scrolls sideways when there are many. A long build queue shows two icons and a +N count."},
   {d:"2026-11-15", t:"Seer leftover adds only offer faces who can legally walk that job (Holy, Dark, quirks). An add that is no longer allowed is dropped, and a manual add can be taken back with the ✕ button."},
