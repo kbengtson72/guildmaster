@@ -5623,10 +5623,11 @@ function writOil(){
   if(!w || w.done) return null;
   return kitForJobType(w.type);
 }
-function writCard(){
+function writCard(showHow){
+  if(showHow==null) showHow = true;
   if(S.day < WRIT_UNLOCK && !S.writ){
     return `<div class="card"><div class="row"><h3>📜 Town Writ</h3><span class="tag">day ${WRIT_UNLOCK}</span></div>
-      <p class="tiny">The town will post a writ on day ${WRIT_UNLOCK}. You get a long window. Seal it and the town raises one of your lowest-level buildings, your pick. Early lapses are free.</p></div>`;
+      ${showHow?`<p class="tiny">The town will post a writ on day ${WRIT_UNLOCK}. You get a long window. Seal it and the town raises one of your lowest-level buildings, your pick. Early lapses are free.</p>`:""}</div>`;
   }
   const w = S.writ;
   if(!w) return "";
@@ -5647,7 +5648,7 @@ function writCard(){
     ${S.doubleWrit?`<p class="ok">Double mark · next matching job counts twice</p>`:""}
     <p class="tiny">Marks ${w.have||0}/${w.need} · due day ${w.due}</p>
     <div class="bar"><i style="width:${pct}%;background:var(--gold)"></i></div>
-    <p class="tiny">Seal it and the town raises one of your lowest-level buildings, your pick. Lapse before day 20 costs nothing.</p>
+    ${showHow?`<p class="tiny">Seal it and the town raises one of your lowest-level buildings, your pick. Lapse before day 20 costs nothing.</p>`:""}
     ${oathEaterBtn()}
   </div>`;
 }
@@ -11027,7 +11028,7 @@ function hallView(){
     ${S.raise?`<p class="tiny" style="color:var(--gold)">Raising ${raiseLine()}</p><button class="ghost" data-cancelraise="1" style="width:100%;margin-top:6px">Halt raise · half back</button>`:""}
     ${(S.pendingLoot&&S.pendingLoot.length)?`<p class="ok">${S.pendingLoot.length} find${S.pendingLoot.length>1?"s":""} waiting. <button class="ghost" data-finds="1">Keep or sell</button></p>`:""}
     </div>
-    ${writCard()}
+    ${writCard(false)}
     <div class="card">
       <div class="row"><h3 data-bhelp="bank" style="cursor:pointer">🏦 Bank <span class="tiny">?</span></h3><span class="tag">${bankLv()?("Lv "+bankLv()+"/4"):"unbuilt"}</span></div>
       <p class="tiny">Purse ${gp(S.gold)} · Vault ${gp(S.deposit||0)} / ${bankCap()||0} · Next dawn +${gp(bankInterest())}</p>
@@ -12352,6 +12353,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-16", t:"Town Writ how-it-works text (when it posts, the building reward, and early lapses) is no longer repeated on the Guild tab. It still appears on the Quest tab. Marks, status, and controls stay."},
   {d:"2026-11-16", t:"Hall is now Guild everywhere you read it. Each new guild gets a random name (never a rival's); old default names like Hall 1 got one too. Tap the guild name at the top to rename it. Red Wren Hall is now Red Wren Guild. The game is now called Writ & Steel (same link, same saves)."},
   {d:"2026-11-16", t:"Sealed Briefs is back, with a 5th level (200g): +10 jobs on the board and 4g seals. Its Hall card, ? help, and the Quests Help now say plainly that each level adds 2 jobs to the board as well as cheaper Break the seal. The Quests tab shows how many jobs your board holds and where they come from. (The 3:02 removal is undone.)"},
   {d:"2026-11-16", t:"Chapel Bell now has a 5th level (250g): +10 party power on Dark and Holy jobs."},
