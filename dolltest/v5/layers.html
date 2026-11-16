@@ -66,6 +66,8 @@
       <div class="stage" id="stage" aria-label="Paper doll preview">
         <img id="layer-cloak" alt="">
         <img id="layer-base" alt="">
+        <img id="layer-liner" alt="">
+        <img id="layer-face" alt="">
         <img id="layer-pants" alt="">
         <img id="layer-boots" alt="">
         <img id="layer-chest" alt="">
@@ -77,7 +79,7 @@
     <div class="controls">
       <div>
         <h1>Leather paper doll</h1>
-        <div class="sub">Mix and match layers. Cloak sits behind the body. Best viewed on your phone with the page open in Safari.</div>
+        <div class="sub">Mix and match layers. Cloak sits behind the body. Face and hair use the new head layers (Face "Original" shows the old baked head). Your picks are saved in the link.</div>
       </div>
       <div class="row">
         <span class="label">Body</span>
@@ -88,6 +90,13 @@
         <span class="label">Set all</span>
         <div class="presets" id="presets"></div>
       </div>
+      <div class="row">
+        <span class="label">Face</span>
+        <select id="sel-face"></select>
+        <span class="label" style="min-width:auto">Hair</span>
+        <select id="sel-hair"></select>
+        <button type="button" id="btn-random">Random</button>
+      </div>
       <div id="slots"></div>
     </div>
   </div>
@@ -96,24 +105,38 @@
     const TIER_LABEL = { common: "Common", masterwork: "Masterwork", green: "Green", blue: "Blue", purple: "Purple" };
     const SLOTS = ["helmet", "cloak", "chest", "gloves", "pants", "boots"];
     const SLOT_LABEL = { helmet: "Helmet", cloak: "Cloak", chest: "Chest", gloves: "Gloves", pants: "Pants", boots: "Boots" };
-    // Draw order is fixed in the HTML: cloak, base, pants, boots, chest, gloves, hair, helmet.
-    // When a helmet is on, the female base is the no-hair cutout and layer-hair holds the tucked style.
+    // Draw order is fixed in the HTML:
+    //   cloak, base, liner, face, pants, boots, chest, gloves, hair, helmet.
+    // New heads (face 1-10): base is the headless outfit body, the face sits on it,
+    // the outfit goes over the neck, hair goes over collar/shoulders (and over the cloak),
+    // and under a helmet the hair is clipped to the helmet's outline.
+    // Face "Original" keeps the old path: baked base head, female helmets use the no-hair
+    // base plus the tucked hair plate.
     let gender = "male";
     const pick = Object.fromEntries(SLOTS.map((s) => [s, "common"]));
+    let face = 1;      // 0 = original baked head, 1-10 = new head layers
+    let hair = 1;      // 0 = none, 1-10
     // Bump this whenever layer PNGs change so iOS Safari does not keep stale tiles.
-    const LAYER_V = "20261116-edge-pass2";
+    const LAYER_V = "20261116-heads1";
+    const H = "heads/layers/";
 
     const $ = (id) => document.getElementById(id);
+    const pad = (n) => String(n).padStart(2, "0");
+    const v = (p) => p + "?v=" + LAYER_V;
 
     function layerSrc(slot) {
       const tier = pick[slot];
       if (!tier) return "";
-      return "leather/" + tier + "/layers/" + gender + "-" + slot + ".png?v=" + LAYER_V;
+      if (face) {
+        if (slot === "chest") return v(H + "chest/" + gender + "-" + tier + ".png");
+        if (slot === "helmet") return v(H + "helmet/" + gender + "-" + tier + "-shell.png");
+      }
+      return v("leather/" + tier + "/layers/" + gender + "-" + slot + ".png");
     }
 
     const OCCLUDE_SLOTS = ["gloves", "boots", "cloak"];
-    let baseGen = 0;
-    let lastBaseBlob = null;
+    let gen = 0;
+    const blobs = {};
 
     function loadImage(src) {
       return new Promise((resolve, reject) => {
@@ -124,89 +147,138 @@
       });
     }
 
-    async function punchedBaseURL(g, gen) {
-      const need = OCCLUDE_SLOTS.filter((s) => pick[s]);
-      const useNohair = !!pick.helmet && g === "female";
-      const baseURL = useNohair
-        ? "base-" + g + "-nohair.png?v=" + LAYER_V
-        : "base-" + g + ".png?v=" + LAYER_V;
-      if (!need.length) return baseURL;
-      const base = await loadImage(baseURL);
-      if (gen !== baseGen) return null;
+    // Draw src, punch out each mask (destination-out), return a blob URL.
+    async function punched(src, masks, g0) {
+      if (!masks.length) return src;
+      const base = await loadImage(src);
+      if (g0 !== gen) return null;
       const canvas = document.createElement("canvas");
       canvas.width = base.naturalWidth || base.width;
       canvas.height = base.naturalHeight || base.height;
       const ctx = canvas.getContext("2d");
       ctx.drawImage(base, 0, 0);
-      for (const slot of need) {
-        const mask = await loadImage("occlude/" + g + "-" + slot + ".png?v=" + LAYER_V);
-        if (gen !== baseGen) return null;
+      for (const m of masks) {
+        const mask = await loadImage(m);
+        if (g0 !== gen) return null;
         ctx.globalCompositeOperation = "destination-out";
         ctx.drawImage(mask, 0, 0);
         ctx.globalCompositeOperation = "source-over";
       }
       const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
-      if (gen !== baseGen) return null;
+      if (g0 !== gen) return null;
       return URL.createObjectURL(blob);
     }
 
-    function render() {
-      for (const slot of SLOTS) {
-        const img = $("layer-" + slot);
-        const src = layerSrc(slot);
-        if (!src) {
-          img.removeAttribute("src");
-          img.style.display = "none";
-        } else {
-          img.style.display = "block";
-          img.src = src;
-        }
-      }
-      const hair = $("layer-hair");
-      // Common female helmet is a single source-cut piece that already includes
-      // the visible hair, so the extra hair plate is not drawn.
-      if (pick.helmet && gender === "female" && pick.helmet !== "common") {
-        hair.style.display = "block";
-        hair.src = "hair/female-helmet-" + pick.helmet + ".png?v=" + LAYER_V;
-      } else {
-        hair.removeAttribute("src");
-        hair.style.display = "none";
-      }
-      const gen = ++baseGen;
-      const g = gender;
-      punchedBaseURL(g, gen).then((url) => {
-        if (!url || gen !== baseGen) return;
-        if (lastBaseBlob) {
-          URL.revokeObjectURL(lastBaseBlob);
-          lastBaseBlob = null;
-        }
-        if (url.startsWith("blob:")) lastBaseBlob = url;
-        $("layer-base").src = url;
+    function setPunched(id, src, masks, g0) {
+      const el = $(id);
+      el.style.display = "block";
+      punched(src, masks, g0).then((url) => {
+        if (!url || g0 !== gen) return;
+        if (blobs[id]) { URL.revokeObjectURL(blobs[id]); blobs[id] = null; }
+        if (url.startsWith("blob:")) blobs[id] = url;
+        el.src = url;
       }).catch(() => {
-        if (gen !== baseGen) return;
-        const useNohair = !!pick.helmet && g === "female";
-        $("layer-base").src = useNohair
-          ? "base-" + g + "-nohair.png?v=" + LAYER_V
-          : "base-" + g + ".png?v=" + LAYER_V;
+        if (g0 !== gen) return;
+        el.src = src;
       });
+    }
+
+    function show(id, src) {
+      const el = $(id);
+      if (!src) { el.removeAttribute("src"); el.style.display = "none"; }
+      else { el.style.display = "block"; el.src = src; }
+    }
+
+    function render() {
+      const g0 = ++gen;
+      const g = gender;
+      for (const slot of SLOTS) show("layer-" + slot, layerSrc(slot));
+      const occl = OCCLUDE_SLOTS.filter((s) => pick[s]).map((s) => v("occlude/" + g + "-" + s + ".png"));
+      if (face) {
+        setPunched("layer-base", v(H + "body-" + g + "-outfit.png"), occl, g0);
+        show("layer-liner", pick.helmet ? v(H + "helmet/" + g + "-" + pick.helmet + "-liner.png") : "");
+        show("layer-face", v(H + g + "/face-" + pad(face) + ".png"));
+        if (!hair) show("layer-hair", "");
+        else {
+          const hs = v(H + g + "/hair-" + pad(hair) + ".png");
+          if (pick.helmet) setPunched("layer-hair", hs, [v(H + "helmet/" + g + "-" + pick.helmet + "-clip.png")], g0);
+          else show("layer-hair", hs);
+        }
+      } else {
+        const useNohair = !!pick.helmet && g === "female";
+        setPunched("layer-base", v("base-" + g + (useNohair ? "-nohair" : "") + ".png"), occl, g0);
+        show("layer-liner", "");
+        show("layer-face", "");
+        // Common female helmet is a single source-cut piece that already includes
+        // the visible hair, so the extra hair plate is not drawn.
+        show("layer-hair", pick.helmet && g === "female" && pick.helmet !== "common"
+          ? v("hair/female-helmet-" + pick.helmet + ".png") : "");
+      }
+      writeHash();
+    }
+
+    function writeHash() {
+      const p = new URLSearchParams();
+      p.set("g", gender);
+      p.set("face", face ? String(face) : "orig");
+      p.set("hair", hair ? String(hair) : "none");
+      for (const s of SLOTS) p.set(s, pick[s] || "none");
+      const h = "#" + p.toString();
+      if (location.hash !== h) history.replaceState(null, "", h);
+    }
+
+    function readHash() {
+      const p = new URLSearchParams(location.hash.slice(1));
+      if (p.get("g") === "female" || p.get("g") === "male") gender = p.get("g");
+      const f = p.get("face");
+      if (f === "orig") face = 0;
+      else if (f && +f >= 1 && +f <= 10) face = +f;
+      const h = p.get("hair");
+      if (h === "none") hair = 0;
+      else if (h && +h >= 1 && +h <= 10) hair = +h;
+      for (const s of SLOTS) {
+        const t = p.get(s);
+        if (t === "none") pick[s] = "";
+        else if (TIERS.includes(t)) pick[s] = t;
+      }
+    }
+
+    function syncUI() {
+      $("btn-male").classList.toggle("active", gender === "male");
+      $("btn-female").classList.toggle("active", gender === "female");
+      for (const s of SLOTS) $("sel-" + s).value = pick[s] || "none";
+      const vals = SLOTS.map((s) => pick[s] || "none");
+      const same = vals.every((x) => x === vals[0]) ? vals[0] : null;
+      for (const btn of document.querySelectorAll("#presets button")) btn.classList.toggle("active", btn.dataset.tier === same);
+      $("sel-face").value = face ? String(face) : "orig";
+      fillHair();
+      $("sel-hair").value = hair ? String(hair) : "none";
+      $("sel-hair").disabled = !face;
+    }
+
+    function fillHair() {
+      const sel = $("sel-hair");
+      sel.innerHTML = "";
+      const none = document.createElement("option");
+      none.value = "none"; none.textContent = "None";
+      sel.appendChild(none);
+      for (let i = 1; i <= 10; i++) {
+        const o = document.createElement("option");
+        o.value = String(i);
+        o.textContent = (gender === "male" && i === 2) ? "2 (bald)" : String(i);
+        sel.appendChild(o);
+      }
     }
 
     function setGender(next) {
       gender = next;
-      $("btn-male").classList.toggle("active", gender === "male");
-      $("btn-female").classList.toggle("active", gender === "female");
+      syncUI();
       render();
     }
 
     function setAll(tier) {
-      for (const s of SLOTS) {
-        pick[s] = tier;
-        const sel = document.getElementById("sel-" + s);
-        if (sel) sel.value = tier || "none";
-      }
-      for (const btn of document.querySelectorAll("#presets button")) {
-        btn.classList.toggle("active", btn.dataset.tier === (tier || "none"));
-      }
+      for (const s of SLOTS) pick[s] = tier;
+      syncUI();
       render();
     }
 
@@ -217,7 +289,6 @@
         b.type = "button";
         b.textContent = TIER_LABEL[t];
         b.dataset.tier = t;
-        if (t === "common") b.classList.add("active");
         b.addEventListener("click", () => setAll(t));
         presets.appendChild(b);
       }
@@ -245,23 +316,47 @@
           const o = document.createElement("option");
           o.value = t;
           o.textContent = TIER_LABEL[t];
-          if (t === "common") o.selected = true;
           sel.appendChild(o);
         }
         sel.addEventListener("change", () => {
           pick[s] = sel.value === "none" ? "" : sel.value;
-          for (const btn of document.querySelectorAll("#presets button")) btn.classList.remove("active");
+          syncUI();
           render();
         });
         row.appendChild(lab);
         row.appendChild(sel);
         box.appendChild(row);
       }
+
+      const fs = $("sel-face");
+      const orig = document.createElement("option");
+      orig.value = "orig"; orig.textContent = "Original";
+      fs.appendChild(orig);
+      for (let i = 1; i <= 10; i++) {
+        const o = document.createElement("option");
+        o.value = String(i); o.textContent = String(i);
+        fs.appendChild(o);
+      }
+      fs.addEventListener("change", () => { face = fs.value === "orig" ? 0 : +fs.value; syncUI(); render(); });
+      $("sel-hair").addEventListener("change", () => {
+        const val = $("sel-hair").value;
+        hair = val === "none" ? 0 : +val;
+        render();
+      });
+      $("btn-random").addEventListener("click", () => {
+        face = 1 + Math.floor(Math.random() * 10);
+        hair = 1 + Math.floor(Math.random() * 10);
+        syncUI();
+        render();
+      });
       $("btn-male").addEventListener("click", () => setGender("male"));
       $("btn-female").addEventListener("click", () => setGender("female"));
+      window.addEventListener("hashchange", () => { readHash(); syncUI(); render(); });
     }
 
     buildUI();
+    readHash();
+    syncUI();
     render();
   </script>
 </body>
