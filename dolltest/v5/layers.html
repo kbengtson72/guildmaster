@@ -99,7 +99,7 @@
     let gender = "male";
     const pick = Object.fromEntries(SLOTS.map((s) => [s, "common"]));
     // Bump this whenever layer PNGs change so iOS Safari does not keep stale tiles.
-    const LAYER_V = "20261116-onbase";
+    const LAYER_V = "20261116-onbase-fix";
 
     const $ = (id) => document.getElementById(id);
 
@@ -109,8 +109,43 @@
       return "leather/" + tier + "/layers/" + gender + "-" + slot + ".png?v=" + LAYER_V;
     }
 
+    const OCCLUDE_SLOTS = ["gloves", "boots", "cloak"];
+    let baseGen = 0;
+    let lastBaseBlob = null;
+
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const im = new Image();
+        im.onload = () => resolve(im);
+        im.onerror = reject;
+        im.src = src;
+      });
+    }
+
+    async function punchedBaseURL(g, gen) {
+      const need = OCCLUDE_SLOTS.filter((s) => pick[s]);
+      const baseURL = "base-" + g + ".png?v=" + LAYER_V;
+      if (!need.length) return baseURL;
+      const base = await loadImage(baseURL);
+      if (gen !== baseGen) return null;
+      const canvas = document.createElement("canvas");
+      canvas.width = base.naturalWidth || base.width;
+      canvas.height = base.naturalHeight || base.height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(base, 0, 0);
+      for (const slot of need) {
+        const mask = await loadImage("occlude/" + g + "-" + slot + ".png?v=" + LAYER_V);
+        if (gen !== baseGen) return null;
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.drawImage(mask, 0, 0);
+        ctx.globalCompositeOperation = "source-over";
+      }
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (gen !== baseGen) return null;
+      return URL.createObjectURL(blob);
+    }
+
     function render() {
-      $("layer-base").src = "base-" + gender + ".png?v=" + LAYER_V;
       for (const slot of SLOTS) {
         const img = $("layer-" + slot);
         const src = layerSrc(slot);
@@ -122,6 +157,19 @@
           img.src = src;
         }
       }
+      const gen = ++baseGen;
+      const g = gender;
+      punchedBaseURL(g, gen).then((url) => {
+        if (!url || gen !== baseGen) return;
+        if (lastBaseBlob) {
+          URL.revokeObjectURL(lastBaseBlob);
+          lastBaseBlob = null;
+        }
+        if (url.startsWith("blob:")) lastBaseBlob = url;
+        $("layer-base").src = url;
+      }).catch(() => {
+        if (gen === baseGen) $("layer-base").src = "base-" + g + ".png?v=" + LAYER_V;
+      });
     }
 
     function setGender(next) {
