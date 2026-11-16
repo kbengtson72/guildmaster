@@ -443,7 +443,7 @@
 <body>
 <header>
   <div class="top">
-    <h1 id="guildName">The Copper Hall</h1>
+    <h1 id="guildName" title="Tap to rename your guild" style="cursor:pointer">Your Guild</h1>
     <div class="hdr-btns">
       <button type="button" id="btnProf" aria-label="Profiles">👤</button>
       <!-- DEBUG: delete this button and the DEBUG CHEATS block in the script to strip cheats -->
@@ -493,7 +493,7 @@
         <div id="writText" class="raise-text">Nothing</div>
       </div>
       <div class="meter">
-        <button type="button" id="raiseChip" class="meterChip" title="Hall" aria-label="Hall">
+        <button type="button" id="raiseChip" class="meterChip" title="Guild" aria-label="Guild">
           <svg viewBox="0 0 36 36" aria-hidden="true">
             <circle class="rg-bg" cx="18" cy="18" r="15"></circle>
             <circle class="rg-fg" cx="18" cy="18" r="15"></circle>
@@ -515,7 +515,7 @@
   <button type="button" id="writbar" hidden></button>
 </header>
 <nav>
-  <button class="on" data-tab="hall">Hall</button>
+  <button class="on" data-tab="hall">Guild</button>
   <button data-tab="tavern">Tavern</button>
   <button data-tab="roster">Adventurers</button>
   <button data-tab="board">Quests</button>
@@ -1296,7 +1296,7 @@ const LEGACY_WEAPONS = [
   {id:"frostawl", n:"Frost Awl", atk:6, cost:50, r:"uncommon", blade:true, unique:true, road:true, desc:"Ice-bright awl. Road smiths only."},
   {id:"coachbow", n:"Coach Bow", atk:7, cost:58, r:"rare", unique:true, road:true, desc:"Short bow off a mail coach. Road smiths only."},
   {id:"milewand", n:"Mile Wand", atk:7, cost:60, r:"rare", unique:true, road:true, desc:"A stick cut at each milestone. Casters. Road smiths only."},
-  {id:"ditchpike", n:"Ditch Pike", atk:8, cost:70, r:"rare", unique:true, road:true, desc:"Too long for a hall. Road smiths only."},
+  {id:"ditchpike", n:"Ditch Pike", atk:8, cost:70, r:"rare", unique:true, road:true, desc:"Too long for a guild rack. Road smiths only."},
   {id:"ferryhook", n:"Ferryman's Hook", atk:8, cost:74, r:"rare", unique:true, road:true, desc:"Gaff from the black ferry. Road smiths only."},
   {id:"ashdirk", n:"Ash-Dirge Dirk", atk:9, cost:88, r:"epic", blade:true, unique:true, road:true, desc:"Soot in the fuller. Road smiths only."},
   {id:"stormlash", n:"Storm Lash", atk:9, cost:90, r:"epic", unique:true, road:true, desc:"Braided wire that hums. Road smiths only."},
@@ -1794,16 +1794,16 @@ const FOODS = [
   {id:"jerky2", n:"Plain Jerky", icon:"🥩", cost:4, pwr:2, r:"common", desc:"+2 PWR."},
   {id:"milk", n:"Goat Milk", icon:"🥛", cost:3, heal:5, r:"common", desc:"+5 HP."},
   {id:"pickle", n:"Jar Pickle", icon:"🥒", cost:2, heal:4, r:"common", desc:"+4 HP."},
-  {id:"honey", n:"Honey Bread", icon:"🍯", cost:7, heal:6, loy:1, r:"uncommon", desc:"+6 HP · +1 loy at Hall."},
+  {id:"honey", n:"Honey Bread", icon:"🍯", cost:7, heal:6, loy:1, r:"uncommon", desc:"+6 HP · +1 loy at the guild."},
   {id:"broth", n:"Herb Broth", icon:"🥣", cost:8, heal:12, r:"uncommon", desc:"+12 HP."},
   {id:"jerky", n:"Spiced Jerky", icon:"🥩", cost:6, pwr:3, r:"uncommon", desc:"+3 PWR."},
   {id:"stew", n:"Mutton Stew", icon:"🍲", cost:7, heal:10, r:"uncommon", desc:"+10 HP."},
   {id:"cake", n:"Seed Cake", icon:"🧁", cost:6, heal:6, xp:1, r:"uncommon", desc:"+6 HP · +1 XP."},
-  {id:"wine", n:"House Wine", icon:"🍷", cost:7, pwr:2, loy:1, r:"uncommon", desc:"+2 PWR · +1 loy at Hall."},
+  {id:"wine", n:"House Wine", icon:"🍷", cost:7, pwr:2, loy:1, r:"uncommon", desc:"+2 PWR · +1 loy at the guild."},
   {id:"fish", n:"Salt Fish", icon:"🐟", cost:6, heal:8, r:"uncommon", desc:"+8 HP."},
   {id:"berry", n:"Hill Berries", icon:"🫐", cost:5, heal:5, pwr:2, r:"uncommon", desc:"+5 HP · +2 PWR."},
   {id:"broth2", n:"Bone Broth", icon:"🥣", cost:7, heal:9, r:"uncommon", desc:"+9 HP."},
-  {id:"honeycomb", n:"Honeycomb", icon:"🍯", cost:6, heal:4, loy:1, r:"uncommon", desc:"+4 HP · +1 loy at Hall."},
+  {id:"honeycomb", n:"Honeycomb", icon:"🍯", cost:6, heal:4, loy:1, r:"uncommon", desc:"+4 HP · +1 loy at the guild."},
   {id:"pie", n:"Wayfarer's Pie", icon:"🥧", cost:9, heal:4, gold:0.15, r:"rare", desc:"+4 HP · +15% gold."},
   {id:"tea", n:"Night Tea", icon:"🍵", cost:7, dark:3, r:"rare", desc:"+3 Dark PWR."},
   {id:"fig", n:"Lucky Fig", icon:"🍇", cost:10, pwr:2, xp:2, r:"rare", desc:"+2 PWR · +2 XP."},
@@ -1815,11 +1815,11 @@ const FOODS = [
   {id:"saffron", n:"Saffron Broth", icon:"🥣", cost:11, heal:10, xp:2, r:"rare", desc:"+10 HP · +2 XP."},
   {id:"smoked", n:"Smoked Hart", icon:"🦌", cost:10, heal:7, pwr:3, r:"rare", desc:"+7 HP · +3 PWR."},
   {id:"wafer", n:"Saint's Wafer", icon:"✝️", cost:11, heal:5, pwr:2, dark:2, r:"epic", desc:"+5 HP · +2 PWR · +2 Dark."},
-  {id:"kingsloaf", n:"King's Loaf", icon:"🍞", cost:14, heal:16, loy:1, r:"epic", desc:"+16 HP · +1 loy at Hall."},
+  {id:"kingsloaf", n:"King's Loaf", icon:"🍞", cost:14, heal:16, loy:1, r:"epic", desc:"+16 HP · +1 loy at the guild."},
   {id:"dragonjerky", n:"Wyrm Jerky", icon:"🥩", cost:15, pwr:6, r:"epic", desc:"+6 PWR."},
   {id:"goldfig", n:"Gilded Fig", icon:"🍇", cost:16, pwr:3, gold:0.20, xp:3, r:"epic", desc:"+3 PWR · +20% gold · +3 XP."},
   {id:"nightfeast", n:"Night Feast", icon:"🍽️", cost:15, heal:8, dark:4, r:"epic", desc:"+8 HP · +4 Dark."},
-  {id:"oathcup", n:"Oath Cup", icon:"🏆", cost:14, pwr:4, loy:1, r:"epic", desc:"+4 PWR · +1 loy at Hall."},
+  {id:"oathcup", n:"Oath Cup", icon:"🏆", cost:14, pwr:4, loy:1, r:"epic", desc:"+4 PWR · +1 loy at the guild."},
   {id:"starhoney", n:"Star Honey", icon:"🍯", cost:14, heal:10, pwr:3, r:"epic", desc:"+10 HP · +3 PWR."},
   {id:"bloodwine", n:"Blood Wine", icon:"🍷", cost:15, pwr:5, dark:2, r:"epic", desc:"+5 PWR · +2 Dark."},
   {id:"veilcake", n:"Veil Cake", icon:"🧁", cost:13, heal:8, xp:4, r:"epic", desc:"+8 HP · +4 XP."},
@@ -1843,7 +1843,7 @@ const BUILDINGS = {
   armory: {n:"Outfitter", desc:"Each level adds a new colour to the merchant's gear and food", base:25, max:5},
   infirmary: {n:"Infirmary", desc:"Faster recovery from wounds", base:35, max:5},
   yard: {n:"Training Grounds", desc:"All classes: +1 job power and +1 XP on every successful job per level", base:45, max:5},
-  bank: {n:"Bank", desc:"Park spare gold. Interest each dawn. The hall opens with Bank Lv1. Higher Bank is still bought. No Bank, no knock at the door. Vault pays door hires first. 50g parked raises the door band; Bank 3+ at 70% full raises it again.", base:55, max:4},
+  bank: {n:"Bank", desc:"Park spare gold. Interest each dawn. Every guild opens with Bank Lv1. Higher Bank is still bought. No Bank, no knock at the door. Vault pays door hires first. 50g parked raises the door band; Bank 3+ at 70% full raises it again.", base:55, max:4},
   racks: {n:"Racks", desc:"+3 Armory slots per level (base 4)", base:40, max:5},
   board: {n:"Notice Board", desc:"Better chance of gifted faces at the Tap. Elite do not drink here.", base:45, max:5},
   bell: {n:"Chapel Bell", desc:"+2 power on Dark and Holy jobs per level", base:50, max:5},
@@ -1852,7 +1852,7 @@ const BUILDINGS = {
   stables: {n:"Courier Stable", desc:"Jobs finish 1 day sooner per level (minimum 1 day).", base:50, max:4}
 };
 const BUILD_HELP = {
-  barracks: {how:"Each level adds two beds. Cap is 2 + 2 × Barracks level (you start with Barracks 1, so 4 people).", lv:["Lv1 — 4 roster slots (the hall you start with).","Lv2 — 6 slots.","Lv3 — 8 slots.","Lv4 — 10 slots.","Lv5 — 12 slots."]},
+  barracks: {how:"Each level adds two beds. Cap is 2 + 2 × Barracks level (you start with Barracks 1, so 4 people).", lv:["Lv1 — 4 roster slots (the guild you start with).","Lv2 — 6 slots.","Lv3 — 8 slots.","Lv4 — 10 slots.","Lv5 — 12 slots."]},
   armory: {how:"Called Outfitter. Sets the colour of the merchant's weapons, armor, and food. Each level brings in a new colour: every shelf gets 1 or 2 pieces of it, and the rest are one colour lower. The stall restocks when the Outfitter is raised. Orange Legendary gear never sits on the stall.", lv:["Lv1 — all Gray (Common) gear and food. You start here.","Lv2 — 1-2 White (Masterwork) per shelf, the rest Gray.","Lv3 — 1-2 Green per shelf, the rest White.","Lv4 — 1-2 Blue per shelf, the rest Green.","Lv5 — 1-2 Purple per shelf, the rest Blue. Named loot still only drops on jobs."]},
   infirmary: {how:"Wounded people heal 3 + 2×level HP each End Day. They stand up again at 75% HP. If a job would kill someone, each Infirmary level adds 8% chance they are dragged home at 1 HP instead (base 35%, max 75% at Lv5). Ready people still only mend 2 HP/day.", lv:["Lv0 — 3 HP/day if wounded, 35% last-breath save.","Lv1 — 5 HP/day, 43% save. You start here.","Lv2 — 7 HP/day, 51% save.","Lv3 — 9 HP/day, 59% save.","Lv4 — 11 HP/day, 67% save.","Lv5 — 13 HP/day, 75% save."]},
   yard: {how:"Training for every class. Each level gives every hero +1 power on every job, and +1 extra XP each time they come back from a successful job (on top of the usual 4 + job difficulty).", lv:["Lv1 — +1 job power, +1 XP per success.","Lv2 — +2 job power, +2 XP per success.","Lv3 — +3 job power, +3 XP per success.","Lv4 — +4 job power, +4 XP per success.","Lv5 — +5 job power, +5 XP per success."]},
@@ -1860,12 +1860,12 @@ const BUILD_HELP = {
   alley: {how:"Rogue school. Same as Grounds, for Rogues only.", lv:["Lv1 — +1 PWR and +1 XP for Rogues.","Lv2 — +2 / +2.","Lv3 — +3 / +3.","Lv4 — +4 / +4."]},
   sanctum: {how:"Mage school. Same as Grounds, for Mages only.", lv:["Lv1 — +1 PWR and +1 XP for Mages.","Lv2 — +2 / +2.","Lv3 — +3 / +3.","Lv4 — +4 / +4."]},
   chapel: {how:"Cleric school. Same as Grounds, for Clerics only. Does not replace Chapel Bell (that is Dark power).", lv:["Lv1 — +1 PWR and +1 XP for Clerics.","Lv2 — +2 / +2.","Lv3 — +3 / +3.","Lv4 — +4 / +4."]},
-  bank: {how:"Park gold in a vault. Parked coin does not pay wages. Each dawn: 1g interest per 25 parked, capped at Bank level. Vault size is 150g × level. Overflow spills to the purse. The door only knocks if a Bank stands — every 7–14 days three faces ask to join. Pay from the vault first (65% of Tap). Take one, the other two leave. Renown sets the base quality band. +1 band if 50g is parked. +1 more at Bank Lv3+ when the vault is at least 70% full. Kit still waits on the calendar: no epic gear at the door before day 35.", lv:["Lv1 — vault 150g, max +1g/dawn. Free at a new hall. The door can knock.","Lv2 — 300g, max +2g.","Lv3 — 450g, max +3g. 70% full vault can add a door-band step.","Lv4 — 600g, max +4g."]},
+  bank: {how:"Park gold in a vault. Parked coin does not pay wages. Each dawn: 1g interest per 25 parked, capped at Bank level. Vault size is 150g × level. Overflow spills to the purse. The door only knocks if a Bank stands — every 7–14 days three faces ask to join. Pay from the vault first (65% of Tap). Take one, the other two leave. Renown sets the base quality band. +1 band if 50g is parked. +1 more at Bank Lv3+ when the vault is at least 70% full. Kit still waits on the calendar: no epic gear at the door before day 35.", lv:["Lv1 — vault 150g, max +1g/dawn. Free at a new guild. The door can knock.","Lv2 — 300g, max +2g.","Lv3 — 450g, max +3g. 70% full vault can add a door-band step.","Lv4 — 600g, max +4g."]},
   racks: {how:"Armory starts at 4 slots. Each Racks level adds 3 more.", lv:["Lv1 — 7 slots.","Lv2 — 10 slots.","Lv3 — 13 slots.","Lv4 — 16 slots.","Lv5 — 19 slots."]},
   board: {how:"Notice Board at the Tap. Base chance of two traits is 45% + 8% per level. Of those, a third trait is 30% + 7% per level. More traits means more gifted and elite faces (and more flawed ones too).", lv:["Lv1 — two-trait 53%, third 37%.","Lv2 — 61% / 44%.","Lv3 — 69% / 51%.","Lv4 — 77% / 58%.","Lv5 — 85% / 65%."]},
   bell: {how:"Chapel Bell. Party power +2 per level on Dark and Holy jobs only. Stacks with Clerics, Night Owl, Night role, Night step.", lv:["Lv1 — +2 Dark PWR.","Lv2 — +4.","Lv3 — +6.","Lv4 — +8.","Lv5 — +10."]},
   briefs: {how:"Two things. 1) Each level adds 2 more jobs to the quest board (the board is 5 jobs, +1 per 15 Renown up to +2, +2 per Briefs level). 2) Unlocks Break the seal on open jobs: pay gold to replace that card with another unused contract. Cannot seal-break a job that already has a party. Seal cost is 24g − 4g per level.", lv:["Lv1 — +2 jobs on the board, 20g a seal.","Lv2 — +4 jobs, 16g a seal.","Lv3 — +6 jobs, 12g a seal.","Lv4 — +8 jobs, 8g a seal.","Lv5 — +10 jobs, 4g a seal."]},
-  seer: {how:"Sight is free. It reads quests, road encounters, hall events, and the guild contest. Higher levels say more and, at the top, change the numbers.", lv:[
+  seer: {how:"Sight is free. It reads quests, road encounters, guild events, and the guild contest. Higher levels say more and, at the top, change the numbers.", lv:[
 "Lv1 — Quests: colors each face's power for that job (red low to gold high), shows the exact gold (not a range), and recommends the best-loot quest of good chance or better. Contest: reads the odds as they walk it, good chance, even, bloody, or grave. Road and events: a one-line hint of what each choice does.",
 "Lv2 — Quests: adds the power bar, auto-picks and reserves the party across quests, and lists the items that will drop with their value. Contest: adds the power bar and opens the rival's two best faces, tappable. Road and events: ranges (XP, gold, damage).",
 "Lv3 — Quests: shows item stats (attack, defense, heal) and uses leftover faces to push more quests to good chance or better. Contest: shows your power over their power and lets you pick your two. Road and events: percentages and exact amounts.",
@@ -1882,7 +1882,7 @@ function openBldHelp(k){
   const price = lv>=b.max ? "maxed" : (b.pay==="renown"?rn(cost):gp(cost));
   document.getElementById("sheet").innerHTML = `
     <h3>${BLD_ICON[k]||""} ${b.n}</h3>
-    <p class="tiny">Your hall: Lv ${lv}/${b.max} · next ${price}${b.pay==="renown"?" (Renown)":""}</p>
+    <p class="tiny">Your guild: Lv ${lv}/${b.max} · next ${price}${b.pay==="renown"?" (Renown)":""}</p>
     <p class="tiny">${(h&&h.how)||b.desc}</p>
     <h4>Levels</h4>
     ${(h&&h.lv||[]).map((t,i)=>{const n=+((t.match(/^Lv(\d+)/)||[])[1]||i+1);return `<p class="tiny"${n===lv?" style=\"color:var(--gold)\"":""}>${t}${n===lv?" · you are here":""}</p>`;}).join("")||`<p class="tiny">${b.desc}</p>`}
@@ -2313,7 +2313,7 @@ function openQuitAsk(){
   sheet.innerHTML = `<h3>Leaving</h3>
     <div id="quitCard">${personLine(p)}</div>
     <p class="tiny">Loyalty 0 · pay ${gp(fee)} to keep them at 1. Tap the card to open the sheet.</p>
-    <p class="tiny">${p.name.split(" ")[0]} is walking out. Pay the day's fee from the vault to keep them at loyalty 1. If they leave, the hall loses ${quitRenownHit(p)} Renown.</p>
+    <p class="tiny">${p.name.split(" ")[0]} is walking out. Pay the day's fee from the vault to keep them at loyalty 1. If they leave, the guild loses ${quitRenownHit(p)} Renown.</p>
     <p class="tiny">Purse ${gp(S.gold)}${bankLv()?" · vault "+gp(S.deposit||0):" · no Bank"}</p>
     ${canPay?`<button type="button" class="act" id="quitKeep" style="width:100%;margin-top:8px">Pay ${gp(fee)} (purse / vault)</button>`:`<p class="muted">Need ${gp(fee)}.</p>`}
     <button type="button" class="ghost" id="quitGo" style="width:100%;margin-top:6px">Let them leave</button>`;
@@ -2341,7 +2341,7 @@ function letQuit(id){
   if(p){
     p.status = "quit";
     const hit = applyQuitRenown(p);
-    log(p.name+" left the hall. −"+hit+" Renown.");
+    log(p.name+" left the guild. −"+hit+" Renown.");
     note(p.name+" packed a bag and left. −"+hit+" Renown.", "fail");
   }
   S.quitAsk = (S.quitAsk||[]).filter(x=>x!==id);
@@ -2602,7 +2602,7 @@ function missionPool(){
     {t:"Cave Mouth", d:"See how far the new cave runs.", story:"A slip on the ridge opened a mouth. The abbey wants a length, a sketch, and a word on the air. Turn back if the candles die.", diff:6, days:4, gold:[22,40], ren:[3,5], need:2, tags:["Mage","Rogue"]},
     {t:"Tithe Cup", d:"The chapel cup left with a guest.", story:"It is silver and has Saint Ora's mark. The guest took the north road. Bring the cup. The guest can keep his horse.", diff:4, days:4, gold:[18,34], ren:[2,4], need:1, tags:["Cleric","Rogue"]},
     {t:"Wedding Band", d:"A pledged band was swapped for tin.", story:"The bride noticed at the door. The tin is still on her hand. The gold went into a coat. Find the coat.", diff:3, days:2, gold:[14,26], ren:[2,3], need:1, tags:["Rogue","Cleric"]},
-    {t:"Charter Box", d:"The hall's charter box is in a ditch.", story:"The courier's horse spooked. The box is lacquered and heavy. Find it before the damp takes the seals. Do not open it.", diff:4, days:4, gold:[18,32], ren:[2,4], need:2, tags:["Warrior","Rogue"]},
+    {t:"Charter Box", d:"The guild's charter box is in a ditch.", story:"The courier's horse spooked. The box is lacquered and heavy. Find it before the damp takes the seals. Do not open it.", diff:4, days:4, gold:[18,32], ren:[2,4], need:2, tags:["Warrior","Rogue"]},
     {t:"Saint Comb", d:"A relic comb went missing from the side-altar.", story:"Ivory, stained at the teeth. A pilgrim was seen tucking something white. Catch the comb before it is sold as 'old bone'.", diff:3, days:2, gold:[14,28], ren:[2,4], need:1, tags:["Cleric","Rogue"]},
     {t:"Gate Breach", d:"The east postern is off its hinges.", story:"A ram took the small gate at dusk. Four are wanted to hold the gap, reset the bar, and keep looters off the stores until the carpenter comes.", diff:4, days:4, gold:[28,48], ren:[2,4], need:4, tags:["Warrior","Cleric"]},
     {t:"Four Corners Watch", d:"The milestone watch is short four bodies.", story:"North, south, east, west — each corner of the old market wants a face until dawn. Pickpockets work the gaps. Four posts. One night.", diff:5, days:4, gold:[32,54], ren:[2,4], need:4, tags:["Rogue","Warrior"]},
@@ -2937,7 +2937,7 @@ const EPIC_TALES = [
     story:"They capped the well and she came up the bucket-rope anyway. Wet footprints stop at the bakehouse. Flour on the floor looks like a dress. The village wants the well blessed empty. Bring up what is wearing her shape and end it. There is a ring at the bottom they will not touch."},
   {t:"The Iron Guest", kind:"slay",
     d:"A statue arrived on the green and began to take steps.",
-    story:"No mason claims the work. Overnight a mailed figure stood on the green with no plinth. On the third night it took a step toward the hall door. Dogs will not bark at it. Chip it down or bind it. Inside the chest is a heart of worked gold no smith in town will set."},
+    story:"No mason claims the work. Overnight a mailed figure stood on the green with no plinth. On the third night it took a step toward the guild door. Dogs will not bark at it. Chip it down or bind it. Inside the chest is a heart of worked gold no smith in town will set."},
   {t:"Hound of the Red Toll", kind:"slay",
     d:"The bandits left. Their hound did not.",
     story:"The Red Toll is hanged or fled. Their war-hound stayed on the cut, big as a calf, collar of old coins. It will not be called off. It has the road and the mail will not run. Put it down. The collar is heavy enough to matter."},
@@ -2946,10 +2946,10 @@ const EPIC_TALES = [
     story:"The field that burned last autumn still smokes at the center. Shepherds saw a black heart the size of a helm pulsing in the ash. It is warm in the rain. The abbey wants it brought in a wrapped box and not worn. Things that sleep near it dream of falling. Carry it home and do not listen."},
   {t:"Cup of the First Oath", kind:"relic",
     d:"The first guild cup was buried with a liar and has started to sing.",
-    story:"Before Copper Hall there was a cup. It went into a barrow with a master who sold out his own. On wet nights the barrow hums in a hall-key. Dig it. The dead may not agree. The cup is gold work and older than the town charter. Bring it up intact."},
+    story:"Before your guild there was a cup. It went into a barrow with a master who sold out his own. On wet nights the barrow hums in a hall-key. Dig it. The dead may not agree. The cup is gold work and older than the town charter. Bring it up intact."},
   {t:"Ridge Crown", kind:"relic",
     d:"A crown of fused teeth sits the shale ridge.",
-    story:"Goats will not graze the shale. At the crest is a circlet of yellowed points fused like antler. Birds that land near it drop. The ridge folk say it is a king's mouth. Take it off the stone. Do not wear it on the walk down. The hall can keep a thing like that in a box."},
+    story:"Goats will not graze the shale. At the crest is a circlet of yellowed points fused like antler. Birds that land near it drop. The ridge folk say it is a king's mouth. Take it off the stone. Do not wear it on the walk down. The guild can keep a thing like that in a box."},
   {t:"Saint's Left Glove", kind:"relic",
     d:"Ora's missing glove is in a flooded reliquary that bites.",
     story:"The right glove is in the low chapel. The left went down with the river house. Divers come up with marks like teeth on the wrist. The glove is gold-thread and still dry in the stories. Fetch it before the spring rise hides the stair again."},
@@ -2958,13 +2958,13 @@ const EPIC_TALES = [
     story:"On the old pack road a lantern hangs in a dead oak and stays lit. Follow it and you come home. Look into the glass and you see the thing that walks just off the verge, keeping pace. The merchants want the lantern. They do not want the companion. Bring the light. Leave the rest if you can."},
   {t:"Mirror of the Playhouse", kind:"relic",
     d:"A dressing mirror keeps the last face that looked in it.",
-    story:"After the mask walked, one glass in the tiring-room still holds a face that is not in the building. Covering it does not help. They want it taken from the house and bound. Gold leaf on the frame. Do not meet its eye for long. The hall can nail a cloth over it."},
+    story:"After the mask walked, one glass in the tiring-room still holds a face that is not in the building. Covering it does not help. They want it taken from the house and bound. Gold leaf on the frame. Do not meet its eye for long. The guild can nail a cloth over it."},
   {t:"Tooth of the Bridge Ogre", kind:"relic",
     d:"The ogre is gone. One tooth is still in the keystone and the bridge groans.",
     story:"They drove the tenant off the span. A yellow tooth is wedged in the keystone and the mortar weeps. Teamsters hear a chew when carts cross. Work the tooth free without dropping the arch. It is heavy as a hammer and yellow as old gold."},
   {t:"The Black Ledger", kind:"relic",
     d:"A book that writes names the night before they die.",
-    story:"A collector left a ledger in the ditch after the south road fight. Pages fill themselves. Two names already came true. The mayor wants it locked in a hall chest, not burned — burning sent smoke that spelled. Fetch the book. Do not read ahead."}
+    story:"A collector left a ledger in the ditch after the south road fight. Pages fill themselves. Two names already came true. The mayor wants it locked in a guild chest, not burned — burning sent smoke that spelled. Fetch the book. Do not read ahead."}
 ];
 function livingRoster(){
   return (S.people||[]).filter(p=>p.status!=="dead");
@@ -3279,7 +3279,7 @@ function tickSeason(){
   S.seasonLeft -= 1;
   if(S.seasonLeft>=1 && S.seasonLeft<=5 && S.contestWarnLeft!==S.seasonLeft && !(S.contestUntil>S.day) && !S.contestDue){
     S.contestWarned = true; S.contestWarnLeft = S.seasonLeft;
-    const r = (S.rival&&S.rival.name)||"the other hall";
+    const r = (S.rival&&S.rival.name)||"the rival guild";
     S.contestWarn = {id:"contest_warn", name:r, left:S.seasonLeft, them:(S.rival&&S.rival.renown)||0, us:S.renown||0};
   }
   if(S.seasonLeft>0) return;
@@ -3293,7 +3293,7 @@ function tickSeason(){
   if(S.season!=="winter") S.grain = false;
   S.seasonAsk = {id:"season_turn", season:S.season};
   S.contestDue = S.season;
-  S.contestAsk = {id:"rival_contest", name:(S.rival&&S.rival.name)||"the other hall"};
+  S.contestAsk = {id:"rival_contest", name:(S.rival&&S.rival.name)||"the rival guild"};
   log("Season turned. Contest and season sheets are waiting.");
 }
 function encChance(){
@@ -3519,10 +3519,10 @@ function openRescueOffer(guest, m, party, after, diff){
           <div class="tiny">${traitText(guest)} · ${roleLine(guest)} · ${quirkLine(guest)}</div>
         </div></div>
       </div>
-      <p>They will sit the Copper Hall if you have a bed. Epic, scaled to Diff ${diff||"?"}.</p>
+      <p>They will join your guild if you have a bed. Epic, scaled to Diff ${diff||"?"}.</p>
       ${full && next?`<p class="tiny">Barracks full. Next level is ${gp(next)} and opens two beds.</p>
         <button type="button" class="act" id="resBarracks" style="width:100%;margin-top:8px">Buy Barracks Lv ${(S.buildings.barracks||0)+1} · ${gp(next)}</button>`:""}
-      ${full && !next?`<p class="tiny">Barracks are maxed. There is no bed left in the hall.</p>`:""}
+      ${full && !next?`<p class="tiny">Barracks are maxed. There is no bed left in the guild.</p>`:""}
       <button type="button" class="act" id="resJoin" ${full?"disabled":""} style="width:100%;margin-top:8px">${full?"Need a bed first":"Take them in"}</button>
       <button type="button" class="ghost" id="resNo" style="width:100%;margin-top:8px">Send them on</button>`;
     const bb = document.getElementById("resBarracks");
@@ -4110,7 +4110,7 @@ function eventSeerHtml(e, btns){
     ],
     poach:[
       ["Match the offer", "Pay to keep them.", "Pay the rival's price. They stay."],
-      ["Let them go", "They leave for the rival.", "They join the rival hall."]
+      ["Let them go", "They leave for the rival.", "They join the rival guild."]
     ],
     praise:[
       ["Take gold", "Coin now.", "Gold to the purse."],
@@ -4766,7 +4766,7 @@ function doThiefSwap(pid, mid){
 }
 function redrawJob(mid){
   const lv = S.buildings.briefs||0;
-  if(!lv) return toast("Build Sealed Briefs on the Hall first.");
+  if(!lv) return toast("Build Sealed Briefs on the Guild tab first.");
   const cost = briefCost();
   if(funds() < cost) return toast("Need "+gp(cost)+".");
   const ix = findMissionIndex(mid);
@@ -5378,7 +5378,7 @@ function pickWritHall(key){
   writCongrats(w, {hall}, ren);
   if(hall){
     note("📜 The town raised the "+hall.n+" to Lv "+hall.lv+" (worth "+gp(hall.cost)+").", "success");
-    log("Writ hall grant: "+hall.n+" → Lv "+hall.lv+".");
+    log("Writ building grant: "+hall.n+" → Lv "+hall.lv+".");
     toast("Town raised "+hall.n+" to Lv "+hall.lv+".");
   }
   save(); render();
@@ -5389,11 +5389,11 @@ function pickWritHall(key){
 function recoverWritChoice(){
   const w = S.writ;
   if(!w || w.done!=="sealed" || w.granted || S.writChoice) return false;
-  const tag = "Writ sealed: "+w.title+". Waiting on hall pick.";
+  const tags = ["Writ sealed: "+w.title+". Waiting on building pick.", "Writ sealed: "+w.title+". Waiting on hall pick."];
   const logs = S.log||[];
-  const ix = logs.findIndex(t=>String(t).indexOf(tag)>=0);
+  const ix = logs.findIndex(t=>tags.some(g=>String(t).indexOf(g)>=0));
   if(ix<0) return false;
-  if(logs.slice(0, ix).some(t=>/Writ hall grant:/.test(String(t)))){ w.granted = true; return false; }
+  if(logs.slice(0, ix).some(t=>/Writ (hall|building) grant:/.test(String(t)))){ w.granted = true; return false; }
   const opts = writHallOptions();
   if(!opts.length){ w.granted = true; return false; }
   S.writChoice = {title:w.title||"Writ", opts};
@@ -5406,8 +5406,8 @@ function showWritChoice(){
   if(!pending || !pending.opts || pending.opts.length<2) return false;
   const sheet = document.getElementById("sheet");
   if(!sheet) return;
-  sheet.innerHTML = `<h3>📜 The town will raise one hall</h3>
-    <p class="tiny">${pending.title||"Writ sealed"}. Your lowest-level halls. The town pays for one upgrade. Pick one.</p>
+  sheet.innerHTML = `<h3>📜 The town will raise one building</h3>
+    <p class="tiny">${pending.title||"Writ sealed"}. Your lowest-level buildings. The town pays for one upgrade. Pick one.</p>
     ${pending.opts.map(o=>`<button type="button" class="act" data-writpick="${o.k}" style="width:100%;margin-top:8px">${BLD_ICON[o.k]||"🏛️"} ${o.n} · Lv ${o.lv} → ${o.next} · worth ${gp(o.cost)}</button>
       <p class="tiny">${(BUILDINGS[o.k]||{}).desc||""}</p>`).join("")}`;
   const modal = document.getElementById("modal");
@@ -5536,13 +5536,13 @@ function sealWrit(ok){
       writCongrats(w, grant, ren);
       log("Writ sealed: "+w.title+". "+grant.hall.n+" → Lv "+grant.hall.lv+". +"+ren+" renown.");
     } else if(grant.kind==="choice"){
-      note("📜 Writ sealed: "+w.title+" — +"+ren+" "+rn()+". The town will raise one of your lowest-level halls. Choose which.", "success");
-      log("Writ sealed: "+w.title+". Waiting on hall pick.");
+      note("📜 Writ sealed: "+w.title+" — +"+ren+" "+rn()+". The town will raise one of your lowest-level buildings. Choose which.", "success");
+      log("Writ sealed: "+w.title+". Waiting on building pick.");
     } else {
       const gold = 12 + S.day + w.need*6;
       S.gold += gold;
-      note("📜 Writ sealed: "+w.title+" — the hall is already built out. The town paid "+gp(gold)+" and +"+ren+" "+rn()+".", "success");
-      log("Writ sealed: "+w.title+". Hall maxed. +"+gold+"g, +"+ren+" renown.");
+      note("📜 Writ sealed: "+w.title+" — the guild is already built out. The town paid "+gp(gold)+" and +"+ren+" "+rn()+".", "success");
+      log("Writ sealed: "+w.title+". Guild maxed. +"+gold+"g, +"+ren+" renown.");
       writCongrats(w, null, ren, gold);
     }
   } else {
@@ -5626,7 +5626,7 @@ function writOil(){
 function writCard(){
   if(S.day < WRIT_UNLOCK && !S.writ){
     return `<div class="card"><div class="row"><h3>📜 Town Writ</h3><span class="tag">day ${WRIT_UNLOCK}</span></div>
-      <p class="tiny">The town will post a writ on day ${WRIT_UNLOCK}. You get a long window. Seal it and the town raises one of your lowest-level halls, your pick. Early lapses are free.</p></div>`;
+      <p class="tiny">The town will post a writ on day ${WRIT_UNLOCK}. You get a long window. Seal it and the town raises one of your lowest-level buildings, your pick. Early lapses are free.</p></div>`;
   }
   const w = S.writ;
   if(!w) return "";
@@ -5647,7 +5647,7 @@ function writCard(){
     ${S.doubleWrit?`<p class="ok">Double mark · next matching job counts twice</p>`:""}
     <p class="tiny">Marks ${w.have||0}/${w.need} · due day ${w.due}</p>
     <div class="bar"><i style="width:${pct}%;background:var(--gold)"></i></div>
-    <p class="tiny">Seal it and the town raises one of your lowest-level halls, your pick. Lapse before day 20 costs nothing.</p>
+    <p class="tiny">Seal it and the town raises one of your lowest-level buildings, your pick. Lapse before day 20 costs nothing.</p>
     ${oathEaterBtn()}
   </div>`;
 }
@@ -6075,7 +6075,7 @@ function resolveMission(m){
     }
     if(f){
       const bits = [];
-      if(ateAtHall) bits.push("used at the Hall");
+      if(ateAtHall) bits.push("used at the guild");
       if(healed>0) bits.push("healed "+healed+" HP");
       else if(f.heal && !ateAtHall) bits.push("already full");
       if(f.pwr) bits.push("+"+f.pwr+" power");
@@ -6149,7 +6149,7 @@ function resolveMission(m){
     S.gold += gold; S.renown += ren;
     rivalClear(m);
     log("Success: "+m.t+". +"+gp(gold)+", +"+ren+" "+rn()+". "+names);
-    const cheers = ["VICTORY","THEY DID IT","JOB DONE","THE HALL CHEERS","A CLEAN WIN"];
+    const cheers = ["VICTORY","THEY DID IT","JOB DONE","THE GUILD CHEERS","A CLEAN WIN"];
     note(pick(cheers)+": "+icon+m.t+" — "+names+" brought home +"+gp(gold)+" and +"+ren+" "+rn()+"!", "success");
     const wc = creditWrit(m);
     if(wc===1) note("📜 Writ mark "+S.writ.have+"/"+S.writ.need+" on "+S.writ.title+".", "success");
@@ -6181,15 +6181,15 @@ function checkGameOver(){
   const cheapest = 45;
   if((S.gold||0) >= cheapest) return;
   S.gameOver = true;
-  const name = (typeof profileName==="function" ? profileName() : "the Hall") || "the Hall";
+  const name = (typeof profileName==="function" ? profileName() : "the guild") || "the guild";
   const sheet=document.getElementById("sheet");
   const modal=document.getElementById("modal");
   sheet.innerHTML=`<div style="text-align:center;padding:12px 0">
     <div style="font-size:64px;line-height:1">🪦</div>
     <h3 style="margin:8px 0">${name}</h3>
-    <p class="tiny" style="font-style:italic">Here lies a hall with no one left to answer the door.</p>
+    <p class="tiny" style="font-style:italic">Here lies a guild with no one left to answer the door.</p>
     <p class="tiny">The last face is gone and the purse is empty. No one will come for this.</p>
-    <button type="button" class="act" id="restartHall" style="width:100%;margin-top:14px">Restart hall</button>
+    <button type="button" class="act" id="restartHall" style="width:100%;margin-top:14px">Restart guild</button>
   </div>`;
   modal.classList.add("show"); modal.style.display="flex";
   document.getElementById("restartHall").onclick=()=>{ S.gameOver=false; closeModal(); newGame(); };
@@ -6359,8 +6359,8 @@ function tickMissions(){
 function writChoiceBlock(){
   const pending = S.writChoice;
   if(!pending || !pending.opts || pending.opts.length<2) return "";
-  return `<div class="card" style="margin-top:8px;border-color:var(--gold)"><h3>📜 Raise one hall</h3>
-    <p class="tiny">${pending.title||"Writ sealed"}. Your lowest-level halls. Pick one for the town to raise.</p>
+  return `<div class="card" style="margin-top:8px;border-color:var(--gold)"><h3>📜 Raise one building</h3>
+    <p class="tiny">${pending.title||"Writ sealed"}. Your lowest-level buildings. Pick one for the town to raise.</p>
     ${pending.opts.map(o=>`<button class="act" data-writpick="${o.k}" style="width:100%;margin-top:6px">${BLD_ICON[o.k]||"🏛️"} ${o.n} · Lv ${o.lv} → ${o.next} · worth ${gp(o.cost)}</button>
       <p class="tiny">${(BUILDINGS[o.k]||{}).desc||""}</p>`).join("")}
   </div>`;
@@ -6662,7 +6662,7 @@ function recruit(){
 }
 
 
-const RIVAL_NAMES = ["The Iron Stool","Red Wren Hall","Ash & Penny","The Salt Hook","Copper's Shadow"];
+const RIVAL_NAMES = ["The Iron Stool","Red Wren Guild","Ash & Penny","The Salt Hook","Copper's Shadow"];
 function stripHallCat(){
   (S.people||[]).concat(S.hire||[], S.seekers||[]).forEach(p=>{
     if(p && p.quirk==="hall_cat") p.quirk = "bench_dog";
@@ -7103,7 +7103,7 @@ function openBloodAsk(){
     <p class="tiny">${face(p)}</p>
     ${nameHtml(p,"strong")}
     <p class="tiny">${p.cls} ${p.lv} · they took a killing blow that was not theirs.</p>
-    <p>Pay ${gp(fee)} (double wage) or they leave the hall.</p>
+    <p>Pay ${gp(fee)} (double wage) or they leave the guild.</p>
     <button type="button" class="act" id="bloodPay" ${can?"":"disabled"} style="width:100%;margin-top:8px">${can?"Pay "+gp(fee)+" · they stay":"Not enough gold · "+gp(fee)}</button>
     <button type="button" class="ghost" id="bloodGo" style="width:100%;margin-top:6px">Let them go</button>`;
   modal.classList.add("show"); modal.style.display="flex";
@@ -7520,7 +7520,7 @@ function nextDoorQueue(){
     if(showFindsPopup()) return;
   }
   if(S.contestDue && !S.contestAsk){
-    S.contestAsk = {id:"rival_contest", name:(S.rival&&S.rival.name)||"the other hall"};
+    S.contestAsk = {id:"rival_contest", name:(S.rival&&S.rival.name)||"the rival guild"};
   }
   if((S.contestAsk || S.contestDue) && !(S.contestUntil>S.day)){
     if(S.hallEvent && !S.hallEvent.shown && hallEventOverdue()) return showHallEvent();
@@ -7848,11 +7848,11 @@ function openHallEvent(){
     <button type="button" class="ghost" id="roofLeave" style="width:100%;margin-top:6px">Leave it · +2 days on the raise</button>` : `<button type="button" class="act" id="hallEvOk" style="width:100%;margin-top:10px">So be it</button>`;
   if(e.id==="leaky_roof"){
     body = `<h3>Leaky roof</h3>
-      <p>Rain found the hall. Pay ${gp(e.cost||8)} or the next work takes longer.</p>`;
+      <p>Rain found the guild. Pay ${gp(e.cost||8)} or the next work takes longer.</p>`;
   }
   if(e.id==="tithe_day"){
     body = `<h3>Tithe day</h3>
-      <p>The plate came around. Pay ${gp(e.cost||6)} or the town thinks less of the hall.</p>`;
+      <p>The plate came around. Pay ${gp(e.cost||6)} or the town thinks less of the guild.</p>`;
   }
   if(e.id==="cook"){
     body = `<h3>Wandering cook</h3>
@@ -7864,7 +7864,7 @@ function openHallEvent(){
   }
   if(e.id==="glut"){
     body = `<h3>Market glut</h3>
-      <p>The Hall shop is 20% cheaper for ${e.days} days. Road stalls unchanged.</p>`;
+      <p>The guild shop is 20% cheaper for ${e.days} days. Road stalls unchanged.</p>`;
   }
   if(e.id==="old_wound"){
     body = `<h3>Old wound opens</h3>
@@ -7915,8 +7915,8 @@ function openHallEvent(){
       <p>${e.name} found ${gp(e.gold)} in the yard.${e.vault?(" "+gp(e.vault)+" in the vault."):""}${e.purse?(" "+gp(e.purse)+" in the purse."):""}</p>`;
   }
   if(e.id==="poach"){
-    body = `<h3>Another hall</h3>
-      <p>${(S.rival&&S.rival.name)||"A rival hall"} offered ${e.name} a chair. Pay ${gp(e.fee||15)} from vault then purse and they stay with +1 loyalty, or let them walk. Letting them go costs Renown. If they walk, a quest to win them back goes on the board.</p>`;
+    body = `<h3>Another guild</h3>
+      <p>${(S.rival&&S.rival.name)||"A rival guild"} offered ${e.name} a chair. Pay ${gp(e.fee||15)} from vault then purse and they stay with +1 loyalty, or let them walk. Letting them go costs Renown. If they walk, a quest to win them back goes on the board.</p>`;
   }
   if(e.id==="brawl"){
     body = `<h3>Drunken brawl</h3>
@@ -8029,7 +8029,7 @@ function openHallEvent(){
   e.shown = true;
   recordHallEvent(e, "show");
   guardSheetTaps(sheet, 650);
-  { const h = (sheet.querySelector("h3")||{}).textContent || e.id; log("Hall event: "+h.replace(/\s+/g," ").trim()+"."); }
+  { const h = (sheet.querySelector("h3")||{}).textContent || e.id; log("Guild event: "+h.replace(/\s+/g," ").trim()+"."); }
   const ok = document.getElementById("hallEvOk");
   if(ok) ok.onclick=()=>{ S.hallEvent=null; save(); closeModal(); nextDoorQueue(); render(); };
   const fallOk = document.getElementById("fallOk");
@@ -8077,7 +8077,7 @@ function openHallEvent(){
     delete S["_roadStock_"+kind];
     S.hallEvent = null;
     const faces = livingRoster().filter(p=>p.status==="ready" || p.status==="wounded");
-    openRoadShop(kind, {n:"Peddler"}, {t:"Hall"}, faces, function(){ ENC_BUSY=false; closeModal(); save(); nextDoorQueue(); render(); }, true);
+    openRoadShop(kind, {n:"Peddler"}, {t:"Guild"}, faces, function(){ ENC_BUSY=false; closeModal(); save(); nextDoorQueue(); render(); }, true);
   };
   const pn = document.getElementById("peddleNo");
   if(pn) pn.onclick=()=>{
@@ -8091,7 +8091,7 @@ function openHallEvent(){
     if(!payWithBank(fee, "poach")) return;
     if(ppl) bumpLoy(ppl, 1);
     S.hallEvent = null;
-    log("Paid "+fee+" to keep "+(ppl?ppl.name:"them")+" from a rival hall.");
+    log("Paid "+fee+" to keep "+(ppl?ppl.name:"them")+" from a rival guild.");
     save(); closeModal(); nextDoorQueue(); render();
   };
   const fb = document.getElementById("featBuy");
@@ -8424,7 +8424,7 @@ function openHallEvent(){
       if(ppl.kit) stashPush("kit", ppl.kit);
       S.people = (S.people||[]).filter(x=>x.id!==ppl.id);
       postWinBack(ppl);
-      note(ppl.name+" took a chair at another hall. −"+hit+" Renown.", "warn");
+      note(ppl.name+" took a chair at another guild. −"+hit+" Renown.", "warn");
       log(ppl.name+" was poached. Renown -"+hit+".");
     }
     S.hallEvent = null;
@@ -8497,7 +8497,7 @@ function openSeekersBody(){
   const hall = byPower(livingRoster());
   const rosterStrip = hall.length
     ? `<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:10px 4px 12px">${hall.map(p=>`<span class="cls-badge ${CLASSES[p.cls].tag} g-${faceGrade(p)}" title="${p.name} · ${p.cls} ${p.lv} · ${faceGrade(p)}">${CLASSES[p.cls].icon}<span class="lv-pip">${p.lv||1}</span></span>`).join("")}</div>`
-    : `<p class="muted">Empty hall.</p>`;
+    : `<p class="muted">Empty guild.</p>`;
   sheet.innerHTML = `<h3>At the door</h3>
     <p class="tiny">Roster ${hall.length}/${cap()} · purse ${gp(S.gold)}${bankLv()?" · vault "+gp(S.deposit||0)+"/"+bankCap():""}</p>
     ${rosterStrip}
@@ -8516,7 +8516,7 @@ function openSeekersBody(){
     openPerson(el.dataset.seeklook);
   });
   document.getElementById("seekNone").onclick=()=>{
-    log("The hall sent the three away.");
+    log("The guild sent the three away.");
     S.seekers = null; save(); closeModal(); render();
   };
   sheet.querySelectorAll("[data-up]").forEach(b=>b.onclick=e=>{
@@ -8649,7 +8649,7 @@ function postWinBack(ppl, bump){
   const pwr = best.reduce((n,x)=>n+power([x],{t:"Escort",diff:1}),0);
   let diff = Math.max(1, Math.round((pwr-6)/8));
   diff += (bump||0);
-  const q = {id:uid(), t:"Win "+ppl.name.split(" ")[0]+" back", d:ppl.name+" took a chair at "+((S.rival&&S.rival.name)||"the other hall")+". Bring them home.", diff:diff, need:2, days:7, pay:0, gold:[0,0], winback:true, wbId:ppl.id, party:[], tags:[], holy:false, dark:false, renown:0};
+  const q = {id:uid(), t:"Win "+ppl.name.split(" ")[0]+" back", d:ppl.name+" took a chair at "+((S.rival&&S.rival.name)||"the rival guild")+". Bring them home.", diff:diff, need:2, days:7, pay:0, gold:[0,0], winback:true, wbId:ppl.id, party:[], tags:[], holy:false, dark:false, renown:0};
   if(!S.missions) S.missions=[];
   S.missions.push(q);
   note("A quest to win "+ppl.name+" back is on the board.","info");
@@ -9646,7 +9646,7 @@ function eatFood(pid){
   p.foodEaten = true;
   if(pending.length) bits.push("next job: "+pending.join(", "));
   else bits.push("no leftover bonus");
-  log(p.name+" used "+f.n+" at the Hall"+(bits.length?" ("+bits.join("; ")+")":"")+".");
+  log(p.name+" used "+f.n+" at the guild"+(bits.length?" ("+bits.join("; ")+")":"")+".");
   toast(p.name.split(" ")[0]+" used "+f.n+(bits.length?" · "+bits.join(" · "):""));
   sweepQuit();
   closeModal(); save(); render();
@@ -9831,7 +9831,7 @@ function openBuildSheet(){
     html += `<p class="tiny">Nothing queued after this.</p>`;
   }
   if(total) html += `<p class="tiny" style="color:var(--gold)">Everything done in ${total}d (day ${S.day+total}).</p>`;
-  html += `<button type="button" class="act" id="bsHall" style="width:100%;margin-top:8px">Go to Hall upgrades</button>
+  html += `<button type="button" class="act" id="bsHall" style="width:100%;margin-top:8px">Go to Guild upgrades</button>
     <button type="button" class="ghost" id="bsClose" style="width:100%;margin-top:8px">Close</button>`;
   sheet.innerHTML = html;
   modal.classList.add("show"); modal.style.display="flex";
@@ -9864,7 +9864,7 @@ function postRecovery(p, m){
 function bury(id){
   const p = S.people.find(x=>x.id===id);
   if(!p) return;
-  log("The hall remembers "+p.name+".");
+  log("The guild remembers "+p.name+".");
   S.people = S.people.filter(x=>x.id!==id);
   closeModal(); save(); render();
 }
@@ -9893,8 +9893,8 @@ function doDismiss(id){
   if(!p) return;
   if(p.status==="away") return toast(p.name+" is still out on a job.");
   S.people = S.people.filter(x=>x.id!==id);
-  log("Dismissed "+p.name+" from the hall.");
-  toast(p.name+" left the hall.");
+  log("Dismissed "+p.name+" from the guild.");
+  toast(p.name+" left the guild.");
   closeModal(); save(); render();
 }
 
@@ -9912,7 +9912,28 @@ function toast(t){
   }
 }
 
-let SLOTS = { current:"p1", list:{ p1:{ name:"Hall 1", data:null } } };
+const GUILD_NAMES = ["The Gilded Wyvern","The Ember Lantern","The Ravenmark Company","The Silver Antler","The Thornwatch Guild","The Black Stag","The Wandering Blade","The Crimson Compass","The Oathbound","The Hollow Crown"];
+/* Random guild name, never a rival's and never one another save already uses. */
+function pickGuildName(used){
+  const taken = (used||[]).map(n=>String(n||"").toLowerCase());
+  const rivals = (typeof RIVAL_NAMES!=="undefined"?RIVAL_NAMES:[]).concat((typeof S!=="undefined"&&S&&S.rival&&S.rival.name)?[S.rival.name]:[]).map(n=>String(n).toLowerCase());
+  let pool = GUILD_NAMES.filter(n=>taken.indexOf(n.toLowerCase())<0 && rivals.indexOf(n.toLowerCase())<0);
+  if(!pool.length) pool = GUILD_NAMES.filter(n=>rivals.indexOf(n.toLowerCase())<0);
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function isDefaultGuildName(n){
+  n = String(n==null?"":n).trim();
+  return !n || /^(the )?(copper )?hall( \d+)?$/i.test(n);
+}
+function slotNamesExcept(id){
+  return Object.keys(SLOTS.list||{}).filter(k=>k!==id).map(k=>(SLOTS.list[k]||{}).name);
+}
+function isRivalName(n){
+  const v = String(n||"").trim().toLowerCase();
+  const list = RIVAL_NAMES.concat(["Red Wren Hall"], (S.rival&&S.rival.name)?[S.rival.name]:[]);
+  return list.some(r=>String(r).toLowerCase()===v);
+}
+let SLOTS = { current:"p1", list:{ p1:{ name:pickGuildName([]), data:null } } };
 function storeGet(k){
   try { return localStorage.getItem(k) || sessionStorage.getItem(k); } catch(e){ return null; }
 }
@@ -9965,8 +9986,15 @@ function readSlots(){
     if(raw) SLOTS = JSON.parse(raw);
   }catch(e){}
   if(!SLOTS.list || !Object.keys(SLOTS.list).length){
-    SLOTS = { current:"p1", list:{ p1:{ name:"Hall 1", data:null } } };
+    SLOTS = { current:"p1", list:{ p1:{ name:pickGuildName([]), data:null } } };
   }
+  // One-time: old default names ("Hall", "Hall 2", "The Copper Hall") get a random guild name. Player-set names stay.
+  let renamed = false;
+  Object.keys(SLOTS.list).forEach(k=>{
+    const s = SLOTS.list[k];
+    if(s && isDefaultGuildName(s.name)){ s.name = pickGuildName(slotNamesExcept(k)); renamed = true; }
+  });
+  if(renamed) writeSlots();
   if(!SLOTS.list[SLOTS.current]) SLOTS.current = Object.keys(SLOTS.list)[0];
 }
 function writeSlots(){
@@ -10128,7 +10156,7 @@ function save(force){
   }
   try { writeName(snap); } catch(e){}
   readSlots();
-  if(!SLOTS.list[SLOTS.current]) SLOTS.list[SLOTS.current] = { name:"Hall", data:null };
+  if(!SLOTS.list[SLOTS.current]) SLOTS.list[SLOTS.current] = { name:pickGuildName(slotNamesExcept(SLOTS.current)), data:null };
   SLOTS.list[SLOTS.current].data = snapshot();
   writeSlots();
   S._slot = SLOTS.current;
@@ -10162,7 +10190,7 @@ function load(){
 }
 function profileName(){
   readSlots();
-  return (SLOTS.list[SLOTS.current]||{}).name || "Hall";
+  return (SLOTS.list[SLOTS.current]||{}).name || "Your guild";
 }
 function hallCode(){
   try { return JSON.stringify(snapshot()); } catch(e){ return ""; }
@@ -10173,13 +10201,13 @@ function copyHallCode(){
   if(box) box.value = text;
   if(navigator.share){
     try {
-      const file = new File([text], "copper-hall-save.txt", {type:"text/plain"});
+      const file = new File([text], "guild-save.txt", {type:"text/plain"});
       if(navigator.canShare && navigator.canShare({files:[file]})){
-        navigator.share({ files:[file], title:"Copper Hall save" }).catch(()=>{});
+        navigator.share({ files:[file], title:profileName()+" save" }).catch(()=>{});
         return;
       }
     } catch(e){}
-    navigator.share({ title:"Copper Hall save", text:text }).catch(()=>{});
+    navigator.share({ title:profileName()+" save", text:text }).catch(()=>{});
     return;
   }
   if(navigator.clipboard && navigator.clipboard.writeText){
@@ -10196,15 +10224,15 @@ function applyHallCode(raw){
   if(!raw || !String(raw).trim()) return toast("Paste a save code first.");
   let o = null;
   try { o = JSON.parse(String(raw).trim()); } catch(e){
-    return toast("That is not a hall code.");
+    return toast("That is not a guild code.");
   }
   if(!o || typeof o!=="object" || !Array.isArray(o.people)) return toast("That code has no roster.");
   if(!hallLived(o) && !(o.people||[]).length) return toast("Empty code.");
-  if(!applySnap(o)) return toast("Could not read that hall.");
+  if(!applySnap(o)) return toast("Could not read that guild.");
   S._wipeOk = true;
   save(true);
   S._wipeOk = false;
-  toast("Hall restored from code. Day "+S.day+".");
+  toast("Guild restored from code. Day "+S.day+".");
   closeModal();
   render();
 }
@@ -10216,14 +10244,14 @@ function openProfiles(){
     const d=sl.data||{};
     return `<div class="card" style="margin:8px 0;${on?"border-color:var(--gold)":""}">
       <div class="row"><strong>${on?"● ":""}${sl.name}</strong><span class="tag">${on?"playing":"saved"}</span></div>
-      <p class="tiny">${d.day?("Day "+d.day+" · "+gp(d.gold||0)+" · "+rn(d.renown||0)):"Empty hall"}</p>
-      ${on?"":`<button type="button" class="act" data-switch="${id}" style="width:100%;margin-top:6px">Play this hall</button>`}
+      <p class="tiny">${d.day?("Day "+d.day+" · "+gp(d.gold||0)+" · "+rn(d.renown||0)):"Empty guild"}</p>
+      ${on?"":`<button type="button" class="act" data-switch="${id}" style="width:100%;margin-top:6px">Play this guild</button>`}
       ${Object.keys(SLOTS.list).length>1?`<button type="button" class="ghost" data-delprof="${id}" style="width:100%;margin-top:6px;border-color:var(--bad);color:var(--bad)">Delete</button>`:""}
     </div>`;
   }).join("");
   const alive = (S.people||[]).filter(p=>p.status!=="dead");
   const dead = (S.people||[]).filter(p=>p.status==="dead");
-  const roster = `<h3 style="margin-top:14px">This hall's roster</h3>
+  const roster = `<h3 style="margin-top:14px">This guild's roster</h3>
     <p class="tiny">${alive.length} living${dead.length?" · "+dead.length+" fallen":""} · cap ${cap()}</p>
     ${alive.map(p=>`<div class="card cls-${CLASSES[p.cls].tag}${p.hero?" hero":""}${isFlawedOnly(p)?" flawed":isElite(p)?" elite":isGifted(p)?" gifted":""}" data-lookprof="${p.id}" style="margin:6px 0">
       <div class="row">
@@ -10235,21 +10263,21 @@ function openProfiles(){
     </div>`).join("")||`<p class="muted">No one on the books.</p>`}
     ${dead.map(p=>`<p class="tiny">✝ ${p.name} · ${p.cls}</p>`).join("")}`;
   document.getElementById("sheet").innerHTML = `
-    <h3>👤 Halls</h3>
-    <p class="tiny">Each hall is its own save. Same phone, same link.</p>
+    <h3>👤 Guilds</h3>
+    <p class="tiny">Each guild is its own save. Same phone, same link. New guilds get a random name. Tap the guild name at the top of the screen (or Rename below) to change it.</p>
     <div style="display:flex;gap:8px;margin:8px 0"><button type="button" class="act" id="btnProfSave" style="flex:1">💾 Save game</button><button type="button" class="act" id="btnProfLoad" style="flex:1">📂 Load game</button></div>
     ${rows}
     ${roster}
     <h3 style="margin-top:14px">Save code</h3>
-    <p class="tiny">Copies the hall, then opens the share sheet. Tap Notes. A webpage cannot write into Notes by itself.</p>
+    <p class="tiny">Copies the guild, then opens the share sheet. Tap Notes. A webpage cannot write into Notes by itself.</p>
     <p class="tiny">On the phone: tap Paste from Notes. If that is blocked, tap the box, hold, and choose Paste, then Apply.</p>
     <textarea id="hallCode" rows="6" style="width:100%;box-sizing:border-box;font-size:16px;background:#1a1612;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px"></textarea>
     <button type="button" class="act" id="btnPasteHall" style="width:100%;margin-top:8px">Paste from Notes</button>
     <button type="button" class="act" id="btnCopyHall" style="width:100%;margin-top:8px">Copy and share to Notes</button>
     <button type="button" class="ghost" id="btnApplyHall" style="width:100%;margin-top:8px">Apply pasted code</button>
-    <button type="button" class="act" id="btnNewProf" style="width:100%;margin-top:8px">New hall</button>
-    <button type="button" class="ghost" id="btnRenameProf" style="width:100%;margin-top:8px">Rename this hall</button>
-    <button type="button" class="ghost" id="btnRestartProf" style="width:100%;margin-top:8px;border-color:var(--bad);color:var(--bad)">Restart this hall</button>
+    <button type="button" class="act" id="btnNewProf" style="width:100%;margin-top:8px">New guild</button>
+    <button type="button" class="ghost" id="btnRenameProf" style="width:100%;margin-top:8px">Rename this guild</button>
+    <button type="button" class="ghost" id="btnRestartProf" style="width:100%;margin-top:8px;border-color:var(--bad);color:var(--bad)">Restart this guild</button>
     <button type="button" class="ghost" id="btnCloseProf" style="width:100%;margin-top:8px">Close</button>`;
   const modal=document.getElementById("modal");
   modal.classList.add("show"); modal.style.display="flex";
@@ -10350,32 +10378,35 @@ function createProfile(){
   save();
   const id = "p"+uid();
   const n = Object.keys(SLOTS.list).length+1;
-  SLOTS.list[id] = { name:"Hall "+n, data:null };
+  SLOTS.list[id] = { name:pickGuildName(slotNamesExcept(id)), data:null };
   SLOTS.current = id;
   writeSlots();
   S._wipeOk = true; newGame(); S._wipeOk = false;
   openProfiles();
 }
-function renameProfile(){
+function renameProfile(fromHeader){
   const sheet = document.getElementById("sheet");
-  const cur = (SLOTS.list[SLOTS.current]||{}).name || "Hall";
-  sheet.innerHTML = `<h3>Rename this hall</h3>
-    <input id="profName" value="${cur.replace(/"/g,"")}" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:#211b16;color:var(--ink);font:inherit;margin:8px 0">
+  const cur = (SLOTS.list[SLOTS.current]||{}).name || "";
+  const back = fromHeader===true ? closeModal : openProfiles;
+  sheet.innerHTML = `<h3>Rename your guild</h3>
+    <p class="tiny">Up to 30 letters. Rival guild names are taken.</p>
+    <input id="profName" maxlength="30" value="${cur.replace(/"/g,"")}" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:#211b16;color:var(--ink);font:inherit;margin:8px 0">
     <button type="button" class="act" id="btnSaveName" style="width:100%">Save name</button>
     <button type="button" class="ghost" id="btnCancelName" style="width:100%;margin-top:8px">Cancel</button>`;
   const modal = document.getElementById("modal");
   modal.classList.add("show"); modal.style.display="flex";
-  document.getElementById("btnCancelName").onclick=openProfiles;
+  document.getElementById("btnCancelName").onclick=back;
   document.getElementById("btnSaveName").onclick=()=>{
-    const v=(document.getElementById("profName").value||"").trim().slice(0,24) || "Hall";
+    const v=(document.getElementById("profName").value||"").replace(/[<>"]/g,"").trim().slice(0,30) || cur || pickGuildName(slotNamesExcept(SLOTS.current));
+    if(isRivalName(v)) return toast("That name belongs to a rival guild.");
     SLOTS.list[SLOTS.current].name=v;
-    writeSlots(); render(); openProfiles();
+    writeSlots(); render(); back();
   };
 }
 function deleteProfile(id){
-  if(Object.keys(SLOTS.list).length<=1) return toast("Keep at least one hall.");
+  if(Object.keys(SLOTS.list).length<=1) return toast("Keep at least one guild.");
   const sheet = document.getElementById("sheet");
-  sheet.innerHTML = `<h3>Delete ${(SLOTS.list[id]||{}).name||"this hall"}?</h3>
+  sheet.innerHTML = `<h3>Delete ${(SLOTS.list[id]||{}).name||"this guild"}?</h3>
     <p>That save is gone for good.</p>
     <button type="button" class="act" id="btnDelYes" style="width:100%;background:#6b2a22;border-color:#c45a4a">Delete it</button>
     <button type="button" class="ghost" id="btnDelNo" style="width:100%;margin-top:8px">Keep it</button>`;
@@ -10481,11 +10512,11 @@ function openContestStatus(){
   }).filter(Boolean);
   let who = names.join(", ");
   if(names.length===2) who = names[0]+" and "+names[1];
-  const hall = (r && r.name) || "the other hall";
+  const hall = (r && r.name) || "the rival guild";
   sheet.innerHTML = `<h3>Contest · ${hall}</h3>
     <p>${who||"Your pair"} ${names.length===1?"is":"are"} out for ${job.left} more day${job.left===1?"":"s"}.</p>
     <p class="tiny">They return when the contest is scored. Them ${r? (r.renown||0) : "?"} · you ${S.renown||0}.</p>
-    <button type="button" class="act" id="conStatHall" style="width:100%;margin-top:10px">Other hall</button>
+    <button type="button" class="act" id="conStatHall" style="width:100%;margin-top:10px">Rival guild</button>
     <button type="button" class="ghost" id="conStatClose" style="width:100%;margin-top:6px">Close</button>`;
   modal.classList.add("show"); modal.style.display="flex";
   const bh=document.getElementById("conStatHall");
@@ -10707,7 +10738,7 @@ function finishLoanReturn(){
   if(back==="road"){
     const kind = S._roadKind || "weapon";
     const faces = livingRoster().filter(p=>p.status==="ready" || p.status==="wounded");
-    return openRoadShop(kind, {n:"Stall"}, {t:"Hall"}, faces, function(){ ENC_BUSY=false; closeModal(); save(); render(); }, true);
+    return openRoadShop(kind, {n:"Stall"}, {t:"Guild"}, faces, function(){ ENC_BUSY=false; closeModal(); save(); render(); }, true);
   }
   if(back==="shop"){ tab="shop"; closeModal(); render(); return; }
   closeModal(); render();
@@ -10885,7 +10916,7 @@ function paintRaiseChip(){
     ic.textContent = "🏛️";
     if(mk) mk.textContent = "";
     if(ring) ring.style.strokeDashoffset = "94.2";
-    el.title = "Hall";
+    el.title = "Guild";
     if(mk){ mk.textContent = ""; mk.style.display="none"; }
     const tx = document.getElementById("raiseText");
     if(tx) tx.textContent = "Nothing";
@@ -10926,7 +10957,8 @@ function render(){ (S.people||[]).forEach(fixTwoHand);
     stampPerson(p);
   });
   const gn=document.getElementById("guildName");
-  if(gn) gn.textContent = profileName();
+  if(gn){ gn.textContent = profileName(); if(!gn._wired){ gn._wired=true; gn.onclick=()=>renameProfile(true); } }
+  if(S.rival && S.rival.name==="Red Wren Hall") S.rival.name = "Red Wren Guild";
   document.getElementById("day").textContent = S.day;
   const sl = document.getElementById("seasonLbl");
   if(sl) sl.textContent = seasonLabel();
@@ -10989,9 +11021,9 @@ function render(){ (S.people||[]).forEach(fixTwoHand);
   guardReport();
 
 function hallView(){
-  return `<div class="card"><h3>The Copper Hall</h3>
+  return `<div class="card"><h3>${String(profileName()).replace(/[<>&"]/g,"")}</h3>
     <p class="tiny">You do not adventure. You keep the books, the beds, and the contracts. They go out. They come back — most of them.</p>
-    <p class="muted">${rn(S.renown)} · Day ${S.day}. Profiles live under 👤.</p>
+    <p class="muted">${rn(S.renown)} · Day ${S.day}. Guilds live under 👤. Tap the name at the top to rename.</p>
     ${S.raise?`<p class="tiny" style="color:var(--gold)">Raising ${raiseLine()}</p><button class="ghost" data-cancelraise="1" style="width:100%;margin-top:6px">Halt raise · half back</button>`:""}
     ${(S.pendingLoot&&S.pendingLoot.length)?`<p class="ok">${S.pendingLoot.length} find${S.pendingLoot.length>1?"s":""} waiting. <button class="ghost" data-finds="1">Keep or sell</button></p>`:""}
     </div>
@@ -11805,7 +11837,7 @@ function armoryFullChoice(pid, slot, it, clear){
     closeModal();
     tab = "hall";
     render();
-    toast("Buy the next racks on the Hall tab.");
+    toast("Buy the next racks on the Guild tab.");
   };
   sheet.querySelector("[data-back]").onclick=()=>openPerson(pid);
 }
@@ -12053,7 +12085,7 @@ function openSettings(){
     <p class="tiny">When a combat event hits, this is the chance you cannot walk away.</p>
     <input id="lockSlide" type="range" min="0" max="100" step="5" value="${lock}" style="width:100%">
     <p style="margin:16px 0 8px"><b>Epic power mark</b> · <span id="epicVal">${Math.round(epicMult()*100)}%</span></p>
-    <p class="tiny">Pinned epic difficulty is this times the hall's best two (or three). Default 125%. Open epics retune when you move this. Parties already out keep their mark.</p>
+    <p class="tiny">Pinned epic difficulty is this times your guild's best two (or three). Default 125%. Open epics retune when you move this. Parties already out keep their mark.</p>
     <input id="epicSlide" type="range" min="100" max="200" step="5" value="${Math.round(epicMult()*100)}" style="width:100%">
     <button type="button" class="act" id="setClose" style="width:100%;margin-top:14px">Done</button>`;
   const modal=document.getElementById("modal");
@@ -12112,26 +12144,27 @@ function helpPage(id){
       <h4>Traits</h4>${traits}`;
   }
   if(id==="rival") return `
-    <p class="tiny">The other hall runs off-screen. You see a night-report line, not their board.</p>
+    <p class="tiny">The rival guild runs off-screen. You see a night-report line, not their board.</p>
     <p class="tiny">They start with two faces, a class, a level, traits, a quirk, and a job specialty. They wear a weapon and armor. No food. No kit.</p>
     <p class="tiny">They do not run their own board. When you finish a job, they gain Renown equal to that job's difficulty, with no bonuses, and they roll their own gold and gear as if they had done it. A better weapon or armor replaces what they wear. They pay wages, buy Barracks the same way you do (2 bunks per level, same cost and build days, up to 12), and hire when a bunk is free.</p>
     <p class="tiny">The contest uses their two best faces, even if one is out. If you are ahead and win: you +5, they −1, and you take gold equal to their Renown. If you are behind and win: you gain half the gap (at least 5). Lose: your two come home wounded and they gain as if it were your loss. Refuse: it counts as your loss. Seer reads it: Lv1 power comparison, Lv2 their sheets, Lv3 you pick your two, Lv4 +4 on the score.</p>
   `;
   if(id==="play") return `
     <p class="tiny">You do not fight. You hire, outfit, and send people. They come back with gold — or they do not.</p>
-    <p class="tiny"><b>💾 Save / 📂 Load</b> (under 👤) — the game saves itself as you play. Save also lets you back up a copy to Files or Notes; Load restores one (it asks before replacing your hall).</p>
+    <p class="tiny"><b>💾 Save / 📂 Load</b> (under 👤) — the game saves itself as you play. Save also lets you back up a copy to Files or Notes; Load restores one (it asks before replacing your guild).</p>
+    <p class="tiny"><b>👤 Guilds</b> — each guild is its own save. A new guild gets a random name (never a rival's). Tap the guild name at the top of the screen, or Rename under 👤, to change it (up to 30 letters).</p>
     <h4>The loop</h4>
     <p class="tiny"><b>Tavern</b> — hire named faces. Price rises with level (1–5). Renown raises the cap and adds extra drinkers. Flawed through Gifted only.</p>
-    <p class="tiny"><b>At the door</b> — every 7–14 days three faces knock. New halls start with Bank Lv1. <b>No Bank, no knock.</b> Take one at 65% of Tap price. The other two leave. Vault pays first; purse covers a shortfall. Roster icons at the top are class + level of everyone already in the hall.</p>
+    <p class="tiny"><b>At the door</b> — every 7–14 days three faces knock. New guilds start with Bank Lv1. <b>No Bank, no knock.</b> Take one at 65% of Tap price. The other two leave. Vault pays first; purse covers a shortfall. Roster icons at the top are class + level of everyone already in the guild.</p>
     <p class="tiny">Door kit is also capped by day: no Blue before day 18, no Purple before day 35. Orange Legendary gear never turns up on a visitor. Quality band starts from Renown: 0–4 none, 5–11 one, 12–23 two, 24–39 three, 40+ four. Then +1 if the vault holds 50g or more, +1 more if Bank is Lv3+ and the vault is at least 70% full. Band caps at 4. That band sets border, level, traits, and kit. Elite can appear here. They never sit the Tap.</p>
     <p class="tiny"><b>Adventurers</b> — tap a name for the sheet: gear, food, dismiss, Use snack. The card shows the nightly wage, the gold actually taken. Pencil by the name edits the name, its color, and two subtitle lines. Default name color is the class (Warrior copper, Rogue green, Mage blue, Cleric violet).</p>
     <p class="tiny"><b>Quests</b> — assign ready people. Favored classes show a mark. Extra bodies past the needed seats cut gold 25% each. Jobs take days; Courier Stable shortens them.</p>
     <p class="tiny"><b>Merchant</b> — Weapons, Armor, Consumables, Kits. Weapons, armor, and food show what each adventurer already wears, the stat change, and current HP on food. Buy onto someone, or buy to the Armory. Road stalls use the same comparisons for the party on the job.</p>
     <p class="tiny"><b>Armory</b> — 4 slots to start. Equip someone home; old gear returns here. Sell at half list. Racks add +3 slots per level. Jobs and the road can drop salvage, gear, or food.</p>
     <p class="tiny"><b>End Day</b> — wages, healing, returns, night report (who is still in the field and days left). Parties still out may hit a road event (⚙ slider, default 10%). The road can be a fight, a merchant, a healer, a priest, a beggar, or a rescue. Combat can give XP, gold, Renown, or −1 day — or wound people and add a day. Gear from a fight or a finished quest opens a Finds window to keep, sell, or equip. Gear won in a road fight can only be equipped by the party on that job; everyone else shows greyed out. Finds at home can only go to adventurers at home; anyone out on a job shows greyed out. If nobody takes it, Carry home keeps it with the party, and when they return a Brought home window asks you to equip it or put it in the Armory. Unclaimed finds stay and come back until you deal with them. If you close the app mid-road, the choice or result comes back when you reopen. Forced-fight slider is the chance you cannot skip a fight (default 50%).</p>
-    <p class="tiny"><b>Hall events</b> — each dawn has an 8% chance of a hall note (a leak, a levy, a purse, a peddler, and the like). A note you have not seen yet comes back the next day until you close it, and it is not thrown away by a writ, a contest warning, or reopening the app. Last hall event: ${(typeof hallEventDiagText==="function"?hallEventDiagText().last:"none yet")}. Pending: ${(typeof hallEventDiagText==="function"?hallEventDiagText().pending:"none")}.</p>
+    <p class="tiny"><b>Guild events</b> — each dawn has an 8% chance of a guild note (a leak, a levy, a purse, a peddler, and the like). A note you have not seen yet comes back the next day until you close it, and it is not thrown away by a writ, a contest warning, or reopening the app. Last guild event: ${(typeof hallEventDiagText==="function"?hallEventDiagText().last:"none yet")}. Pending: ${(typeof hallEventDiagText==="function"?hallEventDiagText().pending:"none")}.</p>
     <h4>Money and people</h4>
-    <p class="tiny"><b>Wages</b> — half the listed wage, rounded down, paid to people at the hall (ready or wounded). Away and dead are not paid. Each Renown cuts hire price and wages 1%, cap 50% at 50 Renown. Early relief: nightly wages are 30% lower through day 30, fading to normal by day 60.</p>
+    <p class="tiny"><b>Wages</b> — half the listed wage, rounded down, paid to people at the guild (ready or wounded). Away and dead are not paid. Each Renown cuts hire price and wages 1%, cap 50% at 50 Renown. Early relief: nightly wages are 30% lower through day 30, fading to normal by day 60.</p>
     <p class="tiny"><b>Loyalty</b> — starts 1–5, max 10. +1 on a successful job. −1 if wounded. −1 if unpaid. At 0 they pack. A popup lets you pay their daily fee from the Bank vault to keep them at loyalty 1, or let them walk. A walkout costs Renown: 1 common/flawed, 2 Gifted, 3 Elite, +1 if level 5+. Dismiss does not. After 7 days idle a face who can leave reads becoming restless. Each further day they may demand current Tap price or leave (same Renown hit).</p>
     <p class="tiny"><b>Renown</b> — every 12 raises max hire level by 1 (max 5). Every 20 adds one extra tavern face (max 6).</p>
     <h4>Hires at a glance</h4>
@@ -12154,9 +12187,9 @@ function helpPage(id){
     <h4>How traits get there</h4>
     <p class="tiny">Most faces roll 1 trait. Some roll 2. A few roll 3 (Notice Board helps). Opposites never sit on the same person (Lucky/Unlucky, Brave/Craven, and so on). A two-trait roll will not stack two flaws. Three-trait rolls can mix.</p>
     <p class="tiny">Roles, quirks, and gear do not change the border. Only the trait mix does.</p>
-    <p class="tiny">The two who open the hall are common or Gifted only — no flaws, no Epic mix. The two openers arrive with one random Gray (Common) weapon and one random Gray (Common) armor piece they can use. No Masterwork or coloured gear, no food, no kit. Tavern faces can walk in with better kit and food of any grade, Gray up to Purple.</p>`;
+    <p class="tiny">The two who open the guild are common or Gifted only — no flaws, no Epic mix. The two openers arrive with one random Gray (Common) weapon and one random Gray (Common) armor piece they can use. No Masterwork or coloured gear, no food, no kit. Tavern faces can walk in with better kit and food of any grade, Gray up to Purple.</p>`;
   if(id==="class") return `
-    <p class="tiny">Four schools. Power is attack + defense + a share of HP, plus gear, traits, food, and hall schools.</p>
+    <p class="tiny">Four schools. Power is attack + defense + a share of HP, plus gear, traits, food, and guild buildings.</p>
     ${Object.keys(CLASSES).map(n=>{
       const c=CLASSES[n];
       const school = BUILDINGS[CLASS_SCHOOL[n]];
@@ -12225,7 +12258,7 @@ function helpPage(id){
     <p class="tiny">Green, Blue and Purple shields carry an ability too.</p>
     <h4>Weapon abilities</h4>${abRows}
     <h4>Armor</h4>
-    <p class="tiny">Six slots: Head, Cloak, Chest, Hands, Legs, Feet. Armor has no abilities, only defense. Defense is the slot's base (Cloak ${SLOT_BASE.cloak}, Chest ${SLOT_BASE.chest}, Legs ${SLOT_BASE.legs}, Hands ${SLOT_BASE.hands}, Feet ${SLOT_BASE.feet}, Head ${SLOT_BASE.head}) plus the weight (Light +${WEIGHT_ADD.light}, Medium +${WEIGHT_ADD.medium}, Heavy +${WEIGHT_ADD.heavy}) plus ${ARMOR_STEP} for each colour above Gray, then scaled to the hall's level curve. All defense is whole numbers: a full set adds up to the same total as before, spread across the slots. Light is Cloth or Padded. Medium is Leather, Chain or Scale. Heavy is Plate or Full Plate. Cloth and Padded are the same, and so are Plate and Full Plate. Only the name differs. Mages wear Light only. Rogues cannot wear Heavy.</p>
+    <p class="tiny">Six slots: Head, Cloak, Chest, Hands, Legs, Feet. Armor has no abilities, only defense. Defense is the slot's base (Cloak ${SLOT_BASE.cloak}, Chest ${SLOT_BASE.chest}, Legs ${SLOT_BASE.legs}, Hands ${SLOT_BASE.hands}, Feet ${SLOT_BASE.feet}, Head ${SLOT_BASE.head}) plus the weight (Light +${WEIGHT_ADD.light}, Medium +${WEIGHT_ADD.medium}, Heavy +${WEIGHT_ADD.heavy}) plus ${ARMOR_STEP} for each colour above Gray, then scaled to the guild's level curve. All defense is whole numbers: a full set adds up to the same total as before, spread across the slots. Light is Cloth or Padded. Medium is Leather, Chain or Scale. Heavy is Plate or Full Plate. Cloth and Padded are the same, and so are Plate and Full Plate. Only the name differs. Mages wear Light only. Rogues cannot wear Heavy.</p>
     <p class="tiny">Defense per piece, in the order Head · Cloak · Chest · Hands · Legs · Feet:</p>
     ${wtRows}
     <h4>Unique gear</h4>
@@ -12246,16 +12279,16 @@ function helpPage(id){
     ${rows}`;
   }
   if(id==="hall") return `
-    <p class="tiny">Upgrade on the Hall tab. Cost is base × next level. Pay now; it raises for 5 days × the level you are buying (Lv1 = 5d, Lv2 = 10d, Lv3 = 15d, Lv4 = 20d). You can queue the next raise. Tap the build ring up top to see the current build, the queue, and when each finishes. Halting a raise asks first, then returns half the cost. A finished job pays Renown equal to its difficulty. Charming +1, Sour −1. Charter is gone. Renown is prestige, not coin.</p>
+    <p class="tiny">Upgrade on the Guild tab. Cost is base × next level. Pay now; it raises for 5 days × the level you are buying (Lv1 = 5d, Lv2 = 10d, Lv3 = 15d, Lv4 = 20d). You can queue the next raise. Tap the build ring up top to see the current build, the queue, and when each finishes. Halting a raise asks first, then returns half the cost. A finished job pays Renown equal to its difficulty. Charming +1, Sour −1. Charter is gone. Renown is prestige, not coin.</p>
     <p class="tiny"><b>Contest countdown</b> — for the last 5 days of each season, a splash pops up each dawn (5, 4, 3, 2, 1) with their Renown, yours, and how many of your people are ready. The contest is called when the season turns.</p>
-    <p class="tiny"><b>The other hall</b> starts with two faces, traits, quirks, and a specialty. No food, no kit. They do not run a board. When you finish a job they gain Renown equal to its difficulty and roll their own rewards. They pay wages, buy Barracks, and hire from the Tap. Contest uses their two best faces even if one is out. While your pair is out, a Contest ring sits with the quest rings and counts the days left. Tap it to see who went and to open the other hall.</p>
+    <p class="tiny"><b>The rival guild</b> starts with two faces, traits, quirks, and a specialty. No food, no kit. They do not run a board. When you finish a job they gain Renown equal to its difficulty and roll their own rewards. They pay wages, buy Barracks, and hire from the Tap. Contest uses their two best faces even if one is out. While your pair is out, a Contest ring sits with the quest rings and counts the days left. Tap it to see who went and to open the rival guild.</p>
     <p class="tiny">Sealed Briefs: each level adds 2 jobs on the board, and you can pay to replace one open job. Renown still raises hire level and extra faces, and sets the door band.</p>
     <h4>🏦 Bank and the door</h4>
     <p class="tiny">Park gold in the vault. Wages do not touch parked coin. Dawn interest is small. The real reason to build it: the door only knocks if a Bank stands.</p>
     <p class="tiny">Door price comes out of the vault first. A 50g vault adds +1 to the visitor band. Bank Lv3+ with a 70% full vault adds another. Empty vault, weaker knocks.</p>
     ${Object.keys(BUILDINGS).map(k=>{
       const b=BUILDINGS[k], lv=S.buildings[k]||0;
-      return `<p class="tiny">${BLD_ICON[k]||""} <b>${b.n}</b> — ${b.desc} Max ${b.max}. Your hall: Lv ${lv}. ${b.pay==="renown"?"Paid in Renown.":"Base "+b.base+"g."}</p>`;
+      return `<p class="tiny">${BLD_ICON[k]||""} <b>${b.n}</b> — ${b.desc} Max ${b.max}. Your guild: Lv ${lv}. ${b.pay==="renown"?"Paid in Renown.":"Base "+b.base+"g."}</p>`;
     }).join("")}
     <h4>👁️ The Seer</h4>
     <p class="tiny">She does not fight. She reads the board and the people you pick. Hint, not a promise.</p>
@@ -12264,9 +12297,9 @@ function helpPage(id){
     <p class="tiny">On the contest: Lv1 compares your pair to theirs. Lv2 lists their two best faces and opens the full sheet. Lv3 is a picker — the strongest pair starts marked, you choose the two. Lv4 adds +4 when the contest is scored.</p>
     <p class="tiny">Grades vs recommended power: 115%+ walk it · 95%+ good · 78%+ even · 58%+ bloody · else a grave.</p>`;
   if(id==="writ") return `
-    <p class="tiny">From day ${typeof WRIT_UNLOCK!=="undefined"?WRIT_UNLOCK:6} the town posts one writ on the Hall. Matching finished jobs fill marks. Seal it before the due day.</p>
+    <p class="tiny">From day ${typeof WRIT_UNLOCK!=="undefined"?WRIT_UNLOCK:6} the town posts one writ on the Guild tab. Matching finished jobs fill marks. Seal it before the due day.</p>
     <p class="tiny">Early weeks need 2 marks and 18 days. Later 3, then 4, with 16 days on the clock. After a writ seals there is a 48-day rest early, 32 later. Dark writs stay off until day 20. Oath-eater (a quirk): completing a writ quest adds one extra mark, once per writ. Oath-breaker (a trait): that party earns no writ mark.</p>
-    <p class="tiny"><b>Seal</b> — you pick one of up to three of your lowest-level halls (gold-cost buildings) and the town raises it one level for free. A hall you are building or have queued is left out, so the reward never just finishes a build. A little Renown is added. If the hall is fully built, they pay gold instead. Next writ after a short rest.</p>
+    <p class="tiny"><b>Seal</b> — you pick one of up to three of your lowest-level gold-cost buildings and the town raises it one level for free. A building you are raising or have queued is left out, so the reward never just finishes a build. A little Renown is added. If the guild is fully built, they pay gold instead. Next writ after a short rest.</p>
     <p class="tiny"><b>Lapse before day 20</b> — the town shrugs. No fine.</p>
     <p class="tiny"><b>Lapse after day 20</b> — one ready person may lose 1 loyalty.</p>
     <h4>Writs that can post</h4>
@@ -12281,7 +12314,7 @@ function helpPage(id){
     <p class="tiny">You pick a card, assign ready people, and wait. They resolve when the last day ticks on End Day. You never fight the job yourself.</p>
     <h4>Reading a card</h4>
     <p class="tiny"><b>Difficulty</b> — the number after Diff. Recommended power is about Diff × 8 + 6. Higher Diff, longer and richer.</p>
-    <p class="tiny"><b>Four-seat jobs</b> — ten larger contracts stay out of the pool until four living faces sit the hall.</p>
+    <p class="tiny"><b>Four-seat jobs</b> — ten larger contracts stay out of the pool until four living faces sit in the guild.</p>
     <p class="tiny"><b>Seats</b> — how many people the contract wants. Extra bodies past that cut the gold 25% each.</p>
     <p class="tiny"><b>Days</b> — how long they are gone. Courier Stable shortens each job 1 day per level (min 1). Your Stable is Lv ${slv}.</p>
     <p class="tiny"><b>Pay</b> — a gold range. Success rolls inside it. Through day 30 job pay is 35% higher, fading to normal by day 60 (epic quests excluded). Fail pays little or nothing and can wound.</p>
@@ -12289,14 +12322,14 @@ function helpPage(id){
     <p class="tiny"><b>Recovery</b> — a death posts a quest to bring the body home. Needs a Cleric and one other. A Grave-watcher in the party stays with the body, gives the recovery +10 power, and both come home.</p>
     <p class="tiny"><b>Favored class</b> — a hint, not a lock. Except Dark: only people who can walk Dark may go.</p>
     <h4>👑 Epic quests</h4>
-    <p class="tiny">Pinned in gold on the board once four living people sit the hall. First epic is exactly two people. Later epics are two or three, never more. No extras. Thirty days or longer. Courier Stable does not shorten them.</p>
-    <p class="tiny">Difficulty is set when the card pins: the hall's best two (or three) power times the Epic power mark in Settings (default 125%). Gear up before you send. Fail and the same card stays. Succeed and you get a unique piece of gear (an Orange Legendary or a road exclusive) — the only way Legendary gear comes — plus gold and extra loot. Then a new epic pins. The road does not stop an epic party.</p>
+    <p class="tiny">Pinned in gold on the board once four living people sit in the guild. First epic is exactly two people. Later epics are two or three, never more. No extras. Thirty days or longer. Courier Stable does not shorten them.</p>
+    <p class="tiny">Difficulty is set when the card pins: your guild's best two (or three) power times the Epic power mark in Settings (default 125%). Gear up before you send. Fail and the same card stays. Succeed and you get a unique piece of gear (an Orange Legendary or a road exclusive) — the only way Legendary gear comes — plus gold and extra loot. Then a new epic pins. The road does not stop an epic party.</p>
     <h4>The board</h4>
-    <p class="tiny">Usually 4 open jobs (up to 6 later). After you send someone, the hall tries to keep at least one job your people can actually walk (comfort cap from level, day, and Renown). Harder work still appears; it should not be the whole board.</p>
+    <p class="tiny">Usually 4 open jobs (up to 6 later). After you send someone, the guild tries to keep at least one job your people can actually walk (comfort cap from level, day, and Renown). Harder work still appears; it should not be the whole board.</p>
     <p class="tiny">If Assign party says a card has left the board, the list was stale. You can refresh it, or post a fresh contract of about the same difficulty in that slot. That does not redraw a quest that is still live.</p>
-    <p class="tiny">A green ⚔ line in the header and on the night report is how many parties are still out. Quest, contest, kin, levy, watch, and build absences each get a countdown ring in the upper left, and so does a face on a fever lock (🤒). Tap a quest ring to open the board, or the Contest ring for the other hall.</p>
+    <p class="tiny">A green ⚔ line in the header and on the night report is how many parties are still out. Quest, contest, kin, levy, watch, and build absences each get a countdown ring in the upper left, and so does a face on a fever lock (🤒). Tap a quest ring to open the board, or the Contest ring for the rival guild.</p>
     <h4>✉️ Break the seal</h4>
-    <p class="tiny">That button is <b>Sealed Briefs</b> on the Hall. Pay gold to throw out one <b>open</b> job and draw a different contract in that slot. You cannot seal-break a job that already has a party.</p>
+    <p class="tiny">That button is <b>Sealed Briefs</b> on the Guild tab. Pay gold to throw out one <b>open</b> job and draw a different contract in that slot. You cannot seal-break a job that already has a party.</p>
     <p class="tiny">Each Briefs level also adds 2 jobs to the board. Seal cost is 24g minus 4g per Briefs level (Lv5 is 4g). Right now: ${seal}. The redraw is a random unused title from the pool — it can be harder, easier, or Dark.</p>
     <h4>👁️ Sight</h4>
     <p class="tiny">Every open card shows live odds for the recommended seat count — not for a stacked party. Hint, not a promise. Seer Lv1 paints Job pills on Assign, under the portrait. Tap a pill to see how that number is calculated. Lv2 adds the power bar. Lv3 auto-ticks that same set. Lv4 blesses (+4 power).</p>
@@ -12319,6 +12352,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-16", t:"Hall is now Guild everywhere you read it. Each new guild gets a random name (never a rival's); old default names like Hall 1 got one too. Tap the guild name at the top to rename it. Red Wren Hall is now Red Wren Guild."},
   {d:"2026-11-16", t:"Sealed Briefs is back, with a 5th level (200g): +10 jobs on the board and 4g seals. Its Hall card, ? help, and the Quests Help now say plainly that each level adds 2 jobs to the board as well as cheaper Break the seal. The Quests tab shows how many jobs your board holds and where they come from. (The 3:02 removal is undone.)"},
   {d:"2026-11-16", t:"Chapel Bell now has a 5th level (250g): +10 party power on Dark and Holy jobs."},
   {d:"2026-11-16", t:"Notice Board now has a 5th level (225g): two-trait chance 85%, third trait 65%."},
@@ -13355,13 +13389,13 @@ function openHelp(page){
     {id:"gear", label:"Gear"},
     {id:"food", label:"Food"},
     {id:"kits", label:"Kits"},
-    {id:"hall", label:"Hall"},
+    {id:"hall", label:"Guild"},
     {id:"writ", label:"Writ"},
     {id:"missions", label:"Quests"},
     {id:"rival", label:"Rival"}
   ];
   document.getElementById("sheet").innerHTML = `
-    <h3>How to keep the Hall</h3>
+    <h3>How to keep the Guild</h3>
     <div class="helpnav">
       ${tabs.map(t=>`<button type="button" class="${helpTab===t.id?"on":""}" data-helptab="${t.id}">${t.label}</button>`).join("")}
     </div>
@@ -13413,8 +13447,8 @@ function openDbg(keepUp){
   sheet.innerHTML = `
     <h3>🐞 Debug</h3>
     <p class="tiny">Test tools. Not part of the game. Delete the 🐞 button and this block to strip them.</p>
-    <p class="tiny">Last hall event: ${hallEventDiagText().last}<br>Pending: ${hallEventDiagText().pending}</p>
-    <button type="button" class="act" id="dbgRival" style="width:100%;margin-top:8px">Open rival hall</button>
+    <p class="tiny">Last guild event: ${hallEventDiagText().last}<br>Pending: ${hallEventDiagText().pending}</p>
+    <button type="button" class="act" id="dbgRival" style="width:100%;margin-top:8px">Open rival guild</button>
     <button type="button" class="act" id="dbgGold" style="width:100%;margin-top:8px">+1000 gold · on hand ${gp(S.gold)}</button>
     <button type="button" class="act" id="dbgRen" style="width:100%;margin-top:6px">+5 Renown</button>
     <p class="tiny" style="margin-top:12px">God hire</p>
@@ -13425,7 +13459,7 @@ function openDbg(keepUp){
       <input id="dbgLv" type="number" min="1" max="20" value="5" style="width:72px;padding:8px;border-radius:8px;background:#1a1410;color:var(--ink);border:1px solid var(--line);font:inherit">
     </div>
     <button type="button" class="act" id="dbgGod" style="width:100%;margin-top:8px">Make god character</button>
-    <p class="tiny" style="margin-top:12px">+1 hall upgrade</p>
+    <p class="tiny" style="margin-top:12px">+1 building upgrade</p>
     <select id="dbgUp" style="width:100%;padding:8px;border-radius:8px;background:#1a1410;color:var(--ink);border:1px solid var(--line);font:inherit">
       ${keys.map(k=>`<option value="${k}" ${(keepUp||"")===k?"selected":""}>${BUILDINGS[k].n} · Lv ${S.buildings[k]||0}/${BUILDINGS[k].max}</option>`).join("")}
     </select>
@@ -13476,7 +13510,7 @@ function dbgHealAll(){
     p.hp = p.maxhp;
     if(p.status==="wounded") p.status = "ready";
   });
-  log("DEBUG healed the hall.");
+  log("DEBUG healed the guild.");
   save(); render();
   toast("Everyone living is whole.");
   openDbg();
@@ -13600,7 +13634,7 @@ function askRestart(){
   document.getElementById("sheet").innerHTML = `
     <h3>Start over?</h3>
     <p>This wipes gold, roster, buildings, and the ledger. It cannot be undone.</p>
-    <button type="button" class="act" id="btnDoRestart" style="width:100%;background:#6b2a22;border-color:#c45a4a">Yes, restart the hall</button>
+    <button type="button" class="act" id="btnDoRestart" style="width:100%;background:#6b2a22;border-color:#c45a4a">Yes, restart the guild</button>
     <button type="button" class="ghost" id="btnNoRestart" style="width:100%;margin-top:8px">Keep playing</button>`;
   const modal = document.getElementById("modal");
   modal.classList.add("show");
@@ -13662,7 +13696,7 @@ function newGame(){
   refreshMissions();
   restockShop();
   restockHire();
-  log("The Copper Hall opened. Two hungry adventurers sat the bench.");
+  log(profileName()+" opened its doors. Two hungry adventurers sat the bench.");
   tab = "hall";
   if(!S._wipeOk && hallLived(storedHall()) && hallScore(storedHall()) > hallScore(snapshot())){
     applySnap(storedHall());
