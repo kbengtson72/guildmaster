@@ -101,7 +101,7 @@
     let gender = "male";
     const pick = Object.fromEntries(SLOTS.map((s) => [s, "common"]));
     // Bump this whenever layer PNGs change so iOS Safari does not keep stale tiles.
-    const LAYER_V = "20261116-helmet-hair";
+    const LAYER_V = "20261116-helmet-piece";
 
     const $ = (id) => document.getElementById(id);
 
@@ -163,7 +163,9 @@
         }
       }
       const hair = $("layer-hair");
-      if (pick.helmet && gender === "female") {
+      // Common female helmet is a single source-cut piece that already includes
+      // the visible hair, so the extra hair plate is not drawn.
+      if (pick.helmet && gender === "female" && pick.helmet !== "common") {
         hair.style.display = "block";
         hair.src = "hair/female-helmet-" + pick.helmet + ".png?v=" + LAYER_V;
       } else {
