@@ -1847,7 +1847,6 @@ const BUILDINGS = {
   racks: {n:"Racks", desc:"+3 Armory slots per level (base 4)", base:40, max:5},
   board: {n:"Notice Board", desc:"Better chance of gifted faces at the Tap. Elite do not drink here.", base:45, max:5},
   bell: {n:"Chapel Bell", desc:"+2 power on Dark and Holy jobs per level", base:50, max:5},
-  briefs: {n:"Sealed Briefs", desc:"Pay to replace one open job. Each level adds 2 jobs on the board. Higher levels cheaper seals.", base:40, max:4},
   seer: {n:"Seer", desc:"Sight is free. Reads quests, the road, events, and the contest. Lv1 odds and exact gold. Lv2 bar and party. Lv3 numbers and item stats. Lv4 +4 and exact outcomes.", base:55, max:4},
   stables: {n:"Courier Stable", desc:"Jobs finish 1 day sooner per level (minimum 1 day).", base:50, max:4}
 };
@@ -1864,7 +1863,6 @@ const BUILD_HELP = {
   racks: {how:"Armory starts at 4 slots. Each Racks level adds 3 more.", lv:["Lv1 — 7 slots.","Lv2 — 10 slots.","Lv3 — 13 slots.","Lv4 — 16 slots.","Lv5 — 19 slots."]},
   board: {how:"Notice Board at the Tap. Base chance of two traits is 45% + 8% per level. Of those, a third trait is 30% + 7% per level. More traits means more gifted and elite faces (and more flawed ones too).", lv:["Lv1 — two-trait 53%, third 37%.","Lv2 — 61% / 44%.","Lv3 — 69% / 51%.","Lv4 — 77% / 58%.","Lv5 — 85% / 65%."]},
   bell: {how:"Chapel Bell. Party power +2 per level on Dark and Holy jobs only. Stacks with Clerics, Night Owl, Night role, Night step.", lv:["Lv1 — +2 Dark PWR.","Lv2 — +4.","Lv3 — +6.","Lv4 — +8.","Lv5 — +10."]},
-  briefs: {how:"Unlocks Break the seal on open jobs. Pay gold to replace that card with another unused contract. Cannot seal-break a job that already has a party. Cost is 24g − 4g per level, minimum 8g.", lv:["Lv1 — button appears, 20g a seal.","Lv2 — 16g.","Lv3 — 12g.","Lv4 — 8g."]},
   seer: {how:"Sight is free. It reads quests, road encounters, hall events, and the guild contest. Higher levels say more and, at the top, change the numbers.", lv:[
 "Lv1 — Quests: colors each face's power for that job (red low to gold high), shows the exact gold (not a range), and recommends the best-loot quest of good chance or better. Contest: reads the odds as they walk it, good chance, even, bloody, or grave. Road and events: a one-line hint of what each choice does.",
 "Lv2 — Quests: adds the power bar, auto-picks and reserves the party across quests, and lists the items that will drop with their value. Contest: adds the power bar and opens the rival's two best faces, tappable. Road and events: ranges (XP, gold, damage).",
@@ -1950,7 +1948,7 @@ function offerMissingQuest(mid, hint){
 }
 function replaceMissingQuest(hint){
   hint = hint||{};
-  const want = 5 + Math.min(2, Math.floor((S.renown||0)/15)) + 2*(S.buildings.briefs||0);
+  const want = 5 + Math.min(2, Math.floor((S.renown||0)/15));
   const openN = (S.missions||[]).filter(m=>m && !m.epic && !(m.party&&m.party.length)).length;
   if(openN >= want){
     closeModal(); render();
@@ -2718,7 +2716,7 @@ function ensureComfortJob(){
 
 function refreshMissions(){
   const pool = missionPool();
-  const want = 5 + Math.min(2, Math.floor(S.renown/15)) + 2*(S.buildings.briefs||0);
+  const want = 5 + Math.min(2, Math.floor(S.renown/15));
   const active = (S.missions || []).filter(m=>m.party && m.party.length);
   const open = (S.missions || []).filter(m=>!m.party || !m.party.length).filter(m=>!m.classJob);
   S.missions = active.concat(open);
@@ -4698,11 +4696,7 @@ function resolveEncounter(enc, pickId, m, party){
     if(pickId==="b") road(names+" left the ring as it closed.");
   }
 }
-function briefCost(){
-  const lv = S.buildings.briefs||0;
-  if(!lv) return 0;
-  return Math.max(8, 24 - 4*lv);
-}
+function briefCost(){ return 20; }
 
 function openThiefBoard(id){
   const p = (S.people||[]).find(x=>x.id===id);
@@ -4765,8 +4759,6 @@ function doThiefSwap(pid, mid){
   save(); closeModal(); render();
 }
 function redrawJob(mid){
-  const lv = S.buildings.briefs||0;
-  if(!lv) return toast("Build Sealed Briefs on the Hall first.");
   const cost = briefCost();
   if(funds() < cost) return toast("Need "+gp(cost)+".");
   const ix = findMissionIndex(mid);
@@ -10011,6 +10003,7 @@ function applySnap(d){
   S._roadStall=d._roadStall||null;
   S.buildings=Object.assign({barracks:1,armory:1,infirmary:1,grounds:0,alley:0,sanctum:0,chapel:0,tavern:1,bank:0,racks:0,board:0,bell:0,briefs:0,seer:0,stables:0}, d.buildings||{});
   S.nextSeek=d.nextSeek||null; S.seekers=d.seekers||null; S.quitAsk=d.quitAsk||null; S.restlessAsk=d.restlessAsk||null; S.raise=d.raise||null;
+  try{ if(S.raise&&S.raise.k==="briefs"){ S.gold=(S.gold||0)+(S.raise.cost||40*(S.raise.to||1)); S.raise=null; } if(S.raiseQ&&S.raiseQ.length){ S.raiseQ=S.raiseQ.filter(j=>{ if(j.k!=="briefs") return true; S.gold=(S.gold||0)+(j.cost||40*(j.to||1)); return false; }); } if(S.raiseQ&&S.raiseQ.length&&!S.raise){ const j=S.raiseQ.shift(); S.raise=j; } delete S.buildings.briefs; }catch(e){}
   S.people=d.people||[]; S.missions=d.missions||[]; S.shop=d.shop||[]; S.vault=d.vault||[];
   S.shopRule=d.shopRule||0;
   try { ensureMissionIds(); } catch(e){}
@@ -11105,7 +11098,7 @@ function boardView(){
       ${seerText(m)}
       ${m.epic?"":`<p class="tiny">Favors ${favorMarks(m)}</p>`}
       <button class="act" data-send="${m.id}" data-title="${escHtml(m.t||"")}" data-diff="${m.diff||1}">Assign party</button>
-      ${(S.buildings.briefs||0)&&!m.epic?`<button class="ghost" data-redraw="${m.id}" style="width:100%;margin-top:6px">Break the seal · ${gp(briefCost())}</button>`:""}
+      ${!m.epic?`<button class="ghost" data-redraw="${m.id}" style="width:100%;margin-top:6px">Break the seal · ${gp(briefCost())}</button>`:""}
       ${thiefBtn(m)}`}
     </div>`;
    } catch(e){ const stk=String(e&&e.stack||"").split("\n").slice(0,3).join(" | "); return `<div class="card"><p class="tiny">This quest could not be drawn.</p><p class="tiny">${String((e&&e.message)||e)}</p><p class="tiny">${stk}</p><button class="ghost" data-send="${m.id}" data-title="${escHtml(m.t||"")}" data-diff="${m.diff||1}">Open</button></div>`; }
@@ -12248,7 +12241,7 @@ function helpPage(id){
     <p class="tiny">Upgrade on the Hall tab. Cost is base × next level. Pay now; it raises for 5 days × the level you are buying (Lv1 = 5d, Lv2 = 10d, Lv3 = 15d, Lv4 = 20d). You can queue the next raise. Tap the build ring up top to see the current build, the queue, and when each finishes. Halting a raise asks first, then returns half the cost. A finished job pays Renown equal to its difficulty. Charming +1, Sour −1. Charter is gone. Renown is prestige, not coin.</p>
     <p class="tiny"><b>Contest countdown</b> — for the last 5 days of each season, a splash pops up each dawn (5, 4, 3, 2, 1) with their Renown, yours, and how many of your people are ready. The contest is called when the season turns.</p>
     <p class="tiny"><b>The other hall</b> starts with two faces, traits, quirks, and a specialty. No food, no kit. They do not run a board. When you finish a job they gain Renown equal to its difficulty and roll their own rewards. They pay wages, buy Barracks, and hire from the Tap. Contest uses their two best faces even if one is out. While your pair is out, a Contest ring sits with the quest rings and counts the days left. Tap it to see who went and to open the other hall.</p>
-    <p class="tiny">Sealed Briefs: each level adds 2 jobs on the board, and you can pay to replace one open job. Renown still raises hire level and extra faces, and sets the door band.</p>
+    <p class="tiny">Break the seal: pay 20g to replace one open job. Renown still raises hire level and extra faces, and sets the door band.</p>
     <h4>🏦 Bank and the door</h4>
     <p class="tiny">Park gold in the vault. Wages do not touch parked coin. Dawn interest is small. The real reason to build it: the door only knocks if a Bank stands.</p>
     <p class="tiny">Door price comes out of the vault first. A 50g vault adds +1 to the visitor band. Bank Lv3+ with a 70% full vault adds another. Empty vault, weaker knocks.</p>
@@ -12272,10 +12265,8 @@ function helpPage(id){
     ${(typeof WRIT_POOL!=="undefined"?WRIT_POOL:[]).map(w=>`<p class="tiny">${w.icon||"📜"} <b>${w.title}</b> — ${w.type}. ${w.blurb||""}</p>`).join("")}
     <p class="tiny">Matching quests on the board show 📜 writ mark and sit on a parchment card with a red Town Writ ribbon. While a writ is live, the board always keeps at least two open writ quests at your level; if it runs short, the town posts extras. Failed jobs do not count.</p>`;
   if(id==="jobs" || id==="missions"){
-    const blv = S.buildings.briefs||0;
     const slv = S.buildings.stables||0;
     const bell = S.buildings.bell||0;
-    const seal = blv ? gp(briefCost())+" at Briefs Lv "+blv : "build Sealed Briefs first";
     return `
     <p class="tiny">You pick a card, assign ready people, and wait. They resolve when the last day ticks on End Day. You never fight the job yourself.</p>
     <h4>Reading a card</h4>
@@ -12295,8 +12286,8 @@ function helpPage(id){
     <p class="tiny">If Assign party says a card has left the board, the list was stale. You can refresh it, or post a fresh contract of about the same difficulty in that slot. That does not redraw a quest that is still live.</p>
     <p class="tiny">A green ⚔ line in the header and on the night report is how many parties are still out. Quest, contest, kin, levy, watch, and build absences each get a countdown ring in the upper left, and so does a face on a fever lock (🤒). Tap a quest ring to open the board, or the Contest ring for the other hall.</p>
     <h4>✉️ Break the seal</h4>
-    <p class="tiny">That button is <b>Sealed Briefs</b> on the Hall. Pay gold to throw out one <b>open</b> job and draw a different contract in that slot. You cannot seal-break a job that already has a party.</p>
-    <p class="tiny">Cost is 24g minus 4g per Briefs level, minimum 8g. Right now: ${seal}. The redraw is a random unused title from the pool — it can be harder, easier, or Dark.</p>
+    <p class="tiny">Every open, non-epic job has this button. Pay gold to throw out one <b>open</b> job and draw a different contract in that slot. You cannot seal-break a job that already has a party.</p>
+    <p class="tiny">Cost is always 20g. The redraw is a random unused title from the pool — it can be harder, easier, or Dark.</p>
     <h4>👁️ Sight</h4>
     <p class="tiny">Every open card shows live odds for the recommended seat count — not for a stacked party. Hint, not a promise. Seer Lv1 paints Job pills on Assign, under the portrait. Tap a pill to see how that number is calculated. Lv2 adds the power bar. Lv3 auto-ticks that same set. Lv4 blesses (+4 power).</p>
     <h4>Types</h4>
@@ -12318,6 +12309,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-16", t:"Sealed Briefs removed from the Hall. Break the seal is now on every open non-epic job from the start and always costs 20g. The board no longer gets +2 jobs per Briefs level. A Briefs build in progress or queued is refunded."},
   {d:"2026-11-16", t:"Chapel Bell now has a 5th level (250g): +10 party power on Dark and Holy jobs."},
   {d:"2026-11-16", t:"Notice Board now has a 5th level (225g): two-trait chance 85%, third trait 65%."},
   {d:"2026-11-16", t:"Racks now has a 5th level: 19 Armory slots, 200g. The Armory-full screen no longer offers a Racks upgrade once Racks is maxed."},
