@@ -1840,7 +1840,7 @@ const FOODS = [
 ];
 const BUILDINGS = {
   barracks: {n:"Barracks", desc:"+2 roster slots per level (Lv1 = 4)", base:40, max:5},
-  armory: {n:"Outfitter", desc:"Better gear in the merchant's stock", base:25, max:4},
+  armory: {n:"Outfitter", desc:"Each level adds a new colour to the merchant's gear and food", base:25, max:5},
   infirmary: {n:"Infirmary", desc:"Faster recovery from wounds", base:35, max:4},
   yard: {n:"Training Grounds", desc:"All classes: +XP and a little power on jobs", base:45, max:4},
   bank: {n:"Bank", desc:"Park spare gold. Interest each dawn. The hall opens with Bank Lv1. Higher Bank is still bought. No Bank, no knock at the door. Vault pays door hires first. 50g parked raises the door band; Bank 3+ at 70% full raises it again.", base:55, max:4},
@@ -1853,7 +1853,7 @@ const BUILDINGS = {
 };
 const BUILD_HELP = {
   barracks: {how:"Each level adds two beds. Cap is 2 + 2 × Barracks level (you start with Barracks 1, so 4 people).", lv:["Lv1 — 4 roster slots (the hall you start with).","Lv2 — 6 slots.","Lv3 — 8 slots.","Lv4 — 10 slots.","Lv5 — 12 slots."]},
-  armory: {how:"Called Outfitter. Merchant stocks a handful of items at or under its colour cap: Lv1 Gray and White, Lv2 adds Green, Lv3 adds Blue, Lv4 adds Purple. Orange Legendary gear never sits on the stall.", lv:["Lv1 — cheap iron and cloaks. You start here.","Lv2 — mid gear (bows, mail, better food).","Lv3 — heavy list prices start showing.","Lv4 — top shop gear. Named loot still only drops on jobs."]},
+  armory: {how:"Called Outfitter. Sets the colour of the merchant's weapons, armor, and food. Each level brings in a new colour: every shelf gets 1 or 2 pieces of it, and the rest are one colour lower. The stall restocks when the Outfitter is raised. Orange Legendary gear never sits on the stall.", lv:["Lv1 — all Gray (Common) gear and food. You start here.","Lv2 — 1-2 White (Masterwork) per shelf, the rest Gray.","Lv3 — 1-2 Green per shelf, the rest White.","Lv4 — 1-2 Blue per shelf, the rest Green.","Lv5 — 1-2 Purple per shelf, the rest Blue. Named loot still only drops on jobs."]},
   infirmary: {how:"Wounded people heal 3 + 2×level HP each End Day. They stand up again at 75% HP. If a job would kill someone, each Infirmary level adds 10% chance they are dragged home at 1 HP instead (base 35%). Ready people still only mend 2 HP/day.", lv:["Lv0 — 3 HP/day if wounded, 35% last-breath save.","Lv1 — 5 HP/day, 45% save. You start here.","Lv2 — 7 HP/day, 55% save.","Lv3 — 9 HP/day, 65% save.","Lv4 — 11 HP/day, 75% save."]},
   grounds: {how:"Warrior school. Each level adds +1 power on jobs for every Warrior and +1 XP when a Warrior returns from a success.", lv:["Lv1 — +1 PWR and +1 XP for Warriors.","Lv2 — +2 / +2.","Lv3 — +3 / +3.","Lv4 — +4 / +4."]},
   alley: {how:"Rogue school. Same as Grounds, for Rogues only.", lv:["Lv1 — +1 PWR and +1 XP for Rogues.","Lv2 — +2 / +2.","Lv3 — +3 / +3.","Lv4 — +4 / +4."]},
@@ -4986,43 +4986,41 @@ function tickFeatured(){
   injectFeatShop();
   S.featAsk = {id:"featured", name:it.n, kind:it.kind, r:it.r||rarityOf(it)};
 }
+/* Outfitter stock (2026-11-16): each level brings in one new colour. Lv1 is all Gray (Common). At Lv2-5 each
+   shelf (weapons, armor, food) carries 1-2 pieces of the new colour and the rest one colour lower. */
+const OUTFIT_TIERS = ["junk","common","uncommon","rare","epic"];
+function outfitterTiers(){
+  const lv = Math.max(1, Math.min(5, S.buildings.armory||1));
+  const top = OUTFIT_TIERS[lv-1];
+  return {lv, top, base: lv>1 ? OUTFIT_TIERS[lv-2] : top};
+}
 function restockShop(){
-  const cap = shopRarityCap();
-  function take(list, kind, n, always){
-    const gear = kind==="weapon" || kind==="armor";
-    const ok = list.filter(x=>{
-      if(x.unique || rarityRank(x.r||"common")>cap) return false;
-      if(!gear && kind==="armor" && (x.def||0)>1 && Math.random()<0.45) return false;
-      return true;
-    });
+  const t = outfitterTiers();
+  function take(list, kind, n){
     const out = [];
-    (always||[]).forEach(id=>{
-      const it = ok.find(x=>x.id===id);
-      if(it && !out.find(y=>y.id===it.id)) out.push(it);
-    });
-    if(gear){
-      // one colour is rolled first, then a piece of it, so every colour the Armory allows shows up
-      const w = kind==="armor" ? {junk:1, common:1, uncommon:0.6, rare:0.45, epic:0.35} : null;
-      for(let i=0;i<60 && out.length<n;i++){
-        const it = pickTierItem(ok, w);
-        if(it && !out.find(y=>y.id===it.id)) out.push(it);
-      }
-    } else {
-      const pool = ok.slice().sort(()=>Math.random()-0.5);
-      for(let i=0;i<pool.length && out.length<n;i++){
-        if(!out.find(y=>y.id===pool[i].id)) out.push(pool[i]);
-      }
+    const spread = x => kind==="weapon" ? x.t : kind==="armor" ? x.slot : x.id;
+    function grab(r, k){
+      const pool = list.filter(x=>x && !x.unique && (x.r||"common")===r && out.indexOf(x)<0).sort(()=>Math.random()-0.5);
+      const got = [];
+      // different weapon types / armor slots first, then fill
+      pool.forEach(x=>{ if(got.length<k && !got.concat(out).some(y=>spread(y)===spread(x))) got.push(x); });
+      pool.forEach(x=>{ if(got.length<k && got.indexOf(x)<0) got.push(x); });
+      got.forEach(x=>out.push(x));
     }
+    if(t.lv>1){ grab(t.top, rng(1,2)); grab(t.base, n-out.length); }
+    else grab(t.top, n);
     out.forEach(it=>{
       if(S.shop.some(x=>x.id===it.id && x.kind===kind)) return;
       S.shop.push(Object.assign({kind}, it));
     });
   }
   S.shop = [];
-  take(WEAPONS, "weapon", 6, [STARTER_WEAPON]);
-  take(ARMORS, "armor", 6, [STARTER_ARMOR]);
-  take(FOODS, "food", 5, ["hardtack","rations"]);
-  take(KITS, "kit", KITS.length, KITS.map(x=>x.id));
+  S.shopRule = 2;
+  take(WEAPONS, "weapon", 6);
+  take(ARMORS, "armor", 6);
+  take(FOODS, "food", 5);
+  const kitCap = Math.min(4, t.lv);   // kits keep the old colour cap
+  KITS.forEach(it=>{ if(!it.unique && rarityRank(it.r||"common")<=kitCap) S.shop.push(Object.assign({kind:"kit"}, it)); });
   injectFeatShop();
 }
 function ensureFoodStock(){
@@ -8721,11 +8719,7 @@ function rarityRank(r){
   return {junk:0, common:1, uncommon:2, rare:3, epic:4, artifact:5}[r] || 1;
 }
 function shopRarityCap(){
-  const lv = S.buildings.armory||1;
-  if(lv<=1) return 1;
-  if(lv===2) return 2;
-  if(lv===3) return 3;
-  return 4;
+  return OUTFIT_TIERS.indexOf(outfitterTiers().top);
 }
 function ownsUnique(id){
   if(!id) return false;
@@ -9991,7 +9985,7 @@ function snapshot(){
     cookUntil:S.cookUntil||0, glutUntil:S.glutUntil||0, tapDry:S.tapDry||0, roofTax:S.roofTax||0,
     nextFeat:S.nextFeat||null, featItem:S.featItem||null, featAsk:S.featAsk||null, featBadge:!!S.featBadge,
     bloodAsk:S.bloodAsk||null, saintAsk:S.saintAsk||null, graveAsk:S.graveAsk||null,
-    bonusInterest:S.bonusInterest||0, doubleWrit:!!S.doubleWrit, dawnSing:S.dawnSing||null, dawnSingV:S.dawnSingV||0,
+    bonusInterest:S.bonusInterest||0, doubleWrit:!!S.doubleWrit, dawnSing:S.dawnSing||null, dawnSingV:S.dawnSingV||0, shopRule:S.shopRule||0,
     poached:S.poached||null, gameOver:!!S.gameOver, lastHero:S.lastHero||null, forceSeek:!!S.forceSeek, writPing:!!S.writPing, writNewAsk:!!S.writNewAsk,
     hallEventLog:S.hallEventLog||null,
     _roadStall:S._roadStall||null,
@@ -10017,6 +10011,7 @@ function applySnap(d){
   S.buildings=Object.assign({barracks:1,armory:1,infirmary:1,grounds:0,alley:0,sanctum:0,chapel:0,tavern:1,bank:0,racks:0,board:0,bell:0,briefs:0,seer:0,stables:0}, d.buildings||{});
   S.nextSeek=d.nextSeek||null; S.seekers=d.seekers||null; S.quitAsk=d.quitAsk||null; S.restlessAsk=d.restlessAsk||null; S.raise=d.raise||null;
   S.people=d.people||[]; S.missions=d.missions||[]; S.shop=d.shop||[]; S.vault=d.vault||[];
+  S.shopRule=d.shopRule||0;
   try { ensureMissionIds(); } catch(e){}
   S.hire=d.hire||[]; S.log=d.log||[]; S.deposit=d.deposit||0; S.pendingLoot=d.pendingLoot||[]; S.carried=d.carried||[];
   S.writ=d.writ||null; S.writWins=d.writWins||0; S.writFails=d.writFails||0; S.writChoice=d.writChoice||null; S.writCongratsAsk=d.writCongratsAsk||null;
@@ -10041,6 +10036,8 @@ function applySnap(d){
   return true;
 }
 function gearMigrateOnLoad(){
+  // Outfitter rework 2026-11-16: an old stall restocks once under the new colour rules
+  if((S.shopRule||0)<2 && (S.people||[]).length){ try { restockShop(); } catch(e){} }
   let n = 0;
   try { n = migrateGearState(S); } catch(e){}
   try { migrateKitAsk(); } catch(e){}
@@ -11181,7 +11178,7 @@ function shopView(){
   const writOilLine = writOil()?`<p class="ok">Writ oil: ${writOil().n} · +3 ${writOil().job}</p>`:"";
   return `${glutLine}${writOilLine}${(S.featItem)?`<p class="ok">Limited: ${S.featItem.n} · ${S.featItem.r||rarityOf(S.featItem)} · ${S.nextFeat? (S.nextFeat-S.day)+"d left":""}</p>`:""}<div class="card"><h3>Merchant</h3>
     ${borrowLine()}
-    <p class="tiny">Each weapon, armor, and food shows what your people at home already wear, the stat change, and current HP on food. Buy onto someone, or buy to the Armory (${(S.vault||[]).length}/${vaultCap()} slots). Outfitter Lv ${S.buildings.armory} sets the colour (Gray, White, Green, Blue, Purple). Orange Legendary gear is never for sale. Food is one-use.</p>
+    <p class="tiny">Each weapon, armor, and food shows what your people at home already wear, the stat change, and current HP on food. Buy onto someone, or buy to the Armory (${(S.vault||[]).length}/${vaultCap()} slots). Outfitter Lv ${S.buildings.armory} sets the colour: each shelf has 1-2 pieces of its newest colour and the rest one colour lower (Lv1 all Gray, then White, Green, Blue, Purple). Orange Legendary gear is never for sale. Food is one-use.</p>
     <div class="subnav">
       ${cats.map(c=>`<button class="${shopCat===c.id?"on":""}" data-shopcat="${c.id}">${c.icon} ${c.label}</button>`).join("")}
     </div>
@@ -12218,7 +12215,7 @@ function helpPage(id){
     }).join("");
     const uniq = list=>list.filter(x=>x.unique).map(x=>`<p class="tiny">${itemNameHtml(x)} — ${gearStatText(x)}${x.ab?" · "+abilityText(x):""}${x.legend?" · Legendary placeholder (epic quest reward)":" · road exclusive"}</p>`).join("");
     return `
-    <p class="tiny"><b>Colours</b> (weapons and armor): ${five.map(r=>col(r)+" ("+T[r].name+")").join(" · ")} · <b class="r-artifact">Orange (Legendary)</b>. The Outfitter's level sets which colours the Merchant stocks: Lv1 Gray and White, Lv2 adds Green, Lv3 Blue, Lv4 Purple. Orange Legendary gear is never sold and never drops at random. It only comes from epic quests.</p>
+    <p class="tiny"><b>Colours</b> (weapons and armor): ${five.map(r=>col(r)+" ("+T[r].name+")").join(" · ")} · <b class="r-artifact">Orange (Legendary)</b>. The Outfitter's level sets the Merchant's colours for gear and food: Lv1 all Gray; from Lv2 each shelf has 1-2 pieces of the new colour (White, then Green, Blue, Purple at Lv5) and the rest one colour lower. Orange Legendary gear is never sold and never drops at random. It only comes from epic quests.</p>
     <p class="tiny"><b>Weapons</b> are a type with a damage tag (Bladed, Blunt, Ranged). One-handed weapons can share the offhand: an offhand weapon adds half its attack, rounded up. Two-handed weapons fill both hands, so no offhand. White (Masterwork) is a better version of Gray. Green, Blue and Purple have White's attack plus one ability that gets stronger with the colour. The ability is in the name, like Sword of the Lone Wolf.</p>
     <p class="tiny">Both hands count for abilities. A weapon ability stacks with the wearer's own traits and quirks. A Wand or Staff is for Mages only. Clerics use Blunt weapons and shields. Mages use wands, staves and daggers. Rogues use one-handed weapons, no shields. Warriors use everything but wands and staves.</p>
     <h4>Weapon types · attack by colour</h4>${typeRows}
@@ -12320,6 +12317,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-16", t:"Outfitter reworked into 5 levels. Lv1 stocks all Gray gear and food. Each raise brings in a new colour: 1-2 pieces per shelf in the new colour, the rest one colour lower (Lv2 White, Lv3 Green, Lv4 Blue, Lv5 Purple). Lv5 costs 125g. Your stall restocks once under the new rules."},
   {d:"2026-11-16", t:"New halls start clean: no build queue, Queued or Maxed buttons carried over from an old hall, and a new hall is never swapped for a copy of another hall. Saves with a stray queue get it cleared."},
   {d:"2026-11-16", t:"Outfitter raises now cost half as much: 50g / 75g / 100g to reach Lv2, Lv3, and Lv4."},
   {d:"2026-11-16", t:"The two who open a new hall now start with one random Gray (Common) weapon and one random Gray (Common) armor piece they can use. No Masterwork, no coloured gear, no food, no kit."},
