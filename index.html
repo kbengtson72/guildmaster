@@ -9994,7 +9994,8 @@ function snapshot(){
     bonusInterest:S.bonusInterest||0, doubleWrit:!!S.doubleWrit, dawnSing:S.dawnSing||null, dawnSingV:S.dawnSingV||0,
     poached:S.poached||null, gameOver:!!S.gameOver, lastHero:S.lastHero||null, forceSeek:!!S.forceSeek, writPing:!!S.writPing, writNewAsk:!!S.writNewAsk,
     hallEventLog:S.hallEventLog||null,
-    _roadStall:S._roadStall||null
+    _roadStall:S._roadStall||null,
+    _slot:(typeof SLOTS!=="undefined" && SLOTS && SLOTS.current) || null
   }));
 }
 function applySnap(d){
@@ -10033,6 +10034,7 @@ function applySnap(d){
   } catch(e){}
   try { retuneEpic(); } catch(e){}
   try { fillFromFullSave(); } catch(e){}
+  try { healRaiseQ(); } catch(e){}
   try { healContest(); } catch(e){}
   try { healHallEvent(true); } catch(e){}
   gearMigrateOnLoad();
@@ -10055,6 +10057,7 @@ function fillFromFullSave(){
   bags.forEach(src=>{
     if(!src || typeof src!=="object") return;
     if((src.day||0)!==(S.day||0)) return;
+    if(src._slot && typeof SLOTS!=="undefined" && src._slot!==SLOTS.current) return;
     const ids=(S.people||[]).map(p=>p.id).filter(Boolean).sort().join(",");
     const oids=(src.people||[]).map(p=>p.id).filter(Boolean).sort().join(",");
     if(ids && oids && ids!==oids) return;
@@ -10097,33 +10100,24 @@ function readName(){
   return null;
 }
 function storedHall(){
+  // Only backups of THIS hall count. Another hall's richer save must never be pulled into this one.
   let best = null;
-  try { best = richerHall(best, readName()); } catch(e){}
-  function take(d){ if(d && hallLived(d)) best = richerHall(best, d); }
-  try{
-    if(_idbMem["guildmaster_slots_v1"]){
-      const sl = JSON.parse(_idbMem["guildmaster_slots_v1"]);
-      const cur = sl && sl.list && sl.list[sl.current];
-      if(cur) take(cur.data);
-      if(sl && sl.list) Object.keys(sl.list).forEach(k=>take(sl.list[k].data));
-    }
-  }catch(e){}
-  try{
-    if(_idbMem["guildmaster_v1"]) take(JSON.parse(_idbMem["guildmaster_v1"]));
-  }catch(e){}
-  try{
-    const raw = storeGet("guildmaster_slots_v1");
-    if(raw){
-      const sl = JSON.parse(raw);
-      const cur = sl && sl.list && sl.list[sl.current];
-      if(cur) take(cur.data);
-      if(sl && sl.list) Object.keys(sl.list).forEach(k=>take(sl.list[k].data));
-    }
-  }catch(e){}
-  try{
-    const raw = storeGet("guildmaster_v1");
-    if(raw) take(JSON.parse(raw));
-  }catch(e){}
+  const cur = (typeof SLOTS!=="undefined" && SLOTS && SLOTS.current) || null;
+  const oneSlot = !(SLOTS && SLOTS.list) || Object.keys(SLOTS.list).length<=1;
+  function take(d, own){
+    if(!d || !hallLived(d)) return;
+    if(d._slot ? d._slot!==cur : !(own || oneSlot)) return;
+    best = richerHall(best, d);
+  }
+  function fromList(raw){
+    const sl = JSON.parse(raw);
+    if(sl && sl.list && cur && sl.list[cur]) take(sl.list[cur].data, true);
+  }
+  try { take(readName(), false); } catch(e){}
+  try { if(_idbMem["guildmaster_slots_v1"]) fromList(_idbMem["guildmaster_slots_v1"]); } catch(e){}
+  try { if(_idbMem["guildmaster_v1"]) take(JSON.parse(_idbMem["guildmaster_v1"]), false); } catch(e){}
+  try { const raw = storeGet("guildmaster_slots_v1"); if(raw) fromList(raw); } catch(e){}
+  try { const raw = storeGet("guildmaster_v1"); if(raw) take(JSON.parse(raw), false); } catch(e){}
   return best;
 }
 function save(force){
@@ -10139,6 +10133,7 @@ function save(force){
   if(!SLOTS.list[SLOTS.current]) SLOTS.list[SLOTS.current] = { name:"Hall", data:null };
   SLOTS.list[SLOTS.current].data = snapshot();
   writeSlots();
+  S._slot = SLOTS.current;
   storeSet("guildmaster_v1", JSON.stringify(S));
 }
 function load(){
@@ -10156,6 +10151,7 @@ function load(){
         if(!S.people) S.people = [];
         if((S.people||[]).length){
           try { healHallEvent(true); } catch(e){}
+          try { healRaiseQ(); } catch(e){}
           gearMigrateOnLoad();
           SLOTS.list[SLOTS.current].data = snapshot();
           writeSlots();
@@ -10359,7 +10355,7 @@ function createProfile(){
   SLOTS.list[id] = { name:"Hall "+n, data:null };
   SLOTS.current = id;
   writeSlots();
-  newGame();
+  S._wipeOk = true; newGame(); S._wipeOk = false;
   openProfiles();
 }
 function renameProfile(){
@@ -12324,6 +12320,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-16", t:"New halls start clean: no build queue, Queued or Maxed buttons carried over from an old hall, and a new hall is never swapped for a copy of another hall. Saves with a stray queue get it cleared."},
   {d:"2026-11-16", t:"Outfitter raises now cost half as much: 50g / 75g / 100g to reach Lv2, Lv3, and Lv4."},
   {d:"2026-11-16", t:"The two who open a new hall now start with one random Gray (Common) weapon and one random Gray (Common) armor piece they can use. No Masterwork, no coloured gear, no food, no kit."},
   {d:"2026-11-15", t:"Tidier header rings: Wounded, Bank, Writ, and Hall stay in one fixed row. Jobs in the field get their own row below that scrolls sideways when there are many. A long build queue shows two icons and a +N count."},
@@ -13605,7 +13602,35 @@ function askRestart(){
   document.getElementById("btnNoRestart").onclick = openProfiles;
   document.getElementById("btnDoRestart").onclick = ()=>{ S._wipeOk = true; newGame(); S._wipeOk = false; openProfiles(); };
 }
+function resetHallState(){
+  // Wipe every per-hall field the save carries, so nothing (build queue, roof tax, asks) leaks from the last hall.
+  let keys = [];
+  try { keys = Object.keys(snapshot()); } catch(e){}
+  keys.forEach(k=>{
+    const v = S[k];
+    S[k] = Array.isArray(v) ? [] : typeof v==="number" ? 0 : typeof v==="boolean" ? false : null;
+  });
+  S.raiseQ = []; S._questResults = [];
+}
+function healRaiseQ(){
+  if(!Array.isArray(S.raiseQ)){ S.raiseQ = []; return 0; }
+  const before = S.raiseQ.length;
+  if(!before) return 0;
+  const lg = S.log||[];
+  // A queue with no build running, in a hall whose log never queued anything, came from another hall.
+  if(!S.raise && lg.length<240 && !lg.some(t=>String(t).indexOf("Queued ")>=0)){ S.raiseQ = []; return before; }
+  const lv = {};
+  Object.keys(BUILDINGS).forEach(k=>lv[k]=(S.buildings||{})[k]||0);
+  if(S.raise && lv[S.raise.k]!=null) lv[S.raise.k] = Math.max(lv[S.raise.k], S.raise.to||0);
+  S.raiseQ = S.raiseQ.filter(j=>{
+    const b = j && BUILDINGS[j.k];
+    if(!b || j.from!==lv[j.k] || j.to!==j.from+1 || j.to>b.max) return false;
+    lv[j.k] = j.to; return true;
+  });
+  return before - S.raiseQ.length;
+}
 function newGame(){
+  resetHallState();
   S.day = 1; S.gold = 40; S.renown = 0; S.nextFeat = 8; S.featItem = null; S.season="spring"; S.seasonLeft=30; S.loan=0; S.rival=null;
   S.hallEvent=null; S.hallEventLog=null; S._roadStall=null; S.seasonAsk=null; S.contestAsk=null; S.contestDue=null; S.contestWarn=null; S.contestWarned=false; S.contestUntil=null; S.contestParty=null; S.rivalWritAsk=null;
   S.buildings = {barracks:1, armory:1, infirmary:1, grounds:0, alley:0, sanctum:0, chapel:0, tavern:1, bank:1, racks:0, board:0, bell:0, briefs:0, seer:0, stables:0};
