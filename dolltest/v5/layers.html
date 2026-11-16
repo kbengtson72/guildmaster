@@ -70,6 +70,7 @@
         <img id="layer-boots" alt="">
         <img id="layer-chest" alt="">
         <img id="layer-gloves" alt="">
+        <img id="layer-hair" alt="">
         <img id="layer-helmet" alt="">
       </div>
     </div>
@@ -95,11 +96,12 @@
     const TIER_LABEL = { common: "Common", masterwork: "Masterwork", green: "Green", blue: "Blue", purple: "Purple" };
     const SLOTS = ["helmet", "cloak", "chest", "gloves", "pants", "boots"];
     const SLOT_LABEL = { helmet: "Helmet", cloak: "Cloak", chest: "Chest", gloves: "Gloves", pants: "Pants", boots: "Boots" };
-    // Draw order is fixed in the HTML: cloak, base, pants, boots, chest, gloves, helmet.
+    // Draw order is fixed in the HTML: cloak, base, pants, boots, chest, gloves, hair, helmet.
+    // When a helmet is on, the female base is the no-hair cutout and layer-hair holds the tucked style.
     let gender = "male";
     const pick = Object.fromEntries(SLOTS.map((s) => [s, "common"]));
     // Bump this whenever layer PNGs change so iOS Safari does not keep stale tiles.
-    const LAYER_V = "20261116-onbase-fix";
+    const LAYER_V = "20261116-helmet-hair";
 
     const $ = (id) => document.getElementById(id);
 
@@ -124,7 +126,10 @@
 
     async function punchedBaseURL(g, gen) {
       const need = OCCLUDE_SLOTS.filter((s) => pick[s]);
-      const baseURL = "base-" + g + ".png?v=" + LAYER_V;
+      const useNohair = !!pick.helmet && g === "female";
+      const baseURL = useNohair
+        ? "base-" + g + "-nohair.png?v=" + LAYER_V
+        : "base-" + g + ".png?v=" + LAYER_V;
       if (!need.length) return baseURL;
       const base = await loadImage(baseURL);
       if (gen !== baseGen) return null;
@@ -157,6 +162,14 @@
           img.src = src;
         }
       }
+      const hair = $("layer-hair");
+      if (pick.helmet && gender === "female") {
+        hair.style.display = "block";
+        hair.src = "hair/female-helmet-" + pick.helmet + ".png?v=" + LAYER_V;
+      } else {
+        hair.removeAttribute("src");
+        hair.style.display = "none";
+      }
       const gen = ++baseGen;
       const g = gender;
       punchedBaseURL(g, gen).then((url) => {
@@ -168,7 +181,11 @@
         if (url.startsWith("blob:")) lastBaseBlob = url;
         $("layer-base").src = url;
       }).catch(() => {
-        if (gen === baseGen) $("layer-base").src = "base-" + g + ".png?v=" + LAYER_V;
+        if (gen !== baseGen) return;
+        const useNohair = !!pick.helmet && g === "female";
+        $("layer-base").src = useNohair
+          ? "base-" + g + "-nohair.png?v=" + LAYER_V
+          : "base-" + g + ".png?v=" + LAYER_V;
       });
     }
 
