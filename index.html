@@ -4766,7 +4766,7 @@ function doThiefSwap(pid, mid){
 }
 function redrawJob(mid){
   const lv = S.buildings.briefs||0;
-  if(!lv) return toast("Build Sealed Briefs on the Guild tab first.");
+  if(!lv) return toast("Build Sealed Briefs under Buildings & Upgrades first.");
   const cost = briefCost();
   if(funds() < cost) return toast("Need "+gp(cost)+".");
   const ix = findMissionIndex(mid);
@@ -9804,7 +9804,7 @@ function upgrade(key){ startRaise(key); }
 function openBuildSheet(){
   const sheet = document.getElementById("sheet");
   const modal = document.getElementById("modal");
-  if(!sheet||!modal){ tab="hall"; render(); return; }
+  if(!sheet||!modal){ openHallBuilds(); return; }
   const r = S.raise, q = S.raiseQ||[];
   const nm = k => (BLD_ICON[k]||"")+" "+((BUILDINGS[k]||{}).n||k);
   let html = `<h3>🏗️ Builds</h3>`;
@@ -9831,13 +9831,13 @@ function openBuildSheet(){
     html += `<p class="tiny">Nothing queued after this.</p>`;
   }
   if(total) html += `<p class="tiny" style="color:var(--gold)">Everything done in ${total}d (day ${S.day+total}).</p>`;
-  html += `<button type="button" class="act" id="bsHall" style="width:100%;margin-top:8px">Go to Guild upgrades</button>
+  html += `<button type="button" class="act" id="bsHall" style="width:100%;margin-top:8px">Go to Buildings &amp; Upgrades</button>
     <button type="button" class="ghost" id="bsClose" style="width:100%;margin-top:8px">Close</button>`;
   sheet.innerHTML = html;
   modal.classList.add("show"); modal.style.display="flex";
   const h=document.getElementById("bsHalt"); if(h) h.onclick=()=>{ closeModal(); cancelRaise(); };
   const pp=document.getElementById("bsPop"); if(pp) pp.onclick=()=>{ if(S.raiseQ&&S.raiseQ.length){ const j=S.raiseQ.pop(); toast("Dropped "+((BUILDINGS[j.k]||{}).n||j.k)+" from queue."); save(); render(); openBuildSheet(); } };
-  document.getElementById("bsHall").onclick=()=>{ closeModal(); tab="hall"; render(); };
+  document.getElementById("bsHall").onclick=()=>{ closeModal(); openHallBuilds(); };
   document.getElementById("bsClose").onclick=closeModal;
 }
 
@@ -10424,6 +10424,7 @@ function deleteProfile(id){
 }
 
 let tab = "hall";
+let hallBuilds = false;
 let shopCat = "weapon";
 let armCat = "";
 function armTab(it){ return ["weapon","armor","food","kit"].includes(it.kind) ? it.kind : "loot"; }
@@ -11020,14 +11021,8 @@ function render(){ (S.people||[]).forEach(fixTwoHand);
 
   guardReport();
 
-function hallView(){
-  return `<div class="card"><h3>${String(profileName()).replace(/[<>&"]/g,"")}</h3>
-    <p class="tiny">You do not adventure. You keep the books, the beds, and the contracts. They go out. They come back — most of them.</p>
-    <p class="muted">${rn(S.renown)} · Day ${S.day}. Guilds live under 👤. Tap the name at the top to rename.</p>
-    ${S.raise?`<p class="tiny" style="color:var(--gold)">Raising ${raiseLine()}</p><button class="ghost" data-cancelraise="1" style="width:100%;margin-top:6px">Halt raise · half back</button>`:""}
-    ${(S.pendingLoot&&S.pendingLoot.length)?`<p class="ok">${S.pendingLoot.length} find${S.pendingLoot.length>1?"s":""} waiting. <button class="ghost" data-finds="1">Keep or sell</button></p>`:""}
-    </div>
-    <div class="card">
+function hallBuildList(){
+  return `<div class="card">
       <div class="row"><h3 data-bhelp="bank" style="cursor:pointer">🏦 Bank <span class="tiny">?</span></h3><span class="tag">${bankLv()?("Lv "+bankLv()+"/4"):"unbuilt"}</span></div>
       <p class="tiny">Purse ${gp(S.gold)} · Vault ${gp(S.deposit||0)} / ${bankCap()||0} · Next dawn +${gp(bankInterest())}</p>
       <p class="tiny">Parked gold does not pay wages. Interest is 1g per 25 parked, max equal to Bank level (1–4 a day).</p>
@@ -11051,6 +11046,35 @@ function hallView(){
       </div>`;
     }).join("")}
     ${((S.raiseQ||[]).length)?`<div class="card"><h3>Build queue</h3>${S.raiseQ.map((j,i)=>`<p class="tiny">${i+1}. ${(BUILDINGS[j.k]||{}).n||j.k} → Lv ${j.to} · ${j.left||j.span}d paid</p>`).join("")}<button type="button" class="ghost" id="qPop" style="width:100%;margin-top:6px">Cancel last in queue (no refund)</button></div>`:""}`;
+}
+function openHallBuilds(){
+  hallBuilds = true;
+  tab = "hall";
+  render();
+  try{ document.getElementById("view").scrollTo(0,0); }catch(e){}
+}
+function closeHallBuilds(){
+  hallBuilds = false;
+  tab = "hall";
+  render();
+  try{ document.getElementById("view").scrollTo(0,0); }catch(e){}
+}
+function hallView(){
+  if(hallBuilds){
+    return `<div class="card"><h3>Buildings &amp; Upgrades</h3>
+      <button type="button" class="ghost" data-hallback="1" style="width:100%;margin-top:6px">Back</button></div>
+      ${hallBuildList()}
+      <div class="card"><button type="button" class="ghost" data-hallback="1" style="width:100%">Back</button></div>`;
+  }
+  return `<div class="card"><h3>${String(profileName()).replace(/[<>&"]/g,"")}</h3>
+    <p class="tiny">You do not adventure. You keep the books, the beds, and the contracts. They go out. They come back — most of them.</p>
+    <p class="muted">${rn(S.renown)} · Day ${S.day}. Guilds live under 👤. Tap the name at the top to rename.</p>
+    ${S.raise?`<p class="tiny" style="color:var(--gold)">Raising ${raiseLine()}</p><button class="ghost" data-cancelraise="1" style="width:100%;margin-top:6px">Halt raise · half back</button>`:""}
+    ${(S.pendingLoot&&S.pendingLoot.length)?`<p class="ok">${S.pendingLoot.length} find${S.pendingLoot.length>1?"s":""} waiting. <button class="ghost" data-finds="1">Keep or sell</button></p>`:""}
+    </div>
+    <div class="card">
+      <button type="button" class="act" data-hallbuilds="1" style="width:100%">Buildings &amp; Upgrades</button>
+    </div>`;
 }
 
 function personLine(p){
@@ -11308,6 +11332,8 @@ function tavernView(){
 }
 
 function bindCards(){
+  document.querySelectorAll("[data-hallbuilds]").forEach(b=>b.onclick=()=>openHallBuilds());
+  document.querySelectorAll("[data-hallback]").forEach(b=>b.onclick=()=>closeHallBuilds());
   document.querySelectorAll("[data-oatheater]").forEach(b=>b.onclick=()=>spendOathEater(b.dataset.oatheater));
   document.querySelectorAll("[data-restart]").forEach(b=>b.onclick=askRestart);
   document.querySelectorAll("[data-look]").forEach(b=>b.onclick=()=>openPerson(b.dataset.look));
@@ -11834,9 +11860,8 @@ function armoryFullChoice(pid, slot, it, clear){
   };
   if(sheet.querySelector("[data-uprack]")) sheet.querySelector("[data-uprack]").onclick=()=>{
     closeModal();
-    tab = "hall";
-    render();
-    toast("Buy the next racks on the Guild tab.");
+    openHallBuilds();
+    toast("Buy the next racks under Buildings & Upgrades.");
   };
   sheet.querySelector("[data-back]").onclick=()=>openPerson(pid);
 }
@@ -12278,7 +12303,7 @@ function helpPage(id){
     ${rows}`;
   }
   if(id==="hall") return `
-    <p class="tiny">Upgrade on the Guild tab. Cost is base × next level. Pay now; it raises for 5 days × the level you are buying (Lv1 = 5d, Lv2 = 10d, Lv3 = 15d, Lv4 = 20d). You can queue the next raise. Tap the build ring up top to see the current build, the queue, and when each finishes. Halting a raise asks first, then returns half the cost. A finished job pays Renown equal to its difficulty. Charming +1, Sour −1. Charter is gone. Renown is prestige, not coin.</p>
+    <p class="tiny">On the Guild tab, tap Buildings &amp; Upgrades to see every building and raise one. Cost is base × next level. Pay now; it raises for 5 days × the level you are buying (Lv1 = 5d, Lv2 = 10d, Lv3 = 15d, Lv4 = 20d). You can queue the next raise. Tap the build ring up top to see the current build, the queue, and when each finishes. Halting a raise asks first, then returns half the cost. A finished job pays Renown equal to its difficulty. Charming +1, Sour −1. Charter is gone. Renown is prestige, not coin.</p>
     <p class="tiny"><b>Contest countdown</b> — for the last 5 days of each season, a splash pops up each dawn (5, 4, 3, 2, 1) with their Renown, yours, and how many of your people are ready. The contest is called when the season turns.</p>
     <p class="tiny"><b>The rival guild</b> starts with two faces, traits, quirks, and a specialty. No food, no kit. They do not run a board. When you finish a job they gain Renown equal to its difficulty and roll their own rewards. They pay wages, buy Barracks, and hire from the Tap. Contest uses their two best faces even if one is out. While your pair is out, a Contest ring sits with the quest rings and counts the days left. Tap it to see who went and to open the rival guild.</p>
     <p class="tiny">Sealed Briefs: each level adds 2 jobs on the board, and you can pay to replace one open job. Renown still raises hire level and extra faces, and sets the door band.</p>
@@ -12328,7 +12353,7 @@ function helpPage(id){
     <p class="tiny">If Assign party says a card has left the board, the list was stale. You can refresh it, or post a fresh contract of about the same difficulty in that slot. That does not redraw a quest that is still live.</p>
     <p class="tiny">A green ⚔ line in the header and on the night report is how many parties are still out. Quest, contest, kin, levy, watch, and build absences each get a countdown ring in the upper left, and so does a face on a fever lock (🤒). Tap a quest ring to open the board, or the Contest ring for the rival guild.</p>
     <h4>✉️ Break the seal</h4>
-    <p class="tiny">That button is <b>Sealed Briefs</b> on the Guild tab. Pay gold to throw out one <b>open</b> job and draw a different contract in that slot. You cannot seal-break a job that already has a party.</p>
+    <p class="tiny">That button comes from <b>Sealed Briefs</b>, built under Buildings &amp; Upgrades on the Guild tab. Pay gold to throw out one <b>open</b> job and draw a different contract in that slot. You cannot seal-break a job that already has a party.</p>
     <p class="tiny">Each Briefs level also adds 2 jobs to the board. Seal cost is 24g minus 4g per Briefs level (Lv5 is 4g). Right now: ${seal}. The redraw is a random unused title from the pool — it can be harder, easier, or Dark.</p>
     <h4>👁️ Sight</h4>
     <p class="tiny">Every open card shows live odds for the recommended seat count — not for a stacked party. Hint, not a promise. Seer Lv1 paints Job pills on Assign, under the portrait. Tap a pill to see how that number is calculated. Lv2 adds the power bar. Lv3 auto-ticks that same set. Lv4 blesses (+4 power).</p>
@@ -12351,6 +12376,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-16", t:"Building upgrades on the Guild tab now sit behind a Buildings & Upgrades button. Tap it for the full list (Bank, every building, and the build queue). The view stays open after you buy a raise. Back returns to the Guild tab. The build ring's Go to Buildings & Upgrades, and Upgrade racks, open this list."},
   {d:"2026-11-16", t:"The Town Writ box is gone from the Guild tab. It lives only on the Quest tab now (building pick, Oath-eater, and sealed or lapsed status included). The writ banner at the top also opens the Quest tab."},
   {d:"2026-11-16", t:"Town Writ how-it-works text (when it posts, the building reward, and early lapses) is no longer repeated on the Guild tab. It still appears on the Quest tab. Marks, status, and controls stay."},
   {d:"2026-11-16", t:"Hall is now Guild everywhere you read it. Each new guild gets a random name (never a rival's); old default names like Hall 1 got one too. Tap the guild name at the top to rename it. Red Wren Hall is now Red Wren Guild. The game is now called Writ & Steel (same link, same saves)."},
@@ -13594,7 +13620,7 @@ function dbgBumpUpgrade(){
 }
 /* === DEBUG CHEATS end === */
 
-document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{tab=b.dataset.tab; render();});
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{tab=b.dataset.tab; hallBuilds=false; render();});
 document.getElementById("btnRecruit").onclick=recruit;
 document.getElementById("btnLog").onclick=openLedger;
 document.getElementById("btnProf").onclick=openProfiles;
