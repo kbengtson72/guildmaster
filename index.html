@@ -2138,6 +2138,27 @@ function outfitStarter(p){
 const STARTER_WEAPON = "w_club_gray", STARTER_ARMOR = "a_chest_cloth_gray";
 // the free Gray weapon a person falls back to (a Mage cannot use a Club)
 function starterWeaponFor(p){ return p && p.cls==="Mage" ? "w_dagger_gray" : STARTER_WEAPON; }
+/* New-hall openers only: one random Gray (Common) weapon and one random Gray armor piece they can use. */
+function startRosterPool(kind, p){
+  const list = kind==="weapon" ? WEAPONS : ARMORS;
+  return list.filter(x=>{
+    if(!x || x.unique) return false;
+    if((x.r||"") !== "junk") return false;
+    if(kind==="weapon" && x.shield) return false;
+    if(!canWield(p, Object.assign({}, x, {kind}))) return false;
+    return true;
+  });
+}
+function outfitStartRoster(p){
+  const w = startRosterPool("weapon", p);
+  const a = startRosterPool("armor", p);
+  p.slots = {}; p.armor = null; p.offhand = null;
+  p.weapon = (w.length ? pick(w) : {id: starterWeaponFor(p)}).id;
+  wearArmor(p, (a.length ? pick(a) : {id:STARTER_ARMOR}).id);
+  p.food = null;
+  p.foodEaten = false;
+  p.kit = null;
+}
 function hirePool(kind, p){
   const list = kind==="weapon" ? WEAPONS : kind==="armor" ? ARMORS : FOODS;
   return list.filter(x=>{
@@ -12138,7 +12159,7 @@ function helpPage(id){
     <h4>How traits get there</h4>
     <p class="tiny">Most faces roll 1 trait. Some roll 2. A few roll 3 (Notice Board helps). Opposites never sit on the same person (Lucky/Unlucky, Brave/Craven, and so on). A two-trait roll will not stack two flaws. Three-trait rolls can mix.</p>
     <p class="tiny">Roles, quirks, and gear do not change the border. Only the trait mix does.</p>
-    <p class="tiny">The two who open the hall are common or Gifted only — no flaws, no Epic mix. The two openers arrive in Gray or White kit. About one in six packed a cheap snack. Tavern faces can walk in with better kit and food of any grade, Gray up to Purple.</p>`;
+    <p class="tiny">The two who open the hall are common or Gifted only — no flaws, no Epic mix. The two openers arrive with one random Gray (Common) weapon and one random Gray (Common) armor piece they can use. No Masterwork or coloured gear, no food, no kit. Tavern faces can walk in with better kit and food of any grade, Gray up to Purple.</p>`;
   if(id==="class") return `
     <p class="tiny">Four schools. Power is attack + defense + a share of HP, plus gear, traits, food, and hall schools.</p>
     ${Object.keys(CLASSES).map(n=>{
@@ -12303,6 +12324,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-16", t:"The two who open a new hall now start with one random Gray (Common) weapon and one random Gray (Common) armor piece they can use. No Masterwork, no coloured gear, no food, no kit."},
   {d:"2026-11-15", t:"Tidier header rings: Wounded, Bank, Writ, and Hall stay in one fixed row. Jobs in the field get their own row below that scrolls sideways when there are many. A long build queue shows two icons and a +N count."},
   {d:"2026-11-15", t:"Seer leftover adds only offer faces who can legally walk that job (Holy, Dark, quirks). An add that is no longer allowed is dropped, and a manual add can be taken back with the ✕ button."},
   {d:"2026-11-15", t:"At the door: each roster tile has an outer ring in the person's quality color (red flawed, none common, green gifted, gold elite), the same colors as the door cards."},
@@ -13592,7 +13614,7 @@ function newGame(){
   const start = Object.keys(CLASSES).slice().sort(()=>Math.random()-0.5);
   S.people.push(makePerson(true, start[0]), makePerson(true, start[1]));
   S.people.forEach(p=>{
-    outfitStarter(p);
+    outfitStartRoster(p);
     const pos = TRAITS.filter(t=>NEGATIVE_TRAITS.indexOf(t)<0);
     const n = 2;
     const pool = pos.slice();
