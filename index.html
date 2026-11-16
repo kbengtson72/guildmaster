@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta property="og:title" content="Guildmaster">
+<meta property="og:title" content="Writ &amp; Steel">
 <meta property="og:description" content="Published artifact via htmldrop">
 <meta property="og:image" content="https://htmldrop.link/og/small-otter-jgzx45ov6.svg">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://htmldrop.link/og/small-otter-jgzx45ov6.svg">
-<meta name="twitter:title" content="Guildmaster">
+<meta name="twitter:title" content="Writ &amp; Steel">
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Guildmaster">
-<title>Guildmaster</title>
+<meta name="apple-mobile-web-app-title" content="Writ &amp; Steel">
+<title>Writ &amp; Steel</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="theme-color" content="#1a1612">
@@ -10201,13 +10201,13 @@ function copyHallCode(){
   if(box) box.value = text;
   if(navigator.share){
     try {
-      const file = new File([text], "guild-save.txt", {type:"text/plain"});
+      const file = new File([text], "writ-and-steel-save.txt", {type:"text/plain"});
       if(navigator.canShare && navigator.canShare({files:[file]})){
-        navigator.share({ files:[file], title:profileName()+" save" }).catch(()=>{});
+        navigator.share({ files:[file], title:"Writ & Steel save" }).catch(()=>{});
         return;
       }
     } catch(e){}
-    navigator.share({ title:profileName()+" save", text:text }).catch(()=>{});
+    navigator.share({ title:"Writ & Steel save", text:text }).catch(()=>{});
     return;
   }
   if(navigator.clipboard && navigator.clipboard.writeText){
@@ -10319,10 +10319,10 @@ function openSaveSheet(){
   const modal=document.getElementById("modal"); modal.classList.add("show"); modal.style.display="flex";
   document.getElementById("svBackup").onclick=()=>{
     const text = hallCode();
-    const name = "guildmaster-day"+S.day+".txt";
+    const name = "writ-and-steel-day"+S.day+".txt";
     try {
       const file = new File([text], name, {type:"text/plain"});
-      if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){ navigator.share({files:[file], title:"Guildmaster save"}).catch(()=>{}); return; }
+      if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){ navigator.share({files:[file], title:"Writ & Steel save"}).catch(()=>{}); return; }
     } catch(e){}
     try { const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([text],{type:"text/plain"})); a.download=name; document.body.appendChild(a); a.click(); a.remove(); toast("Backup downloaded."); }
     catch(e){ copyHallCode(); }
@@ -10331,7 +10331,7 @@ function openSaveSheet(){
 }
 function confirmLoadCode(raw){
   let o=null;
-  try { o = JSON.parse(String(raw||"").trim()); } catch(e){ return toast("That is not a Guildmaster save."); }
+  try { o = JSON.parse(String(raw||"").trim()); } catch(e){ return toast("That is not a Writ & Steel save."); }
   if(!o || typeof o!=="object" || !Array.isArray(o.people)) return toast("That save has no roster.");
   const alive=(o.people||[]).filter(p=>p.status!=="dead").length;
   document.getElementById("sheet").innerHTML = `<h3>📂 Load this save?</h3>
@@ -12352,7 +12352,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
-  {d:"2026-11-16", t:"Hall is now Guild everywhere you read it. Each new guild gets a random name (never a rival's); old default names like Hall 1 got one too. Tap the guild name at the top to rename it. Red Wren Hall is now Red Wren Guild."},
+  {d:"2026-11-16", t:"Hall is now Guild everywhere you read it. Each new guild gets a random name (never a rival's); old default names like Hall 1 got one too. Tap the guild name at the top to rename it. Red Wren Hall is now Red Wren Guild. The game is now called Writ & Steel (same link, same saves)."},
   {d:"2026-11-16", t:"Sealed Briefs is back, with a 5th level (200g): +10 jobs on the board and 4g seals. Its Hall card, ? help, and the Quests Help now say plainly that each level adds 2 jobs to the board as well as cheaper Break the seal. The Quests tab shows how many jobs your board holds and where they come from. (The 3:02 removal is undone.)"},
   {d:"2026-11-16", t:"Chapel Bell now has a 5th level (250g): +10 party power on Dark and Holy jobs."},
   {d:"2026-11-16", t:"Notice Board now has a 5th level (225g): two-trait chance 85%, third trait 65%."},
