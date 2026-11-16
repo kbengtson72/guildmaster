@@ -1847,7 +1847,7 @@ const BUILDINGS = {
   racks: {n:"Racks", desc:"+3 Armory slots per level (base 4)", base:40, max:5},
   board: {n:"Notice Board", desc:"Better chance of gifted faces at the Tap. Elite do not drink here.", base:45, max:5},
   bell: {n:"Chapel Bell", desc:"+2 power on Dark and Holy jobs per level", base:50, max:5},
-  briefs: {n:"Sealed Briefs", desc:"Pay to replace one open job. Each level adds 2 jobs on the board. Higher levels cheaper seals.", base:40, max:4},
+  briefs: {n:"Sealed Briefs", desc:"+2 jobs on the quest board per level, and pay to replace one open job (cheaper each level)", base:40, max:5},
   seer: {n:"Seer", desc:"Sight is free. Reads quests, the road, events, and the contest. Lv1 odds and exact gold. Lv2 bar and party. Lv3 numbers and item stats. Lv4 +4 and exact outcomes.", base:55, max:4},
   stables: {n:"Courier Stable", desc:"Jobs finish 1 day sooner per level (minimum 1 day).", base:50, max:4}
 };
@@ -1864,7 +1864,7 @@ const BUILD_HELP = {
   racks: {how:"Armory starts at 4 slots. Each Racks level adds 3 more.", lv:["Lv1 — 7 slots.","Lv2 — 10 slots.","Lv3 — 13 slots.","Lv4 — 16 slots.","Lv5 — 19 slots."]},
   board: {how:"Notice Board at the Tap. Base chance of two traits is 45% + 8% per level. Of those, a third trait is 30% + 7% per level. More traits means more gifted and elite faces (and more flawed ones too).", lv:["Lv1 — two-trait 53%, third 37%.","Lv2 — 61% / 44%.","Lv3 — 69% / 51%.","Lv4 — 77% / 58%.","Lv5 — 85% / 65%."]},
   bell: {how:"Chapel Bell. Party power +2 per level on Dark and Holy jobs only. Stacks with Clerics, Night Owl, Night role, Night step.", lv:["Lv1 — +2 Dark PWR.","Lv2 — +4.","Lv3 — +6.","Lv4 — +8.","Lv5 — +10."]},
-  briefs: {how:"Unlocks Break the seal on open jobs. Pay gold to replace that card with another unused contract. Cannot seal-break a job that already has a party. Cost is 24g − 4g per level, minimum 8g.", lv:["Lv1 — button appears, 20g a seal.","Lv2 — 16g.","Lv3 — 12g.","Lv4 — 8g."]},
+  briefs: {how:"Two things. 1) Each level adds 2 more jobs to the quest board (the board is 5 jobs, +1 per 15 Renown up to +2, +2 per Briefs level). 2) Unlocks Break the seal on open jobs: pay gold to replace that card with another unused contract. Cannot seal-break a job that already has a party. Seal cost is 24g − 4g per level.", lv:["Lv1 — +2 jobs on the board, 20g a seal.","Lv2 — +4 jobs, 16g a seal.","Lv3 — +6 jobs, 12g a seal.","Lv4 — +8 jobs, 8g a seal.","Lv5 — +10 jobs, 4g a seal."]},
   seer: {how:"Sight is free. It reads quests, road encounters, hall events, and the guild contest. Higher levels say more and, at the top, change the numbers.", lv:[
 "Lv1 — Quests: colors each face's power for that job (red low to gold high), shows the exact gold (not a range), and recommends the best-loot quest of good chance or better. Contest: reads the odds as they walk it, good chance, even, bloody, or grave. Road and events: a one-line hint of what each choice does.",
 "Lv2 — Quests: adds the power bar, auto-picks and reserves the party across quests, and lists the items that will drop with their value. Contest: adds the power bar and opens the rival's two best faces, tappable. Road and events: ranges (XP, gold, damage).",
@@ -4701,7 +4701,7 @@ function resolveEncounter(enc, pickId, m, party){
 function briefCost(){
   const lv = S.buildings.briefs||0;
   if(!lv) return 0;
-  return Math.max(8, 24 - 4*lv);
+  return Math.max(4, 24 - 4*lv);
 }
 
 function openThiefBoard(id){
@@ -11052,6 +11052,7 @@ function boardView(){
   const ready = S.people.filter(p=>p.status==="ready");
   const roster = `${writCard()}
     <div class="card">${raiseOffer("seer")}<h3>Available quests</h3>
+    <p class="tiny">Quest board holds ${5+Math.min(2,Math.floor((S.renown||0)/15))+2*(S.buildings.briefs||0)} jobs: 5 base, +${Math.min(2,Math.floor((S.renown||0)/15))} from Renown (max +2), +${2*(S.buildings.briefs||0)} from Sealed Briefs Lv ${S.buildings.briefs||0} (+2 per level).</p>
     ${ready.length ? ready.map(p=>`<div class="row${isFlawedOnly(p)?" flawed":isElite(p)?" elite":isGifted(p)?" gifted":""}" data-person="${p.id}" style="margin:6px 0;cursor:pointer">
       <div class="who">${face(p)}<div class="names">${nameHtml(p,"strong")}${p.hero?'<span class="tiny" style="color:#b06bff"> ★ Hero</span>':""}${mottoHtml(p)}
       <div class="tiny">PWR ${pwrOf(p)} · ${roleLine(p)} · HP ${p.hp}/${p.maxhp}</div>
@@ -12296,7 +12297,7 @@ function helpPage(id){
     <p class="tiny">A green ⚔ line in the header and on the night report is how many parties are still out. Quest, contest, kin, levy, watch, and build absences each get a countdown ring in the upper left, and so does a face on a fever lock (🤒). Tap a quest ring to open the board, or the Contest ring for the other hall.</p>
     <h4>✉️ Break the seal</h4>
     <p class="tiny">That button is <b>Sealed Briefs</b> on the Hall. Pay gold to throw out one <b>open</b> job and draw a different contract in that slot. You cannot seal-break a job that already has a party.</p>
-    <p class="tiny">Cost is 24g minus 4g per Briefs level, minimum 8g. Right now: ${seal}. The redraw is a random unused title from the pool — it can be harder, easier, or Dark.</p>
+    <p class="tiny">Each Briefs level also adds 2 jobs to the board. Seal cost is 24g minus 4g per Briefs level (Lv5 is 4g). Right now: ${seal}. The redraw is a random unused title from the pool — it can be harder, easier, or Dark.</p>
     <h4>👁️ Sight</h4>
     <p class="tiny">Every open card shows live odds for the recommended seat count — not for a stacked party. Hint, not a promise. Seer Lv1 paints Job pills on Assign, under the portrait. Tap a pill to see how that number is calculated. Lv2 adds the power bar. Lv3 auto-ticks that same set. Lv4 blesses (+4 power).</p>
     <h4>Types</h4>
@@ -12318,6 +12319,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-16", t:"Sealed Briefs is back, with a 5th level (200g): +10 jobs on the board and 4g seals. Its Hall card, ? help, and the Quests Help now say plainly that each level adds 2 jobs to the board as well as cheaper Break the seal. The Quests tab shows how many jobs your board holds and where they come from. (The 3:02 removal is undone.)"},
   {d:"2026-11-16", t:"Chapel Bell now has a 5th level (250g): +10 party power on Dark and Holy jobs."},
   {d:"2026-11-16", t:"Notice Board now has a 5th level (225g): two-trait chance 85%, third trait 65%."},
   {d:"2026-11-16", t:"Racks now has a 5th level: 19 Armory slots, 200g. The Armory-full screen no longer offers a Racks upgrade once Racks is maxed."},
