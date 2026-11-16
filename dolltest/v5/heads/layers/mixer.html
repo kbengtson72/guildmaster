@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Guildmaster — head mixer</title>
+<style>
+  :root { --bg:#7c7c7c; --ui:#1c1c1e; --ink:#f2f2f7; --muted:#a1a1aa; --accent:#d4a574; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; background:#111; color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  body { min-height:100dvh; padding:12px 12px calc(16px + env(safe-area-inset-bottom)); }
+  h1 { font-size:1.05rem; font-weight:600; margin:0 0 2px; }
+  .sub { color:var(--muted); font-size:.8rem; margin-bottom:12px; }
+  .layout { display:flex; flex-direction:column; gap:14px; max-width:880px; margin:0 auto; }
+  @media (min-width:800px) { .layout { flex-direction:row; align-items:flex-start; } .stage-wrap{flex:1 1 52%;} .controls{flex:1 1 48%;} }
+  .stage-wrap { background:#2a2a2a; border-radius:12px; padding:10px; }
+  .stage { position:relative; width:100%; aspect-ratio:3/4; max-height:72dvh; margin:0 auto; background:var(--bg); border-radius:8px; overflow:hidden; }
+  .stage .inner { position:absolute; inset:0; transform-origin:50% 0; transition:transform .25s; }
+  .stage.zoom .inner { transform:scale(2.8); }
+  .stage img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none; }
+  .controls { display:flex; flex-direction:column; gap:12px; }
+  .group { background:var(--ui); border-radius:12px; padding:10px; }
+  .group h2 { font-size:.8rem; color:var(--muted); font-weight:600; margin:0 0 8px; text-transform:uppercase; letter-spacing:.04em; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  button { background:#2c2c2e; color:var(--ink); border:1px solid #3a3a3c; border-radius:9px; padding:8px 11px; font-size:.9rem; min-width:42px; }
+  button.on { background:var(--accent); color:#1a1a1a; border-color:var(--accent); font-weight:600; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; }
+  .row button { flex:1; }
+  #label { text-align:center; color:var(--muted); font-size:.85rem; margin-top:8px; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <div class="stage-wrap">
+    <div class="stage zoom" id="stage"><div class="inner">
+      <img id="body" alt=""><img id="face" alt=""><img id="hair" alt="">
+    </div></div>
+    <div id="label"></div>
+  </div>
+  <div class="controls">
+    <div>
+      <h1>Head mixer</h1>
+      <div class="sub">Body, then face, then hair. Any hair fits any face of the same gender. Beards stay with the face.</div>
+    </div>
+    <div class="group"><h2>Gender</h2><div class="chips" id="gender"></div></div>
+    <div class="group"><h2>Face</h2><div class="chips" id="faces"></div></div>
+    <div class="group"><h2>Hair</h2><div class="chips" id="hairs"></div></div>
+    <div class="row">
+      <button id="random">🎲 Random</button>
+      <button id="zoom">Full body</button>
+    </div>
+  </div>
+</div>
+<script>
+const N = 10;
+const st = { g: "female", f: 1, h: 1 };
+const pad = n => String(n).padStart(2, "0");
+const $ = id => document.getElementById(id);
+function chips(el, items, cur, pick) {
+  el.innerHTML = "";
+  for (const [v, txt] of items) {
+    const b = document.createElement("button");
+    b.textContent = txt; if (v === cur) b.className = "on";
+    b.onclick = () => pick(v); el.appendChild(b);
+  }
+}
+function render() {
+  $("body").src = `body-${st.g}.png`;
+  $("face").src = `${st.g}/face-${pad(st.f)}.png`;
+  if (st.h) { $("hair").src = `${st.g}/hair-${pad(st.h)}.png`; $("hair").style.display = ""; }
+  else $("hair").style.display = "none";
+  chips($("gender"), [["female", "Female"], ["male", "Male"]], st.g, v => { st.g = v; render(); });
+  const nums = Array.from({ length: N }, (_, i) => [i + 1, String(i + 1)]);
+  chips($("faces"), nums, st.f, v => { st.f = v; render(); });
+  chips($("hairs"), [[0, "None"], ...nums], st.h, v => { st.h = v; render(); });
+  $("label").textContent = `${st.g === "male" ? "Man" : "Woman"} · face ${st.f} · ${st.h ? "hair " + st.h : "no hair"}`;
+  location.replace("#" + [st.g, st.f, st.h].join("-"));
+}
+$("random").onclick = () => {
+  st.f = 1 + Math.floor(Math.random() * N);
+  st.h = 1 + Math.floor(Math.random() * N);
+  render();
+};
+$("zoom").onclick = () => {
+  const z = $("stage").classList.toggle("zoom");
+  $("zoom").textContent = z ? "Full body" : "Zoom head";
+};
+const m = location.hash.match(/^#(male|female)-(\d+)-(\d+)$/);
+if (m) { st.g = m[1]; st.f = Math.min(N, Math.max(1, +m[2])); st.h = Math.min(N, +m[3]); }
+// preload everything so taps swap instantly
+for (const g of ["male", "female"]) for (let i = 1; i <= N; i++) for (const k of ["face", "hair"]) new Image().src = `${g}/${k}-${pad(i)}.png`;
+render();
+</script>
+</body>
+</html>
