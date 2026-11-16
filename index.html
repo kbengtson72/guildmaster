@@ -1842,7 +1842,7 @@ const BUILDINGS = {
   barracks: {n:"Barracks", desc:"+2 roster slots per level (Lv1 = 4)", base:40, max:5},
   armory: {n:"Outfitter", desc:"Each level adds a new colour to the merchant's gear and food", base:25, max:5},
   infirmary: {n:"Infirmary", desc:"Faster recovery from wounds", base:35, max:5},
-  yard: {n:"Training Grounds", desc:"All classes: +XP and a little power on jobs", base:45, max:4},
+  yard: {n:"Training Grounds", desc:"All classes: +1 job power and +1 XP on every successful job per level", base:45, max:5},
   bank: {n:"Bank", desc:"Park spare gold. Interest each dawn. The hall opens with Bank Lv1. Higher Bank is still bought. No Bank, no knock at the door. Vault pays door hires first. 50g parked raises the door band; Bank 3+ at 70% full raises it again.", base:55, max:4},
   racks: {n:"Racks", desc:"+3 Armory slots per level (base 4)", base:40, max:4},
   board: {n:"Notice Board", desc:"Better chance of gifted faces at the Tap. Elite do not drink here.", base:45, max:4},
@@ -1855,6 +1855,7 @@ const BUILD_HELP = {
   barracks: {how:"Each level adds two beds. Cap is 2 + 2 × Barracks level (you start with Barracks 1, so 4 people).", lv:["Lv1 — 4 roster slots (the hall you start with).","Lv2 — 6 slots.","Lv3 — 8 slots.","Lv4 — 10 slots.","Lv5 — 12 slots."]},
   armory: {how:"Called Outfitter. Sets the colour of the merchant's weapons, armor, and food. Each level brings in a new colour: every shelf gets 1 or 2 pieces of it, and the rest are one colour lower. The stall restocks when the Outfitter is raised. Orange Legendary gear never sits on the stall.", lv:["Lv1 — all Gray (Common) gear and food. You start here.","Lv2 — 1-2 White (Masterwork) per shelf, the rest Gray.","Lv3 — 1-2 Green per shelf, the rest White.","Lv4 — 1-2 Blue per shelf, the rest Green.","Lv5 — 1-2 Purple per shelf, the rest Blue. Named loot still only drops on jobs."]},
   infirmary: {how:"Wounded people heal 3 + 2×level HP each End Day. They stand up again at 75% HP. If a job would kill someone, each Infirmary level adds 8% chance they are dragged home at 1 HP instead (base 35%, max 75% at Lv5). Ready people still only mend 2 HP/day.", lv:["Lv0 — 3 HP/day if wounded, 35% last-breath save.","Lv1 — 5 HP/day, 43% save. You start here.","Lv2 — 7 HP/day, 51% save.","Lv3 — 9 HP/day, 59% save.","Lv4 — 11 HP/day, 67% save.","Lv5 — 13 HP/day, 75% save."]},
+  yard: {how:"Training for every class. Each level gives every hero +1 power on every job, and +1 extra XP each time they come back from a successful job (on top of the usual 4 + job difficulty).", lv:["Lv1 — +1 job power, +1 XP per success.","Lv2 — +2 job power, +2 XP per success.","Lv3 — +3 job power, +3 XP per success.","Lv4 — +4 job power, +4 XP per success.","Lv5 — +5 job power, +5 XP per success."]},
   grounds: {how:"Warrior school. Each level adds +1 power on jobs for every Warrior and +1 XP when a Warrior returns from a success.", lv:["Lv1 — +1 PWR and +1 XP for Warriors.","Lv2 — +2 / +2.","Lv3 — +3 / +3.","Lv4 — +4 / +4."]},
   alley: {how:"Rogue school. Same as Grounds, for Rogues only.", lv:["Lv1 — +1 PWR and +1 XP for Rogues.","Lv2 — +2 / +2.","Lv3 — +3 / +3.","Lv4 — +4 / +4."]},
   sanctum: {how:"Mage school. Same as Grounds, for Mages only.", lv:["Lv1 — +1 PWR and +1 XP for Mages.","Lv2 — +2 / +2.","Lv3 — +3 / +3.","Lv4 — +4 / +4."]},
@@ -1884,7 +1885,7 @@ function openBldHelp(k){
     <p class="tiny">Your hall: Lv ${lv}/${b.max} · next ${price}${b.pay==="renown"?" (Renown)":""}</p>
     <p class="tiny">${(h&&h.how)||b.desc}</p>
     <h4>Levels</h4>
-    ${(h&&h.lv||[]).map((t,i)=>`<p class="tiny"${(i+1)===lv?" style=\"color:var(--gold)\"":""}>${t}${(i+1)===lv?" · you are here":""}</p>`).join("")||`<p class="tiny">${b.desc}</p>`}
+    ${(h&&h.lv||[]).map((t,i)=>{const n=+((t.match(/^Lv(\d+)/)||[])[1]||i+1);return `<p class="tiny"${n===lv?" style=\"color:var(--gold)\"":""}>${t}${n===lv?" · you are here":""}</p>`;}).join("")||`<p class="tiny">${b.desc}</p>`}
     <button type="button" class="act" id="bldHelpClose" style="width:100%;margin-top:10px">Close</button>`;
   const modal=document.getElementById("modal");
   modal.classList.add("show"); modal.style.display="flex"; modal.style.pointerEvents="auto";
@@ -11014,7 +11015,7 @@ function hallView(){
       const b=BUILDINGS[k], lv=S.buildings[k]||0, cost=b.base*(lv+1);
       const price = b.pay==="renown" ? rn(cost) : gp(cost);
       return `<div class="card"><div class="row"><h3 data-bhelp="${k}" style="cursor:pointer">${BLD_ICON[k]||""} ${b.n} <span class="tiny">?</span></h3><span class="tag">Lv ${lv}/${b.max}</span></div>
-        <p class="tiny">${b.desc}</p>
+        <p class="tiny">${k==="yard"?"All classes: +"+lv+" job power and +"+lv+" XP per successful job now"+(lv<b.max?" · next level +"+(lv+1)+" / +"+(lv+1):""):b.desc}</p>
         <button class="act" data-up="${k}" ${plannedLv(k)>=b.max?"disabled":""}>${plannedLv(k)>=b.max?"Maxed":S.raise&&S.raise.k===k?"Raising · "+S.raise.left+"d left":(S.raiseQ||[]).some(j=>j.k===k)?"Queued · next "+gp(b.base*(plannedLv(k)+1)):(S.raise?"Queue ":"Build ")+price+" · "+raiseDays(plannedLv(k)+1)+"d"}</button>
       </div>`;
     }).join("")}
@@ -12317,6 +12318,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-16", t:"Training Grounds now has 5 levels. Each level gives every hero +1 power on every job and +1 extra XP per successful job (Lv5: +5 power, +5 XP). The Hall card now shows your current bonus and the next level's, and its ? help lists every level. Building help also highlights the right level for the Infirmary."},
   {d:"2026-11-16", t:"Infirmary now has 5 levels. Healing is unchanged at 3 HP/day at Lv0 plus 2 per level (13 at Lv5). The last-breath save climbs 8% per level, from 35% at Lv0 to 75% at Lv5 (Lv1 43%, Lv2 51%, Lv3 59%, Lv4 67%). Lv5 costs 175g."},
   {d:"2026-11-16", t:"Outfitter reworked into 5 levels. Lv1 stocks all Gray gear and food. Each raise brings in a new colour: 1-2 pieces per shelf in the new colour, the rest one colour lower (Lv2 White, Lv3 Green, Lv4 Blue, Lv5 Purple). Lv5 costs 125g. Your stall restocks once under the new rules."},
   {d:"2026-11-16", t:"New halls start clean: no build queue, Queued or Maxed buttons carried over from an old hall, and a new hall is never swapped for a copy of another hall. Saves with a stray queue get it cleared."},
