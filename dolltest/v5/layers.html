@@ -68,7 +68,9 @@
         <img id="layer-base" alt="">
         <img id="layer-liner" alt="">
         <img id="layer-face" alt="">
+        <img id="layer-bootsunder" alt="">
         <img id="layer-pants" alt="">
+        <img id="layer-pantsunder" alt="">
         <img id="layer-boots" alt="">
         <img id="layer-chest" alt="">
         <img id="layer-gloves" alt="">
@@ -106,7 +108,8 @@
     const SLOTS = ["helmet", "cloak", "chest", "gloves", "pants", "boots"];
     const SLOT_LABEL = { helmet: "Helmet", cloak: "Cloak", chest: "Chest", gloves: "Gloves", pants: "Pants", boots: "Boots" };
     // Draw order is fixed in the HTML:
-    //   cloak, base, liner, face, pants, boots, chest, gloves, hair, helmet.
+    //   cloak, base, liner, face, boots-underlap, pants, pants-underlap, boots, chest,
+    //   gloves, hair, helmet.
     // New heads (face 1-10): base is the headless outfit body, the face sits on it,
     // the outfit goes over the neck, hair goes over collar/shoulders (and over the cloak),
     // and under a helmet the hair is clipped to the helmet's outline.
@@ -117,7 +120,11 @@
     let face = 1;      // 0 = original baked head, 1-10 = new head layers
     let hair = 1;      // 0 = none, 1-10
     // Bump this whenever layer PNGs change so iOS Safari does not keep stale tiles.
-    const LAYER_V = "20261116-heads1";
+    const LAYER_V = "20261116-mw-onbase2";
+    const ONBASE = ["common", "masterwork"];  // tiers cut from Art's on-base paintings
+    // Tiers with hidden pants/boots underlaps (drawn only when both are on) so mixing
+    // with another tier's boots or pants does not leave a strip of bare leg.
+    const UNDERLAP = ["masterwork"];
     const H = "heads/layers/";
 
     const $ = (id) => document.getElementById(id);
@@ -193,6 +200,11 @@
       const g0 = ++gen;
       const g = gender;
       for (const slot of SLOTS) show("layer-" + slot, layerSrc(slot));
+      const both = pick.pants && pick.boots;
+      show("layer-bootsunder", both && UNDERLAP.includes(pick.boots)
+        ? v("leather/" + pick.boots + "/layers/" + g + "-boots-under.png") : "");
+      show("layer-pantsunder", both && UNDERLAP.includes(pick.pants)
+        ? v("leather/" + pick.pants + "/layers/" + g + "-pants-under.png") : "");
       const occl = OCCLUDE_SLOTS.filter((s) => pick[s]).map((s) => v("occlude/" + g + "-" + s + ".png"));
       if (face) {
         setPunched("layer-base", v(H + "body-" + g + "-outfit.png"), occl, g0);
@@ -209,9 +221,9 @@
         setPunched("layer-base", v("base-" + g + (useNohair ? "-nohair" : "") + ".png"), occl, g0);
         show("layer-liner", "");
         show("layer-face", "");
-        // Common female helmet is a single source-cut piece that already includes
-        // the visible hair, so the extra hair plate is not drawn.
-        show("layer-hair", pick.helmet && g === "female" && pick.helmet !== "common"
+        // Common and masterwork female helmets are on-base cuts (single piece that
+        // already includes the visible hair), so the extra hair plate is not drawn.
+        show("layer-hair", pick.helmet && g === "female" && !ONBASE.includes(pick.helmet)
           ? v("hair/female-helmet-" + pick.helmet + ".png") : "");
       }
       writeHash();
