@@ -129,7 +129,7 @@
     let face = 1;      // 0 = original baked head, 1-10 = new head layers
     let hair = 1;      // 0 = none, 1-10
     // Bump this whenever layer PNGs change so iOS Safari does not keep stale tiles.
-    const LAYER_V = "20261117-pants-full5";
+    const LAYER_V = "20261117-glove-clip2";
     const ONBASE = ["common", "masterwork"];  // tiers cut from Art's on-base paintings
     // Tiers with hidden pants/boots underlaps (drawn only when both are on) so mixing
     // with another tier's boots or pants does not leave a strip of bare leg.
@@ -216,14 +216,14 @@
       show("layer-pantsunder", both && PANTS_UNDERLAP.includes(pick.pants)
         ? v("leather/" + pick.pants + "/layers/" + g + "-pants-under.png") : "");
       const occl = OCCLUDE_SLOTS.filter((s) => pick[s]).map((s) => v("occlude/" + g + "-" + s + ".png"));
-      // Gloves worn over another tier's chest: punch the glove tier's clip mask
-      // (everything lateral of the glove from its top edge down) out of that chest
-      // and out of the base, so a wider sleeve end or baked hand bits of the other
-      // tier don't poke out past the glove. Matching sets are untouched.
-      if (pick.gloves && pick.gloves !== pick.chest) {
+      // Gloves worn over another tier's chest: punch the glove tier's clip mask out
+      // of that chest, so a sleeve end flaring past the glove outline at the wrist
+      // doesn't poke out. The mask only covers wrist/forearm rows, beside and below
+      // the glove, where the glove tier's own set shows nothing; the base body is
+      // never clipped. Matching sets are untouched.
+      if (pick.gloves && pick.chest && pick.gloves !== pick.chest) {
         const clip = v("leather/" + pick.gloves + "/layers/" + g + "-gloves-clip.png");
-        occl.push(clip);
-        if (pick.chest) setPunched("layer-chest", layerSrc("chest"), [clip], g0);
+        setPunched("layer-chest", layerSrc("chest"), [clip], g0);
       }
       if (face) {
         setPunched("layer-base", v(H + "body-" + g + "-outfit.png"), occl, g0);
