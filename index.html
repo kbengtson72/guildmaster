@@ -11269,7 +11269,7 @@ function raiseOffer(key){
   const label = busy ? ("Raising · "+S.raise.left+"d left") : queued ? ("Queued · next "+gp(cost)+" · "+days+"d") : (!canPay ? ("Not enough gold · "+b.n+" Lv "+(lv+1)+" · "+gp(cost)) : ("Raise "+b.n+" to Lv "+(lv+1)+" · "+gp(cost)+" · "+days+"d"));
   const seerNow = ["Live odds only.","Job power, red to gold.","Recommended power and a fill bar.","Auto-picks the best party.","Blesses the job, +4 power."];
   const blurb = key==="seer" ? ("Now: "+(seerNow[lv]||"")+" Next: "+(seerNow[lv+1]||"max.")) : b.desc;
-  return `${key==="seer"?"":`<p class="tiny">${blurb}</p>`}<button type="button" class="act" data-up="${key}" ${lv>=b.max||(!busy&&!queued&&!canPay)?"disabled":""} style="width:100%;margin-top:6px">${label}</button>`;
+  return `${(key==="seer"||key==="board")?"":`<p class="tiny">${blurb}</p>`}<button type="button" class="act" data-up="${key}" ${lv>=b.max||(!busy&&!queued&&!canPay)?"disabled":""} style="width:100%;margin-top:6px">${label}</button>`;
 }
 function vaultView(){
   if(!S.vault) S.vault = [];
@@ -12376,6 +12376,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-17", t:"The Notice Board note (\"Better chance of gifted faces at the Tap…\") above its upgrade button on the Tavern tab is gone. The upgrade button and the Tavern's odds text stay."},
   {d:"2026-11-17", t:"The Seer's Now/Next note above its upgrade button on the Quests tab is gone. The upgrade button stays, and Help still explains what each Seer level does."},
   {d:"2026-11-16", t:"Building upgrades on the Guild tab now sit behind a Buildings & Upgrades button. Tap it for the full list (Bank, every building, and the build queue). The view stays open after you buy a raise. Back returns to the Guild tab. The build ring's Go to Buildings & Upgrades, and Upgrade racks, open this list."},
   {d:"2026-11-16", t:"The Town Writ box is gone from the Guild tab. It lives only on the Quest tab now (building pick, Oath-eater, and sealed or lapsed status included). The writ banner at the top also opens the Quest tab."},
