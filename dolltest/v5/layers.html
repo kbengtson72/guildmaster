@@ -129,12 +129,12 @@
     let face = 1;      // 0 = original baked head, 1-10 = new head layers
     let hair = 1;      // 0 = none, 1-10
     // Bump this whenever layer PNGs change so iOS Safari does not keep stale tiles.
-    const LAYER_V = "20261117-green-cloak-drape";
-    const ONBASE = ["common", "masterwork", "green"];  // tiers cut from Art's on-base paintings
+    const LAYER_V = "20261117-blue-onbase";
+    const ONBASE = ["common", "masterwork", "green", "blue"];  // tiers cut from Art's on-base paintings
     // Tiers with hidden pants/boots underlaps (drawn only when both are on) so mixing
     // with another tier's boots or pants does not leave a strip of bare leg.
-    const UNDERLAP = ["masterwork", "green"];      // tiers with <g>-boots-under.png
-    const PANTS_UNDERLAP = ["masterwork", "common", "green"]; // tiers with <g>-pants-under.png
+    const UNDERLAP = ["masterwork", "green", "blue"];      // tiers with <g>-boots-under.png
+    const PANTS_UNDERLAP = ["masterwork", "common", "green", "blue"]; // tiers with <g>-pants-under.png
     const H = "heads/layers/";
 
     const $ = (id) => document.getElementById(id);
@@ -240,7 +240,7 @@
         setPunched("layer-base", v("base-" + g + (useNohair ? "-nohair" : "") + ".png"), occl, g0);
         show("layer-liner", "");
         show("layer-face", "");
-        // Common, masterwork and green female helmets are on-base cuts (single piece that
+        // Common, masterwork, green and blue female helmets are on-base cuts (single piece that
         // already includes the visible hair), so the extra hair plate is not drawn.
         show("layer-hair", pick.helmet && g === "female" && !ONBASE.includes(pick.helmet)
           ? v("hair/female-helmet-" + pick.helmet + ".png") : "");
