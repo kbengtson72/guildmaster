@@ -137,7 +137,7 @@
     let face = 1;      // 0 = original baked head, 1-10 = new head layers
     let hair = 1;      // 0 = none, 1-10
     // Bump this whenever layer PNGs change so iOS Safari does not keep stale tiles.
-    const LAYER_V = "20261118-kneecaps";
+    const LAYER_V = "20261118-helmet-hair";
     const ONBASE = ["common", "masterwork", "green", "blue", "purple"];  // tiers cut from Art's on-base paintings
     // Tiers with hidden pants/boots underlaps (drawn only when both are on) so mixing
     // with another tier's boots or pants does not leave a strip of bare leg.
@@ -239,7 +239,9 @@
         show("layer-face", v(H + g + "/face-" + pad(face) + ".png"));
         if (!hair) show("layer-hair", "");
         else {
-          const hs = v(H + g + "/hair-" + pad(hair) + ".png");
+          // under a helmet: the tucked variant (hair_helm.py) - no hair inside the flaps,
+          // the rest falls close behind the flaps with soft ends
+          const hs = v(H + g + "/hair-" + pad(hair) + (pick.helmet ? "-helm" : "") + ".png");
           if (pick.helmet) setPunched("layer-hair", hs, [v(H + "helmet/" + g + "-" + pick.helmet + "-clip.png")], g0);
           else show("layer-hair", hs);
         }
