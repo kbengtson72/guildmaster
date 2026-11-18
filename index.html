@@ -452,7 +452,7 @@
 .gm-bar{display:flex;gap:6px;align-items:center;margin-bottom:8px}
 .gm-bar h3{flex:1;margin:0!important}
 .gm-bar button{padding:6px 10px;min-width:34px}
-.gm-wrap{overflow:auto;-webkit-overflow-scrolling:touch;border-radius:10px;border:1px solid #8a6a32;max-height:70vh;margin:0 0 10px;background:#1a1410}
+.gm-wrap{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-x;overscroll-behavior-x:contain;border-radius:10px;border:1px solid #8a6a32;margin:0 0 10px;background:#1a1410}
 .gm-map{position:relative;aspect-ratio:16/9;min-width:100%;font-size:9px}
 .gm-map>*{position:absolute}
 .gm-base{left:0;top:0;width:100%;height:100%;pointer-events:none}
@@ -11118,7 +11118,7 @@ const MAP_LOTS = [
 ];
 const HALL_KEYS = ["yard","stables","racks","barracks","seer","bell","infirmary","bank","armory","board"];
 const HAMMER_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.9 19.2l9-9 2.4 2.4-9 9a1.7 1.7 0 0 1-2.4-2.4z" fill="#3a2508"/><path d="M10.6 5.3l4.6-3 6.9 6.9-3 4.6-1.9-1.9-1.9 1.9-5.6-5.6 1.9-1.9z" fill="#3a2508"/></svg>';
-let mapZoom = 0, mapScroll = null;
+const MAP_ZOOM = 2; let mapScroll = null;
 function lotName(k){ const L = MAP_LOTS.find(l=>l.k===k); return L ? L.n : ((BUILDINGS[k]||{}).n||k); }
 function hallLv(){
   let lv = 1;
@@ -11137,7 +11137,6 @@ function lotState(L){
 }
 function mapPct(x,y,w,h){ return `left:${(x/12.8).toFixed(3)}%;top:${(y/7.2).toFixed(3)}%`+(w!=null?`;width:${(w/12.8).toFixed(3)}%;height:${(h/7.2).toFixed(3)}%`:""); }
 function mapView(){
-  if(!mapZoom) mapZoom = (window.innerWidth||400) < 700 ? 2 : 1;
   const lots = MAP_LOTS.map(L=>({L, st:lotState(L)}));
   const byArt = {}; lots.forEach(o=>{ if(o.L.art) byArt[o.L.art]=o; });
   const imgs = MAP_CHAIN.map(a=>{ const o=byArt[a]; if(!o||!o.st.stage) return ""; const r=MAP_RECT[a][o.st.stage];
@@ -11157,44 +11156,27 @@ function mapView(){
     const ham = st.raise ? `<div class="gm-ham" data-lot="${L.id}" style="${mapPct(r[0]+r[2]/2, r[1])}">${HAMMER_SVG}</div>` : "";
     return ham+`<div class="gm-ban${!L.art?" empty":""}${st.raise?" bld":""}" data-lot="${L.id}" style="${mapPct(L.x,y)}">${L.n}<small>${sub}</small></div>`;
   }).join("");
-  const fs = Math.max(7.5, Math.min(15, ((window.innerWidth||400)-22)*mapZoom/1280*16));
-  return `<div class="card"><div class="gm-bar"><button type="button" class="ghost" data-hallback="1">‹ Back</button><h3>Buildings &amp; Upgrades</h3>
-      <button type="button" class="ghost" data-mapzoom="-1" aria-label="Zoom out">−</button><button type="button" class="ghost" data-mapzoom="1" aria-label="Zoom in">+</button></div>
+  const fs = Math.max(7.5, Math.min(15, ((window.innerWidth||400)-22)*MAP_ZOOM/1280*16));
+  return `<div class="card"><div class="gm-bar"><button type="button" class="ghost" data-hallback="1">‹ Back</button><h3>Buildings &amp; Upgrades</h3></div>
       <p class="tiny" style="margin:0">${S.raise?"🔨 "+raiseLine()+(q.length?" · "+q.length+" queued":""):"No build running. Tap a building or lot."}</p></div>
-    <div class="gm-wrap" id="gmWrap"><div class="gm-map" id="gmMap" style="width:${mapZoom*100}%;font-size:${fs.toFixed(2)}px">
+    <div class="gm-wrap" id="gmWrap"><div class="gm-map" id="gmMap" style="width:${MAP_ZOOM*100}%;font-size:${fs.toFixed(2)}px">
       <img class="gm-base" src="${MAP_DIR}base.jpg" alt="Guild grounds">${hots}${imgs}${bans}
     </div></div>
-    <div class="card"><p class="tiny" style="margin:0 0 8px">Tap a building or its banner to see its level, what the next level adds, and the cost. Drag to look around, − / + to zoom.</p>
+    <div class="card"><p class="tiny" style="margin:0 0 8px">Tap a building or its banner to see its level, what the next level adds, and the cost. Drag left or right to see the whole grounds.</p>
       <button type="button" class="ghost" data-hallist="1" style="width:100%">List view · Bank vault &amp; build queue</button></div>`;
-}
-function mapSetZoom(z, keepCenter){
-  const wrap=document.getElementById("gmWrap"), map=document.getElementById("gmMap");
-  if(!wrap||!map) return;
-  z = Math.max(1, Math.min(3.5, z));
-  const cx = (wrap.scrollLeft + wrap.clientWidth/2)/map.offsetWidth, cy = (wrap.scrollTop + wrap.clientHeight/2)/Math.max(1,map.offsetHeight);
-  mapZoom = z;
-  map.style.width = (z*100)+"%";
-  map.style.fontSize = Math.max(7.5, Math.min(15, wrap.clientWidth*z/1280*16)).toFixed(2)+"px";
-  if(keepCenter!==false){ wrap.scrollLeft = cx*map.offsetWidth - wrap.clientWidth/2; wrap.scrollTop = cy*map.offsetHeight - wrap.clientHeight/2; }
-  mapScroll = {l:wrap.scrollLeft, t:wrap.scrollTop};
 }
 function bindMap(){
   const wrap=document.getElementById("gmWrap"), map=document.getElementById("gmMap");
   if(!wrap||!map) return;
-  map.style.fontSize = Math.max(7.5, Math.min(15, wrap.clientWidth*mapZoom/1280*16)).toFixed(2)+"px";
-  if(mapScroll){ wrap.scrollLeft = mapScroll.l; wrap.scrollTop = mapScroll.t; }
-  else { wrap.scrollLeft = (map.offsetWidth - wrap.clientWidth)/2; wrap.scrollTop = 0; }
-  wrap.onscroll = ()=>{ mapScroll = {l:wrap.scrollLeft, t:wrap.scrollTop}; };
-  let pinch = null;
-  wrap.ontouchstart = e=>{ if(e.touches.length===2){ const [a,b]=e.touches; pinch={d:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY), z:mapZoom}; } };
-  wrap.ontouchmove = e=>{ if(pinch && e.touches.length===2){ e.preventDefault(); const [a,b]=e.touches; mapSetZoom(pinch.z*Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)/pinch.d); } };
-  wrap.ontouchend = e=>{ if(e.touches.length<2) pinch=null; };
-  document.querySelectorAll("[data-mapzoom]").forEach(b=>b.onclick=()=>{
-    const steps=[1,1.5,2,2.5,3,3.5], up=+b.dataset.mapzoom>0;
-    const z = up ? (steps.find(s=>s>mapZoom+0.01)||3.5) : (steps.slice().reverse().find(s=>s<mapZoom-0.01)||1);
-    mapSetZoom(z);
-  });
-  map.querySelectorAll("[data-lot]").forEach(el=>el.onclick=e=>{ e.stopPropagation(); openLotMenu(el.dataset.lot); });
+  map.style.fontSize = Math.max(7.5, Math.min(15, wrap.clientWidth*MAP_ZOOM/1280*16)).toFixed(2)+"px";
+  wrap.scrollLeft = mapScroll!=null ? mapScroll : (map.offsetWidth - wrap.clientWidth)/2;
+  wrap.onscroll = ()=>{ mapScroll = wrap.scrollLeft; };
+  // Horizontal pan only (touch scrolls natively; a mouse can drag). A drag never counts as a tap.
+  let down = null, dragged = false;
+  wrap.onpointerdown = e=>{ down = {x:e.clientX, l:wrap.scrollLeft, mouse:e.pointerType==="mouse"}; dragged = false; };
+  wrap.onpointermove = e=>{ if(!down) return; if(Math.abs(e.clientX-down.x)>6) dragged = true; if(down.mouse && dragged) wrap.scrollLeft = down.l-(e.clientX-down.x); };
+  wrap.onpointerup = wrap.onpointercancel = ()=>{ if(down && Math.abs(wrap.scrollLeft-down.l)>6) dragged = true; down = null; };
+  map.querySelectorAll("[data-lot]").forEach(el=>el.onclick=e=>{ e.stopPropagation(); if(dragged){ dragged=false; return; } openLotMenu(el.dataset.lot); });
 }
 function mapFrame(art){
   let x0=1280,y0=720,x1=0,y1=0;
@@ -12579,6 +12561,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-18", t:"Guild map: fixed size now. The whole height of the grounds fits the frame (mountains to the gate), and you drag left or right to see the sides. Zoom buttons and pinch zoom are gone."},
   {d:"2026-11-18", t:"Merchant: each item card (weapons, armor, consumables, kits) is now a lighter warm brown, so you can see where each new item starts. The adventurer boxes inside stay dark."},
   {d:"2026-11-18", t:"Guild map: the yellow hammer badge now floats just above the construction picture instead of covering it. It still bobs, and tapping it opens that building's menu."},
   {d:"2026-11-18", t:"Merchant item names are back in the yellow outline (no fill), with the name in its rarity colour. The solid yellow box is gone."},
