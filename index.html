@@ -456,7 +456,7 @@ button.act.gm-herobtn{position:absolute;left:49%;bottom:2.5%;transform:translate
 .gm-bar{display:flex;gap:6px;align-items:center;margin-bottom:8px}
 .gm-bar h3{flex:1;margin:0!important}
 .gm-bar button{padding:6px 10px;min-width:34px}
-.gm-wrap{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-x;overscroll-behavior-x:contain;border-radius:10px;border:1px solid #8a6a32;margin:0 0 10px;background:#1a1410}
+.gm-wrap{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;overscroll-behavior-x:contain;border-radius:10px;border:1px solid #8a6a32;margin:0 0 10px;background:#1a1410}
 .gm-map{position:relative;aspect-ratio:16/9;min-width:100%;font-size:9px}
 .gm-map>*{position:absolute}
 .gm-base{left:0;top:0;width:100%;height:100%;pointer-events:none}
@@ -12573,6 +12573,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-18", t:"Guild map: swiping up or down with your thumb on the map scrolls the tab again. Left and right still drag the map."},
   {d:"2026-11-18", t:"Guild map: before the Tavern is built, its lot shows an open-air bar instead of an empty dirt lot."},
   {d:"2026-11-18", t:"Cloaks now only come in Cloth, Padded and Leather, and every class can wear any cloak (Mages can wear the Leather Cloak). Chain, Scale, Plate and Full Plate Mantles are gone; any you owned became the Leather Cloak of the same colour."},
   {d:"2026-11-18", t:"Guild tab: the Buildings & Upgrades button on the grounds picture is much bigger (about double the text, taller and wider), still just below the gate."},
