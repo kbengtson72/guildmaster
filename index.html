@@ -176,7 +176,7 @@
   .xpbar > i { display: block; height: 100%; background: linear-gradient(90deg,#6a4ad0,#b08ad0); }
   .namepill { display: inline-block; border: 1.5px solid #e0b84a; background: rgba(224,184,74,.14); padding: 3px 10px; border-radius: 10px; }
   .namepill.solid { background: linear-gradient(180deg,#e9c46a,#c99a3a); border-color: #c99a3a; box-shadow: 0 1px 0 rgba(0,0,0,.4); }
-  .namepill.solid, .namepill.solid * { color: #2a1d10 !important; font-weight: 700; }
+  .namepill.solid { font-weight: 700; text-shadow: 0 1px 2px #000, 0 0 2px #000; }
   .bar.lbl, .xpbar.lbl { height: 16px; position: relative; margin-top: 5px; }
   .bar.lbl > span, .xpbar.lbl > span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; line-height: 1; color: #fff; text-shadow: 0 1px 2px #000, 0 0 2px #000; letter-spacing: .3px; }
     .log { font-size: 0.9rem; color: var(--muted); max-height: 180px; overflow: auto; }
@@ -12377,7 +12377,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
-  {d:"2026-11-17", t:"Merchant weapons and armor: the item name now sits in a solid yellow box with dark text. Food and kits keep the yellow outline."},
+  {d:"2026-11-17", t:"Merchant weapons and armor: the item name now sits in a solid yellow box, in its rarity colour with a dark shadow. Food and kits keep the yellow outline."},
   {d:"2026-11-17", t:"Merchant shelves: each item name now sits in a yellow rounded outline so it stands apart from the rest of the card. The name keeps its rarity colour."},
   {d:"2026-11-17", t:"The \"Each level adds a new colour\" note above the Outfitter upgrade button on the Merchant tab is gone."},
   {d:"2026-11-17", t:"The long how-it-works paragraph on the Merchant card is gone. Borrow money and the shelf tabs stay."},
