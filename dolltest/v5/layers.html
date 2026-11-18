@@ -67,6 +67,8 @@
     .slot select { flex: 1; }
     .presets { display: flex; gap: 6px; flex-wrap: wrap; }
     .presets button { flex: 1 1 auto; }
+    .randoms { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 auto; min-width: 0; }
+    .randoms button { flex: 1 1 auto; white-space: nowrap; }
   </style>
 </head>
 <body>
@@ -106,7 +108,13 @@
         <select id="sel-face"></select>
         <span class="label" style="min-width:auto">Hair</span>
         <select id="sel-hair"></select>
-        <button type="button" id="btn-random">Random</button>
+      </div>
+      <div class="row">
+        <span class="label">Random</span>
+        <div class="randoms">
+          <button type="button" id="btn-random-male">Random Male</button>
+          <button type="button" id="btn-random-female">Random Female</button>
+        </div>
       </div>
       <div id="slots"></div>
     </div>
@@ -129,7 +137,7 @@
     let face = 1;      // 0 = original baked head, 1-10 = new head layers
     let hair = 1;      // 0 = none, 1-10
     // Bump this whenever layer PNGs change so iOS Safari does not keep stale tiles.
-    const LAYER_V = "20261117-knees-gloves";
+    const LAYER_V = "20261118-random-gender";
     const ONBASE = ["common", "masterwork", "green", "blue"];  // tiers cut from Art's on-base paintings
     // Tiers with hidden pants/boots underlaps (drawn only when both are on) so mixing
     // with another tier's boots or pants does not leave a strip of bare leg.
@@ -313,14 +321,15 @@
       render();
     }
 
-    // Random: everything the tester can show. Gender, face (new head layers 1-10, so
+    // Random Male / Random Female: everything the tester can show for that body only
+    // (the gender is never changed by Random). Face (new head layers 1-10, so
     // hair always applies), hair 1-10, and a tier for every gear slot. Helmet and cloak
     // are sometimes left off, gloves rarely; chest, pants and boots are always worn.
     // Helmet hair clipping / underlaps are handled by render() for any combination.
     const RANDOM_NONE = { helmet: 0.3, cloak: 0.2, gloves: 0.1, chest: 0, pants: 0, boots: 0 };
     const rnd = (n) => Math.floor(Math.random() * n);
-    function randomize() {
-      gender = Math.random() < 0.5 ? "male" : "female";
+    function randomize(g) {
+      gender = g;
       face = 1 + rnd(10);
       hair = 1 + rnd(10);
       for (const s of SLOTS) pick[s] = Math.random() < (RANDOM_NONE[s] || 0) ? "" : TIERS[rnd(TIERS.length)];
@@ -389,7 +398,8 @@
         hair = val === "none" ? 0 : +val;
         render();
       });
-      $("btn-random").addEventListener("click", randomize);
+      $("btn-random-male").addEventListener("click", () => randomize("male"));
+      $("btn-random-female").addEventListener("click", () => randomize("female"));
       $("btn-male").addEventListener("click", () => setGender("male"));
       $("btn-female").addEventListener("click", () => setGender("female"));
       window.addEventListener("hashchange", () => { readHash(); syncUI(); render(); });
