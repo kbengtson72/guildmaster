@@ -462,11 +462,11 @@ button.act.gm-herobtn{position:absolute;left:49%;bottom:2.5%;transform:translate
 .gm-base{left:0;top:0;width:100%;height:100%;pointer-events:none}
 .gm-p{pointer-events:none}
 .gm-hot{cursor:pointer;border-radius:40%}
-.gm-ban{transform:translateX(-50%);background:linear-gradient(#f5e6c0,#d6b97c);color:#3b2410;border:1px solid #6e4b1f;border-radius:2px;padding:.18em .6em .14em;font:700 1em/1.1 Georgia,serif;white-space:nowrap;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.6);cursor:pointer;z-index:3}
-.gm-ban small{display:block;font-size:.74em;font-weight:600;color:#6a4a22}
-.gm-ban::before,.gm-ban::after{content:"";position:absolute;top:.3em;border:.48em solid #a9844a;z-index:-1}
-.gm-ban::before{left:-.8em;border-left-color:transparent}
-.gm-ban::after{right:-.8em;border-right-color:transparent}
+.gm-ban{transform:translateX(-50%);background:linear-gradient(#f5e6c0,#d6b97c);color:#3b2410;border:1px solid #6e4b1f;border-radius:2px;padding:.12em .45em .08em;font:700 .78em/1.08 Georgia,serif;white-space:nowrap;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.6);cursor:pointer;z-index:3}
+.gm-ban small{display:block;font-size:.82em;font-weight:600;color:#6a4a22}
+.gm-ban::before,.gm-ban::after{content:"";position:absolute;top:.25em;border:.42em solid #a9844a;z-index:-1}
+.gm-ban::before{left:-.7em;border-left-color:transparent}
+.gm-ban::after{right:-.7em;border-right-color:transparent}
 .gm-ban.empty{background:linear-gradient(#e4dac4,#bfb08e);color:#4f4130}
 .gm-ban.bld{border-color:#b8860b;box-shadow:0 0 0 1px #f5c518,0 1px 3px rgba(0,0,0,.6)}
 .gm-ham{width:2.3em;height:2.3em;transform:translate(-50%,-112%);cursor:pointer;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe36a,#f2b705);border:.13em solid #5c3d00;box-shadow:0 1px 4px rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:4;pointer-events:auto;animation:gmBob 1.6s ease-in-out infinite}
@@ -11113,7 +11113,7 @@ const MAP_RECT = {"guildhall":{"lv1":[522,59,279,113],"lv2":[495,24,307,148],"lv
 const MAP_CHAIN = ["guildhall","tavern","barracks","training","seer","merchant","church","infirmary","armory","bank","stable"];
 const MAP_LOTS = [
   {id:"hall", art:"guildhall", n:"Guild Hall", x:641, y:146},
-  {id:"1", art:"training", k:"yard", n:"Training Grounds", x:384, y:169},
+  {id:"1", art:"training", k:"yard", n:"Training Grounds", x:384, y:169, bx:-18},
   {id:"2", art:"stable", k:"stables", n:"Courier Stable", x:925, y:175},
   {id:"3", art:"armory", k:"racks", n:"Armory", x:312, y:259},
   {id:"4", art:"barracks", k:"barracks", n:"Barracks", x:510, y:262},
@@ -11166,7 +11166,7 @@ function mapView(){
     else if(L.k && q.some(j=>j.k===L.k)) sub = (st.lv?"Lv "+st.lv+" · ":"")+"queued";
     else sub = st.lv ? "Lv "+st.lv : "Not built";
     const ham = st.raise ? `<div class="gm-ham" data-lot="${L.id}" style="${mapPct(r[0]+r[2]/2, r[1])}">${HAMMER_SVG}</div>` : "";
-    return ham+`<div class="gm-ban${!L.art?" empty":""}${st.raise?" bld":""}" data-lot="${L.id}" style="${mapPct(L.x,y)}">${L.n}<small>${sub}</small></div>`;
+    return ham+`<div class="gm-ban${!L.art?" empty":""}${st.raise?" bld":""}" data-lot="${L.id}" style="${mapPct(L.x+(L.bx||0),y)}">${L.n}<small>${sub}</small></div>`;
   }).join("");
   const fs = Math.max(7.5, Math.min(15, ((window.innerWidth||400)-22)*MAP_ZOOM/1280*16));
   return `<div class="card"><div class="gm-bar"><button type="button" class="ghost" data-hallback="1">‹ Back</button><h3>Buildings &amp; Upgrades</h3></div>
@@ -12573,6 +12573,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-18", t:"Guild map: the name banners are about a fifth smaller so they cover less of the buildings next to them. The Training Grounds banner sits a little more over its own lot."},
   {d:"2026-11-18", t:"Guild map: swiping up or down with your thumb on the map scrolls the tab again. Left and right still drag the map."},
   {d:"2026-11-18", t:"Guild map: before the Tavern is built, its lot shows an open-air bar instead of an empty dirt lot."},
   {d:"2026-11-18", t:"Cloaks now only come in Cloth, Padded and Leather, and every class can wear any cloak (Mages can wear the Leather Cloak). Chain, Scale, Plate and Full Plate Mantles are gone; any you owned became the Leather Cloak of the same colour."},
