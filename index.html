@@ -462,9 +462,9 @@
 .gm-ban::after{right:-.8em;border-right-color:transparent}
 .gm-ban.empty{background:linear-gradient(#e4dac4,#bfb08e);color:#4f4130}
 .gm-ban.bld{border-color:#b8860b;box-shadow:0 0 0 1px #f5c518,0 1px 3px rgba(0,0,0,.6)}
-.gm-ham{width:2.3em;height:2.3em;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe36a,#f2b705);border:.13em solid #5c3d00;box-shadow:0 1px 4px rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:4;pointer-events:none;animation:gmBob 1.6s ease-in-out infinite}
+.gm-ham{width:2.3em;height:2.3em;transform:translate(-50%,-112%);cursor:pointer;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe36a,#f2b705);border:.13em solid #5c3d00;box-shadow:0 1px 4px rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:4;pointer-events:auto;animation:gmBob 1.6s ease-in-out infinite}
 .gm-ham svg{width:66%;height:66%}
-@keyframes gmBob{50%{transform:translate(-50%,-62%)}}
+@keyframes gmBob{50%{transform:translate(-50%,-135%)}}
 .gm-nn{display:flex;gap:8px;margin:6px 0}
 .gm-nn>div{flex:1;min-width:0;text-align:center}
 .gm-thumb{position:relative;overflow:hidden;border-radius:8px;border:1px solid #8a6a32;background-image:url(map/base.jpg);background-repeat:no-repeat;margin:0 auto 3px}
@@ -11151,7 +11151,7 @@ function mapView(){
     else if(st.raise) sub = "Lv "+st.raise.to+" · "+(st.raise.left||0)+"d";
     else if(L.k && q.some(j=>j.k===L.k)) sub = (st.lv?"Lv "+st.lv+" · ":"")+"queued";
     else sub = st.lv ? "Lv "+st.lv : "Not built";
-    const ham = st.raise ? `<div class="gm-ham" style="${mapPct(r[0]+r[2]/2, r[1]+r[3]*.42)}">${HAMMER_SVG}</div>` : "";
+    const ham = st.raise ? `<div class="gm-ham" data-lot="${L.id}" style="${mapPct(r[0]+r[2]/2, r[1])}">${HAMMER_SVG}</div>` : "";
     return ham+`<div class="gm-ban${!L.art?" empty":""}${st.raise?" bld":""}" data-lot="${L.id}" style="${mapPct(L.x,y)}">${L.n}<small>${sub}</small></div>`;
   }).join("");
   const fs = Math.max(7.5, Math.min(15, ((window.innerWidth||400)-22)*mapZoom/1280*16));
@@ -12576,6 +12576,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-18", t:"Guild map: the yellow hammer badge now floats just above the construction picture instead of covering it. It still bobs, and tapping it opens that building's menu."},
   {d:"2026-11-18", t:"Merchant item names are back in the yellow outline (no fill), with the name in its rarity colour. The solid yellow box is gone."},
   {d:"2026-11-18", t:"Guild tab now shows the guild grounds. Buildings & Upgrades (under the front gate) opens the live map: every building at its current level, a banner under each building and empty lot, and a yellow hammer badge on whatever is being built. Tap a building for its build menu (now, next level, cost, upgrade). The old list is still there as List view (Bank vault and build queue). Guild Hall rises on its own: Lv N when every building is Lv N. Sealed Briefs sits in the Guild Hall menu."},
   {d:"2026-11-17", t:"Merchant weapons and armor: the item name now sits in a solid yellow box, in its rarity colour with a dark shadow. Food and kits keep the yellow outline."},
