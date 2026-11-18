@@ -382,6 +382,9 @@
 .card { background:#1c140c; border:1px solid #8a6a32; border-radius:14px; box-shadow: inset 0 0 0 1px #3a2a16; }
 .card.pcard { background:#3b2d1d; border-color:#b8904a; box-shadow: inset 0 0 0 1px #4d3b25; }
 .card.pcard .ghost { background:#2a2016; }
+.card.shopitem { background:#4a3722; border-color:#c49a52; box-shadow: inset 0 0 0 1px #5e4730, 0 2px 6px rgba(0,0,0,.45); }
+.card.shopitem .card.pcard { background:#2e2216; border-color:#9a7640; box-shadow: inset 0 0 0 1px #3d2e1d; }
+.card.shopitem .card.pcard .ghost { background:#21180f; }
 .avatar { width:72px; height:72px; border-radius:10px; border:1px solid #e0b84a; }
 .kin-ring { width:22px; height:22px; font-size:12px; }
 .name, .names strong { color:#e6c98a; font-family: Georgia, serif; letter-spacing:.02em; }
@@ -11448,7 +11451,7 @@ function shopView(){
       const people = (it.kind==="weapon"||it.kind==="armor"||it.kind==="food")
         ? shopWearCards(it, ready, {mode:"shop", priceLabel:gp(price), afford, offhand:true, away})
         : "";
-      return `<div class="card"><div class="row"><strong class="namepill">${it.kind==="food"?(it.icon||"🍖")+" ":""}${itemNameHtml(it)}</strong><span class="muted">${it.kind==="food"?foodBits(it) : it.kind==="kit"?kitBits(it) : gearStatText(it)}${tierBit(it)} · ${priceLbl}</span></div>
+      return `<div class="card shopitem"><div class="row"><strong class="namepill">${it.kind==="food"?(it.icon||"🍖")+" ":""}${itemNameHtml(it)}</strong><span class="muted">${it.kind==="food"?foodBits(it) : it.kind==="kit"?kitBits(it) : gearStatText(it)}${tierBit(it)} · ${priceLbl}</span></div>
       ${it.kind==="food"&&it.desc?`<p class="tiny">${it.desc}</p>`:""}${(it.kind==="weapon")?gearAbHtml(it):""}
       ${people}
       <button class="${afford?"act":"ghost"}" data-buy="${it.kind}|${it.id}" ${it.kind==="kit"?"":`data-buyarm="1"`} ${afford?"":"disabled"} style="width:100%;margin-top:8px">${buyLbl}</button>
@@ -12576,6 +12579,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-18", t:"Merchant: each item card (weapons, armor, consumables, kits) is now a lighter warm brown, so you can see where each new item starts. The adventurer boxes inside stay dark."},
   {d:"2026-11-18", t:"Guild map: the yellow hammer badge now floats just above the construction picture instead of covering it. It still bobs, and tapping it opens that building's menu."},
   {d:"2026-11-18", t:"Merchant item names are back in the yellow outline (no fill), with the name in its rarity colour. The solid yellow box is gone."},
   {d:"2026-11-18", t:"Guild tab now shows the guild grounds. Buildings & Upgrades (under the front gate) opens the live map: every building at its current level, a banner under each building and empty lot, and a yellow hammer badge on whatever is being built. Tap a building for its build menu (now, next level, cost, upgrade). The old list is still there as List view (Bank vault and build queue). Guild Hall rises on its own: Lv N when every building is Lv N. Sealed Briefs sits in the Guild Hall menu."},
