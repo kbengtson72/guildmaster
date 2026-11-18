@@ -11324,7 +11324,6 @@ function tavernView(){
         <span class="tag">${gp(hireCost(p))}</span>
       </div>
       <div class="tiny">PWR ${pwrOf(p)} · HP ${p.maxhp} · ATK ${atkOf(p)} DEF ${defOf(p)}${isFlawedOnly(p)?" (flawed)":isElite(p)?" (elite)":isGifted(p)?" (gifted)":""} · Loyalty ${loyOf(p)}</div>
-      <p class="tiny">Tap the card for the full sheet.</p>
       <button class="${funds()<tapCost(p)?"ghost":"act"}" data-hire="${p.id}" ${funds()<tapCost(p)?"disabled":""} style="width:100%;margin-top:8px">${funds()<tapCost(p)?"Not enough gold · "+gp(tapCost(p)):"Recruit "+p.name.split(" ")[0]+" · "+(hallCatActive()?gp(tapCost(p))+" (was "+gp(hireCost(p))+")":gp(hireCost(p)))}</button>
     </div>`).join("")}
     <button class="ghost" data-reroll="1" style="width:100%">See who else is drinking (10g)</button>`;
@@ -12375,6 +12374,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-17", t:"Tavern recruit cards drop the \"Tap the card for the full sheet\" line. Tapping still opens the sheet."},
   {d:"2026-11-17", t:"The Roster and gold line at the bottom of the Copper Tap card on the Tavern tab is gone. The top bar still shows both."},
   {d:"2026-11-17", t:"The Notice Board note (\"Better chance of gifted faces at the Tap…\") above its upgrade button on the Tavern tab is gone. The upgrade button and the Tavern's odds text stay."},
   {d:"2026-11-17", t:"The Seer's Now/Next note above its upgrade button on the Quests tab is gone. The upgrade button stays, and Help still explains what each Seer level does."},
