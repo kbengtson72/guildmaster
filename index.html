@@ -11237,7 +11237,6 @@ function shopView(){
   const writOilLine = writOil()?`<p class="ok">Writ oil: ${writOil().n} · +3 ${writOil().job}</p>`:"";
   return `${glutLine}${writOilLine}${(S.featItem)?`<p class="ok">Limited: ${S.featItem.n} · ${S.featItem.r||rarityOf(S.featItem)} · ${S.nextFeat? (S.nextFeat-S.day)+"d left":""}</p>`:""}<div class="card"><h3>Merchant</h3>
     ${borrowLine()}
-    <p class="tiny">Each weapon, armor, and food shows what your people at home already wear, the stat change, and current HP on food. Buy onto someone, or buy to the Armory (${(S.vault||[]).length}/${vaultCap()} slots). Outfitter Lv ${S.buildings.armory} sets the colour: each shelf has 1-2 pieces of its newest colour and the rest one colour lower (Lv1 all Gray, then White, Green, Blue, Purple). Orange Legendary gear is never for sale. Food is one-use.</p>
     <div class="subnav">
       ${cats.map(c=>`<button class="${shopCat===c.id?"on":""}" data-shopcat="${c.id}">${c.icon} ${c.label}</button>`).join("")}
     </div>
@@ -12375,6 +12374,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-17", t:"The long how-it-works paragraph on the Merchant card is gone. Borrow money and the shelf tabs stay."},
   {d:"2026-11-17", t:"The \"+2 roster slots per level\" note above the Barracks upgrade button on the Adventurers tab is gone. The upgrade button stays."},
   {d:"2026-11-17", t:"Adventurer sheet: the HP and XP bars are thicker and show HP: x/x and XP: x/x inside them. The separate HP · XP line under them is gone."},
   {d:"2026-11-17", t:"Tavern recruit cards drop the \"Tap the card for the full sheet\" line. Tapping still opens the sheet."},
