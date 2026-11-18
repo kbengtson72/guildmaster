@@ -174,9 +174,7 @@
   .bar > i { display: block; height: 100%; background: #8a3a3a; }
   .xpbar { height: 6px; background: #1a1410; border-radius: 99px; overflow: hidden; margin-top: 3px; }
   .xpbar > i { display: block; height: 100%; background: linear-gradient(90deg,#6a4ad0,#b08ad0); }
-  .namepill { display: inline-block; border: 1.5px solid #e0b84a; background: rgba(224,184,74,.14); padding: 3px 10px; border-radius: 10px; }
-  .namepill.solid { background: linear-gradient(180deg,#e9c46a,#c99a3a); border-color: #c99a3a; box-shadow: 0 1px 0 rgba(0,0,0,.4); }
-  .namepill.solid { font-weight: 700; text-shadow: 0 1px 2px #000, 0 0 2px #000; }
+  .namepill { display: inline-block; border: 1.5px solid #e0b84a; background: transparent; padding: 3px 10px; border-radius: 10px; }
   .bar.lbl, .xpbar.lbl { height: 16px; position: relative; margin-top: 5px; }
   .bar.lbl > span, .xpbar.lbl > span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; line-height: 1; color: #fff; text-shadow: 0 1px 2px #000, 0 0 2px #000; letter-spacing: .3px; }
     .log { font-size: 0.9rem; color: var(--muted); max-height: 180px; overflow: auto; }
@@ -11450,7 +11448,7 @@ function shopView(){
       const people = (it.kind==="weapon"||it.kind==="armor"||it.kind==="food")
         ? shopWearCards(it, ready, {mode:"shop", priceLabel:gp(price), afford, offhand:true, away})
         : "";
-      return `<div class="card"><div class="row"><strong class="namepill${(it.kind==="weapon"||it.kind==="armor")?" solid":""}">${it.kind==="food"?(it.icon||"🍖")+" ":""}${itemNameHtml(it)}</strong><span class="muted">${it.kind==="food"?foodBits(it) : it.kind==="kit"?kitBits(it) : gearStatText(it)}${tierBit(it)} · ${priceLbl}</span></div>
+      return `<div class="card"><div class="row"><strong class="namepill">${it.kind==="food"?(it.icon||"🍖")+" ":""}${itemNameHtml(it)}</strong><span class="muted">${it.kind==="food"?foodBits(it) : it.kind==="kit"?kitBits(it) : gearStatText(it)}${tierBit(it)} · ${priceLbl}</span></div>
       ${it.kind==="food"&&it.desc?`<p class="tiny">${it.desc}</p>`:""}${(it.kind==="weapon")?gearAbHtml(it):""}
       ${people}
       <button class="${afford?"act":"ghost"}" data-buy="${it.kind}|${it.id}" ${it.kind==="kit"?"":`data-buyarm="1"`} ${afford?"":"disabled"} style="width:100%;margin-top:8px">${buyLbl}</button>
@@ -12578,6 +12576,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-18", t:"Merchant item names are back in the yellow outline (no fill), with the name in its rarity colour. The solid yellow box is gone."},
   {d:"2026-11-18", t:"Guild tab now shows the guild grounds. Buildings & Upgrades (under the front gate) opens the live map: every building at its current level, a banner under each building and empty lot, and a yellow hammer badge on whatever is being built. Tap a building for its build menu (now, next level, cost, upgrade). The old list is still there as List view (Bank vault and build queue). Guild Hall rises on its own: Lv N when every building is Lv N. Sealed Briefs sits in the Guild Hall menu."},
   {d:"2026-11-17", t:"Merchant weapons and armor: the item name now sits in a solid yellow box, in its rarity colour with a dark shadow. Food and kits keep the yellow outline."},
   {d:"2026-11-17", t:"Merchant shelves: each item name now sits in a yellow rounded outline so it stands apart from the rest of the card. The name keeps its rarity colour."},
