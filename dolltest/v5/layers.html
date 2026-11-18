@@ -313,6 +313,21 @@
       render();
     }
 
+    // Random: everything the tester can show. Gender, face (new head layers 1-10, so
+    // hair always applies), hair 1-10, and a tier for every gear slot. Helmet and cloak
+    // are sometimes left off, gloves rarely; chest, pants and boots are always worn.
+    // Helmet hair clipping / underlaps are handled by render() for any combination.
+    const RANDOM_NONE = { helmet: 0.3, cloak: 0.2, gloves: 0.1, chest: 0, pants: 0, boots: 0 };
+    const rnd = (n) => Math.floor(Math.random() * n);
+    function randomize() {
+      gender = Math.random() < 0.5 ? "male" : "female";
+      face = 1 + rnd(10);
+      hair = 1 + rnd(10);
+      for (const s of SLOTS) pick[s] = Math.random() < (RANDOM_NONE[s] || 0) ? "" : TIERS[rnd(TIERS.length)];
+      syncUI();
+      render();
+    }
+
     function buildUI() {
       const presets = $("presets");
       for (const t of TIERS) {
@@ -374,12 +389,7 @@
         hair = val === "none" ? 0 : +val;
         render();
       });
-      $("btn-random").addEventListener("click", () => {
-        face = 1 + Math.floor(Math.random() * 10);
-        hair = 1 + Math.floor(Math.random() * 10);
-        syncUI();
-        render();
-      });
+      $("btn-random").addEventListener("click", randomize);
       $("btn-male").addEventListener("click", () => setGender("male"));
       $("btn-female").addEventListener("click", () => setGender("female"));
       window.addEventListener("hashchange", () => { readHash(); syncUI(); render(); });
