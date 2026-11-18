@@ -11271,7 +11271,7 @@ function raiseOffer(key){
   const label = busy ? ("Raising · "+S.raise.left+"d left") : queued ? ("Queued · next "+gp(cost)+" · "+days+"d") : (!canPay ? ("Not enough gold · "+b.n+" Lv "+(lv+1)+" · "+gp(cost)) : ("Raise "+b.n+" to Lv "+(lv+1)+" · "+gp(cost)+" · "+days+"d"));
   const seerNow = ["Live odds only.","Job power, red to gold.","Recommended power and a fill bar.","Auto-picks the best party.","Blesses the job, +4 power."];
   const blurb = key==="seer" ? ("Now: "+(seerNow[lv]||"")+" Next: "+(seerNow[lv+1]||"max.")) : b.desc;
-  return `${(key==="seer"||key==="board")?"":`<p class="tiny">${blurb}</p>`}<button type="button" class="act" data-up="${key}" ${lv>=b.max||(!busy&&!queued&&!canPay)?"disabled":""} style="width:100%;margin-top:6px">${label}</button>`;
+  return `${(key==="seer"||key==="board"||key==="barracks")?"":`<p class="tiny">${blurb}</p>`}<button type="button" class="act" data-up="${key}" ${lv>=b.max||(!busy&&!queued&&!canPay)?"disabled":""} style="width:100%;margin-top:6px">${label}</button>`;
 }
 function vaultView(){
   if(!S.vault) S.vault = [];
@@ -12375,6 +12375,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-17", t:"The \"+2 roster slots per level\" note above the Barracks upgrade button on the Adventurers tab is gone. The upgrade button stays."},
   {d:"2026-11-17", t:"Adventurer sheet: the HP and XP bars are thicker and show HP: x/x and XP: x/x inside them. The separate HP · XP line under them is gone."},
   {d:"2026-11-17", t:"Tavern recruit cards drop the \"Tap the card for the full sheet\" line. Tapping still opens the sheet."},
   {d:"2026-11-17", t:"The Roster and gold line at the bottom of the Copper Tap card on the Tavern tab is gone. The top bar still shows both."},
