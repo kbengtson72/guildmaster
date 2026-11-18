@@ -1485,7 +1485,7 @@ const AB_TIERS = {uncommon:0, rare:1, epic:2};
 const ARMOR_MATS = [["cloth","light"],["padded","light"],["leather","medium"],["chain","medium"],["scale","medium"],["plate","heavy"],["fullplate","heavy"]];
 const ARMOR_NAMES = {
   head:{cloth:"Cloth Hood", padded:"Padded Cap", leather:"Leather Cap", chain:"Chain Coif", scale:"Scale Helm", plate:"Plate Helm", fullplate:"Full Plate Helm"},
-  cloak:{cloth:"Cloth Cloak", padded:"Padded Cloak", leather:"Leather Cloak", chain:"Chain Mantle", scale:"Scale Mantle", plate:"Plate Mantle", fullplate:"Full Plate Mantle"},
+  cloak:{cloth:"Cloth Cloak", padded:"Padded Cloak", leather:"Leather Cloak"},
   chest:{cloth:"Cloth Tunic", padded:"Padded Jack", leather:"Leather Jerkin", chain:"Chain Hauberk", scale:"Scale Cuirass", plate:"Plate Cuirass", fullplate:"Full Plate Cuirass"},
   hands:{cloth:"Cloth Gloves", padded:"Padded Gloves", leather:"Leather Gloves", chain:"Chain Mitts", scale:"Scale Gauntlets", plate:"Plate Gauntlets", fullplate:"Full Plate Gauntlets"},
   legs:{cloth:"Cloth Trousers", padded:"Padded Breeches", leather:"Leather Leggings", chain:"Chain Chausses", scale:"Scale Greaves", plate:"Plate Greaves", fullplate:"Full Plate Greaves"},
@@ -1494,6 +1494,12 @@ const ARMOR_NAMES = {
 /* whole numbers only: a full set of one weight and colour keeps the same total it had with half points,
    and the leftover points go to the slots that were closest to the next point (chest and legs first on ties) */
 const ARMOR_DEF_ORDER = ["chest","legs","head","cloak","hands","feet"];
+/* cloaks only come in these materials, and any class can wear one (old mantles became the Leather Cloak of their tier) */
+const CLOAK_MATS = ["cloth","padded","leather"];
+function cloakFixId(id){
+  const m = typeof id==="string" && /^a_cloak_(chain|scale|plate|fullplate)_([a-z]+)$/.exec(id);
+  return m ? "a_cloak_leather_"+m[2] : id;
+}
 const _armorDefCache = {};
 function armorDefFor(slot, wt, r){
   const key = wt+"|"+r;
@@ -1574,6 +1580,7 @@ const ARMORS = [];
   });
   ARMOR_SLOTS.forEach(slot=>{
     ARMOR_MATS.forEach(([mat, wt])=>{
+      if(slot==="cloak" && CLOAK_MATS.indexOf(mat)<0) return;
       GEAR_RANDOM_TIERS.forEach(r=>{ ARMORS.push(mkArmor(slot, mat, wt, r)); });
     });
   });
@@ -1654,7 +1661,7 @@ function legacyGearId(id, kind){
   if(key in _legacyMemo) return _legacyMemo[key];
   let out = null;
   if(kind!=="armor") out = legacyWeaponTarget(id);
-  if(!out && kind!=="weapon") out = legacyArmorTarget(id);
+  if(!out && kind!=="weapon") out = cloakFixId(id)!==id ? cloakFixId(id) : cloakFixId(legacyArmorTarget(id));
   _legacyMemo[key] = out;
   return out;
 }
@@ -8949,6 +8956,7 @@ function canWield(p, item){
   if(item.kind==="armor"){
     const src = item.wt ? item : (catalog("armor", item.id)||item);
     const wt = src.wt || "light";
+    if(src.slot==="cloak" || src.slot==="arms") return true;
     if(p.cls==="Mage" && wt!=="light") return false;
     if(p.cls==="Rogue" && wt==="heavy") return false;
     return true;
@@ -12471,7 +12479,7 @@ function helpPage(id){
     <p class="tiny">Green, Blue and Purple shields carry an ability too.</p>
     <h4>Weapon abilities</h4>${abRows}
     <h4>Armor</h4>
-    <p class="tiny">Six slots: Head, Cloak, Chest, Hands, Legs, Feet. Armor has no abilities, only defense. Defense is the slot's base (Cloak ${SLOT_BASE.cloak}, Chest ${SLOT_BASE.chest}, Legs ${SLOT_BASE.legs}, Hands ${SLOT_BASE.hands}, Feet ${SLOT_BASE.feet}, Head ${SLOT_BASE.head}) plus the weight (Light +${WEIGHT_ADD.light}, Medium +${WEIGHT_ADD.medium}, Heavy +${WEIGHT_ADD.heavy}) plus ${ARMOR_STEP} for each colour above Gray, then scaled to the guild's level curve. All defense is whole numbers: a full set adds up to the same total as before, spread across the slots. Light is Cloth or Padded. Medium is Leather, Chain or Scale. Heavy is Plate or Full Plate. Cloth and Padded are the same, and so are Plate and Full Plate. Only the name differs. Mages wear Light only. Rogues cannot wear Heavy.</p>
+    <p class="tiny">Six slots: Head, Cloak, Chest, Hands, Legs, Feet. Armor has no abilities, only defense. Defense is the slot's base (Cloak ${SLOT_BASE.cloak}, Chest ${SLOT_BASE.chest}, Legs ${SLOT_BASE.legs}, Hands ${SLOT_BASE.hands}, Feet ${SLOT_BASE.feet}, Head ${SLOT_BASE.head}) plus the weight (Light +${WEIGHT_ADD.light}, Medium +${WEIGHT_ADD.medium}, Heavy +${WEIGHT_ADD.heavy}) plus ${ARMOR_STEP} for each colour above Gray, then scaled to the guild's level curve. All defense is whole numbers: a full set adds up to the same total as before, spread across the slots. Light is Cloth or Padded. Medium is Leather, Chain or Scale. Heavy is Plate or Full Plate. Cloth and Padded are the same, and so are Plate and Full Plate. Only the name differs. Mages wear Light only. Rogues cannot wear Heavy. Cloaks are the exception: they only come in Cloth, Padded or Leather, and anyone can wear any cloak, Mages included.</p>
     <p class="tiny">Defense per piece, in the order Head · Cloak · Chest · Hands · Legs · Feet:</p>
     ${wtRows}
     <h4>Unique gear</h4>
@@ -12565,6 +12573,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-18", t:"Cloaks now only come in Cloth, Padded and Leather, and every class can wear any cloak (Mages can wear the Leather Cloak). Chain, Scale, Plate and Full Plate Mantles are gone; any you owned became the Leather Cloak of the same colour."},
   {d:"2026-11-18", t:"Guild tab: the Buildings & Upgrades button on the grounds picture is much bigger (about double the text, taller and wider), still just below the gate."},
   {d:"2026-11-18", t:"Merchant: the item name tag now has a dark brown fill, halfway between the item card and the adventurer boxes, inside its gold outline."},
   {d:"2026-11-18", t:"Merchant: item cards a shade lighter again. Grey (junk) item names and the stat/price line are brighter, and the green/blue/purple/orange names are lifted a step so every name stands out from the card."},
