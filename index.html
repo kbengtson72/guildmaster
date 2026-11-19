@@ -92,7 +92,7 @@
 
   h1 { margin: 0; font-size: 1.15rem; letter-spacing: .04em; color: var(--gold); flex: 1; }
   .hdr-btns { display: flex; gap: 8px; flex: 0 0 auto; }
-  #btnHelp, #btnProf, #btnSet, #btnLog, #btnDbg, #btnPatch {
+  #btnHelp, #btnProf, #btnSet, #btnDbg, #btnPatch {
     width: 32px; height: 32px; border-radius: 50%; flex: 0 0 32px;
     border: 2px solid var(--gold); background: #3a2e22; color: var(--gold);
     font: 700 16px Georgia, serif; line-height: 1; padding: 0;
@@ -492,7 +492,6 @@ button.act.gm-herobtn{position:absolute;left:49%;bottom:2.5%;transform:translate
       <button type="button" id="btnProf" aria-label="Profiles">👤</button>
       <!-- DEBUG: delete this button and the DEBUG CHEATS block in the script to strip cheats -->
       <button type="button" id="btnDbg" aria-label="Debug">🐞</button>
-      <button type="button" id="btnLog" aria-label="Ledger">📒</button>
       <button type="button" id="btnSet" aria-label="Settings">⚙</button>
       <button type="button" id="btnPatch" aria-label="Update log">✦</button>
       <button type="button" id="btnHelp" aria-label="How to play">?</button>
@@ -11326,7 +11325,7 @@ function hallView(){
     </div>
     <div class="card" style="padding:6px"><div class="gm-hero"><img src="${MAP_DIR}hero.jpg" alt="The guild grounds">
       <button type="button" class="act gm-herobtn" data-hallbuilds="1">Buildings &amp; Upgrades</button></div>
-      ${rivalBtnHtml()}</div>`;
+      ${rivalBtnHtml()}${ledgerBtnHtml()}</div>`;
 }
 
 function personLine(p){
@@ -11583,6 +11582,7 @@ function tavernView(){
 function bindCards(){
   document.querySelectorAll("[data-hallbuilds]").forEach(b=>b.onclick=()=>openHallBuilds());
   document.querySelectorAll("[data-rivalhall]").forEach(b=>b.onclick=()=>openRivalHall());
+  document.querySelectorAll("[data-ledger]").forEach(b=>b.onclick=()=>openLedger());
   document.querySelectorAll("[data-hallback]").forEach(b=>b.onclick=()=>closeHallBuilds());
   document.querySelectorAll("[data-hallmap]").forEach(b=>b.onclick=()=>{ hallBuilds="map"; render(); });
   document.querySelectorAll("[data-hallist]").forEach(b=>b.onclick=()=>{ hallBuilds="list"; render(); try{ document.getElementById("view").scrollTo(0,0); }catch(e){} });
@@ -12628,6 +12628,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-19", t:"Ledger: the 📒 circle is gone from the top bar. A Ledger button now sits under the Rival Guild button on the Guild tab, showing the latest entry and how many entries today. It opens the same ledger."},
   {d:"2026-11-19", t:"Rival Guild: the 🏴 icon is gone from the top bar. A Rival Guild button now sits under the guild map on the Guild tab. What the ledger shows depends on your Seer: Lv0 rumours only (name and a vague hint), Lv1 Renown, size, Barracks and the last 3 log lines, Lv2 the full roster, Lv3 PWR, best pair, gold, builds and the full log, Lv4 everything plus their next move. Locked parts say which Seer level opens them, and the Seer menu says what its next level reveals."},
   {d:"2026-11-18", t:"Guild map: before the Seer is built, lot 7 shows a fortuneteller's booth."},
   {d:"2026-11-18", t:"Guild map: before the Courier Stable is built, lot 2 shows a small horse pen."},
@@ -13664,11 +13665,17 @@ const PATCH_LOG = [
   {d:"2026-09-24", t:"The Tap is Flawed through Gifted only. Elite do not drink there."},
   {d:"2026-09-24", t:"Charter is gone. Renown is prestige, not a building currency."}
 ];
+function ledgerRows(){ return (S.log||[]).filter(t=>!/Bank paid \d+ interest|A new day in the hall/.test(String(t))); }
+function ledgerBtnHtml(){
+  const rows = ledgerRows(), today = rows.filter(t=>String(t).indexOf("Day "+S.day+":")===0).length;
+  const last = String(rows[0]||"Quiet so far.").replace(/<[^>]*>/g,"").replace(/[<>&"]/g,"");
+  return `<button type="button" class="gm-rivalbtn" data-ledger="1"><span class="rb-flag">📒</span><span class="rb-t">Ledger<small>${last}</small></span><span class="rb-eye">${today} today</span></button>`;
+}
 function openLedger(){
   const sheet = document.getElementById("sheet");
   const modal = document.getElementById("modal");
   if(!sheet||!modal) return;
-  const rows = (S.log||[]).filter(t=>!/Bank paid \d+ interest|A new day in the hall/.test(String(t))).map(t=>`<p>${t}</p>`).join("") || "<p class='muted'>Quiet so far.</p>";
+  const rows = ledgerRows().map(t=>`<p>${t}</p>`).join("") || "<p class='muted'>Quiet so far.</p>";
   sheet.innerHTML = `<h3>📒 Ledger</h3><div class="log" style="max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch">${rows}</div>
     <button type="button" class="act" id="ledgerClose" style="width:100%;margin-top:10px">Close</button>`;
   modal.classList.add("show"); modal.style.display="flex";
@@ -13902,7 +13909,6 @@ function dbgBumpUpgrade(){
 
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{tab=b.dataset.tab; hallBuilds=false; render();});
 document.getElementById("btnRecruit").onclick=recruit;
-document.getElementById("btnLog").onclick=openLedger;
 document.getElementById("btnProf").onclick=openProfiles;
 const _dbgBtn = document.getElementById("btnDbg");
 if(_dbgBtn){
