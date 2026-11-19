@@ -6811,6 +6811,15 @@ const RIVAL_SEER = [
   "Lv4 — everything, plus their next move: when they seal their next writ and what they are saving gold for."
 ];
 function rivalSeerLine(n){ const t = RIVAL_SEER[Math.max(0,Math.min(4,n))]||""; return t.replace(/^Lv\d+\s*[—-]\s*/,""); }
+function bldBtnHtml(){
+  const q = (S.raiseQ||[]).length;
+  const keys = HALL_KEYS.concat(["briefs"]).filter(k=>BUILDINGS[k]);
+  const ready = keys.filter(k=>{ const b=BUILDINGS[k], plv=plannedLv(k); return plv<b.max && affordGold()>=b.base*(plv+1); }).length;
+  let sub;
+  if(S.raise && BUILDINGS[S.raise.k]) sub = "🔨 "+BUILDINGS[S.raise.k].n+" Lv "+S.raise.to+" · "+(S.raise.left||0)+"d left"+(q?" · "+q+" queued":"");
+  else sub = "No build running · tap to build";
+  return `<button type="button" class="gm-rivalbtn" data-hallbuilds="1"><span class="rb-flag">🏰</span><span class="rb-t">Buildings &amp; Upgrades<small>${sub}</small></span><span class="rb-eye" style="text-align:center">${ready}<small style="margin:0">affordable</small></span></button>`;
+}
 function rivalBtnHtml(){
   const r = ensureRival(), lv = seerLv();
   const nm = String(r.name||"the rival guild").replace(/[<>&"]/g,"");
@@ -11323,9 +11332,8 @@ function hallView(){
     ${S.raise?`<p class="tiny" style="color:var(--gold)">Raising ${raiseLine()}</p><button class="ghost" data-cancelraise="1" style="width:100%;margin-top:6px">Halt raise · half back</button>`:""}
     ${(S.pendingLoot&&S.pendingLoot.length)?`<p class="ok">${S.pendingLoot.length} find${S.pendingLoot.length>1?"s":""} waiting. <button class="ghost" data-finds="1">Keep or sell</button></p>`:""}
     </div>
-    <div class="card" style="padding:6px"><div class="gm-hero"><img src="${MAP_DIR}hero.jpg" alt="The guild grounds">
-      <button type="button" class="act gm-herobtn" data-hallbuilds="1">Buildings &amp; Upgrades</button></div>
-      ${rivalBtnHtml()}${ledgerBtnHtml()}</div>`;
+    <div class="card" style="padding:6px"><div class="gm-hero"><img src="${MAP_DIR}hero.jpg" alt="The guild grounds" data-hallbuilds="1" style="cursor:pointer"></div>
+      ${bldBtnHtml()}${rivalBtnHtml()}${ledgerBtnHtml()}</div>`;
 }
 
 function personLine(p){
@@ -12628,6 +12636,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-19", t:"Guild tab: Buildings & Upgrades is now a button in the same style as Rival Guild and Ledger, stacked first under the grounds picture, so the whole picture shows. It shows the build in progress (or No build running) and how many upgrades you can afford. Tapping the picture still opens the map too."},
   {d:"2026-11-19", t:"Ledger: the 📒 circle is gone from the top bar. A Ledger button now sits under the Rival Guild button on the Guild tab, showing the latest entry and how many entries today. It opens the same ledger."},
   {d:"2026-11-19", t:"Rival Guild: the 🏴 icon is gone from the top bar. A Rival Guild button now sits under the guild map on the Guild tab. What the ledger shows depends on your Seer: Lv0 rumours only (name and a vague hint), Lv1 Renown, size, Barracks and the last 3 log lines, Lv2 the full roster, Lv3 PWR, best pair, gold, builds and the full log, Lv4 everything plus their next move. Locked parts say which Seer level opens them, and the Seer menu says what its next level reveals."},
   {d:"2026-11-18", t:"Guild map: before the Seer is built, lot 7 shows a fortuneteller's booth."},
