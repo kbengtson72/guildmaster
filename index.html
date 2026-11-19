@@ -453,6 +453,7 @@
 .gm-hero{position:relative;border-radius:10px;overflow:hidden;line-height:0;border:1px solid #8a6a32}
 .gm-hero img{width:100%;display:block}
 button.gm-rivalbtn{display:flex;align-items:center;gap:10px;width:100%;margin-top:6px;padding:9px 12px;border-radius:10px;border:2px solid var(--gold);background:linear-gradient(#3a2a1a,#241a10);color:var(--gold);font:700 1.15rem Georgia,serif;text-align:left;line-height:1.2;box-shadow:inset 0 1px 0 rgba(224,180,75,.25)}
+button.gm-rivalbtn:disabled{opacity:.55}
 button.gm-rivalbtn .rb-flag{font-size:1.6rem;line-height:1}
 button.gm-rivalbtn .rb-t{flex:1;min-width:0}
 button.gm-rivalbtn small{display:block;font:400 .82rem Georgia,serif;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -11529,6 +11530,24 @@ function raiseOffer(key){
   const blurb = key==="seer" ? ("Now: "+(seerNow[lv]||"")+" Next: "+(seerNow[lv+1]||"max.")) : b.desc;
   return `${(key==="seer"||key==="board"||key==="barracks"||key==="armory")?"":`<p class="tiny">${blurb}</p>`}<button type="button" class="act" data-up="${key}" ${lv>=b.max||(!busy&&!queued&&!canPay)?"disabled":""} style="width:100%;margin-top:6px">${label}</button>`;
 }
+function raiseOfferBtn(key){
+  const b = BUILDINGS[key];
+  if(!b) return "";
+  const lv = plannedLv(key);
+  if(lv>=b.max) return `<p class="tiny">${b.n} is maxed (Lv ${b.max}).</p>`;
+  const cost = b.base * (lv+1);
+  const days = raiseDays(lv+1);
+  const busy = S.raise && S.raise.k===key;
+  const queued = (S.raiseQ||[]).some(j=>j.k===key);
+  const canPay = funds() >= cost;
+  const label = busy ? ("Raising · "+S.raise.left+"d left") : queued ? ("Queued · next "+gp(cost)+" · "+days+"d") : (!canPay ? ("Not enough gold · "+b.n+" Lv "+(lv+1)+" · "+gp(cost)) : ("Raise "+b.n+" to Lv "+(lv+1)+" · "+gp(cost)+" · "+days+"d"));
+  const parts = label.split(" · ");
+  let title = parts.shift();
+  const m = title.match(/^(Raise .+?) (to Lv \d+)$/);
+  if(m){ title = m[1]; parts.unshift(m[2]); }
+  const sub = parts.join(" · ");
+  return `<button type="button" class="gm-rivalbtn" data-up="${key}" ${(!busy&&!queued&&!canPay)?"disabled":""}><span class="rb-flag">${BLD_ICON[key]||"🔨"}</span><span class="rb-t">${title}<small>${sub}</small></span><span class="rb-eye">Lv ${S.buildings[key]||0}/${b.max}</span></button>`;
+}
 function vaultView(){
   if(!S.vault) S.vault = [];
   const ready = S.people.filter(p=>p.status!=="dead" && p.status!=="away");
@@ -11570,9 +11589,10 @@ function vaultView(){
 function tavernView(){
   if(!S.hire) S.hire = [];
   if(!S.hire.length) restockHire();
-  return `<div class="card"><h3>🍺 The Copper Tap</h3>${raiseOffer("board")}
+  return `<div class="card"><h3>🍺 The Copper Tap</h3>
+    <div class="gm-hero" style="margin-top:6px"><img src="${MAP_DIR}copper-tap.jpg" alt="The Copper Tap" width="585" height="390" style="height:auto;aspect-ratio:3/2"></div>
+    ${raiseOfferBtn("board")}
     ${(S.tapDry||0)>S.day?`<p class="warn">Dry Tap · ${S.tapDry-S.day}d until the casks come back</p>`:""}
-    <p class="tiny">Buy them a contract. Renown sets who drinks here (levels 1–${hireMaxLv()}, ${hireCount()} faces). Notice Board lv ${S.buildings.board||0} sweetens gifted odds. Flawed through Gifted only — no Elite at the bar. New faces after each day.</p>
     ${hallCatActive()?`<p class="ok">🐈 ${hallCatName()} is loafing · Tap hire −10%</p>`:""}</div>
     ${S.hire.map(p=>`<div class="card cls-${CLASSES[p.cls].tag}${p.hero?" hero":""}${isFlawedOnly(p)?" flawed":isElite(p)?" elite":isGifted(p)?" gifted":""}" data-look="${p.id}">
       <div class="row">
@@ -12636,6 +12656,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-19", t:"Tavern: the Copper Tap card now shows the tavern front (closer on the door, sign in view) with the Raise Notice Board button under it, styled like the Guild tab buttons. The long description is gone."},
   {d:"2026-11-19", t:"Guild tab: Buildings & Upgrades is now a button in the same style as Rival Guild and Ledger, stacked first under the grounds picture, so the whole picture shows. It shows the build in progress (or No build running) and how many upgrades you can afford. Tapping the picture still opens the map too."},
   {d:"2026-11-19", t:"Ledger: the 📒 circle is gone from the top bar. A Ledger button now sits under the Rival Guild button on the Guild tab, showing the latest entry and how many entries today. It opens the same ledger."},
   {d:"2026-11-19", t:"Rival Guild: the 🏴 icon is gone from the top bar. A Rival Guild button now sits under the guild map on the Guild tab. What the ledger shows depends on your Seer: Lv0 rumours only (name and a vague hint), Lv1 Renown, size, Barracks and the last 3 log lines, Lv2 the full roster, Lv3 PWR, best pair, gold, builds and the full log, Lv4 everything plus their next move. Locked parts say which Seer level opens them, and the Seer menu says what its next level reveals."},
