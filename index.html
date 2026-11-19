@@ -92,7 +92,7 @@
 
   h1 { margin: 0; font-size: 1.15rem; letter-spacing: .04em; color: var(--gold); flex: 1; }
   .hdr-btns { display: flex; gap: 8px; flex: 0 0 auto; }
-  #btnHelp, #btnProf, #btnSet, #btnLog, #btnDbg, #btnRival, #btnPatch {
+  #btnHelp, #btnProf, #btnSet, #btnLog, #btnDbg, #btnPatch {
     width: 32px; height: 32px; border-radius: 50%; flex: 0 0 32px;
     border: 2px solid var(--gold); background: #3a2e22; color: var(--gold);
     font: 700 16px Georgia, serif; line-height: 1; padding: 0;
@@ -452,6 +452,12 @@
 /* Guild map (Buildings & Upgrades) */
 .gm-hero{position:relative;border-radius:10px;overflow:hidden;line-height:0;border:1px solid #8a6a32}
 .gm-hero img{width:100%;display:block}
+button.gm-rivalbtn{display:flex;align-items:center;gap:10px;width:100%;margin-top:6px;padding:9px 12px;border-radius:10px;border:2px solid var(--gold);background:linear-gradient(#3a2a1a,#241a10);color:var(--gold);font:700 1.15rem Georgia,serif;text-align:left;line-height:1.2;box-shadow:inset 0 1px 0 rgba(224,180,75,.25)}
+button.gm-rivalbtn .rb-flag{font-size:1.6rem;line-height:1}
+button.gm-rivalbtn .rb-t{flex:1;min-width:0}
+button.gm-rivalbtn small{display:block;font:400 .82rem Georgia,serif;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+button.gm-rivalbtn .rb-eye{font-size:.85rem;color:var(--gold);white-space:nowrap}
+.rv-lock{color:var(--muted);font-style:italic;opacity:.85}
 button.act.gm-herobtn{position:absolute;left:49%;bottom:2.5%;transform:translateX(-50%);white-space:nowrap;padding:.26em 1.1em;font-size:min(24px,6.2vw);font-weight:700;line-height:1.15;border-radius:14px;box-shadow:0 3px 12px rgba(0,0,0,.75);width:auto!important;max-width:94%}
 .gm-bar{display:flex;gap:6px;align-items:center;margin-bottom:8px}
 .gm-bar h3{flex:1;margin:0!important}
@@ -486,8 +492,6 @@ button.act.gm-herobtn{position:absolute;left:49%;bottom:2.5%;transform:translate
       <button type="button" id="btnProf" aria-label="Profiles">👤</button>
       <!-- DEBUG: delete this button and the DEBUG CHEATS block in the script to strip cheats -->
       <button type="button" id="btnDbg" aria-label="Debug">🐞</button>
-      <!-- RIVAL TEST: delete this button and the openRivalHall function to strip it -->
-      <button type="button" id="btnRival" aria-label="Rival" onclick="openRivalHall()">🏴</button>
       <button type="button" id="btnLog" aria-label="Ledger">📒</button>
       <button type="button" id="btnSet" aria-label="Settings">⚙</button>
       <button type="button" id="btnPatch" aria-label="Update log">✦</button>
@@ -1910,7 +1914,7 @@ const BUILD_HELP = {
   board: {how:"Notice Board at the Tap. Base chance of two traits is 45% + 8% per level. Of those, a third trait is 30% + 7% per level. More traits means more gifted and elite faces (and more flawed ones too).", lv:["Lv1 — two-trait 53%, third 37%.","Lv2 — 61% / 44%.","Lv3 — 69% / 51%.","Lv4 — 77% / 58%.","Lv5 — 85% / 65%."]},
   bell: {how:"Chapel Bell. Party power +2 per level on Dark and Holy jobs only. Stacks with Clerics, Night Owl, Night role, Night step.", lv:["Lv1 — +2 Dark PWR.","Lv2 — +4.","Lv3 — +6.","Lv4 — +8.","Lv5 — +10."]},
   briefs: {how:"Two things. 1) Each level adds 2 more jobs to the quest board (the board is 5 jobs, +1 per 15 Renown up to +2, +2 per Briefs level). 2) Unlocks Break the seal on open jobs: pay gold to replace that card with another unused contract. Cannot seal-break a job that already has a party. Seal cost is 24g − 4g per level.", lv:["Lv1 — +2 jobs on the board, 20g a seal.","Lv2 — +4 jobs, 16g a seal.","Lv3 — +6 jobs, 12g a seal.","Lv4 — +8 jobs, 8g a seal.","Lv5 — +10 jobs, 4g a seal."]},
-  seer: {how:"Sight is free. It reads quests, road encounters, guild events, and the guild contest. Higher levels say more and, at the top, change the numbers.", lv:[
+  seer: {how:"Sight is free. It reads quests, road encounters, guild events, the guild contest, and the Rival Guild ledger (the button under the guild map). Higher levels say more and, at the top, change the numbers.", lv:[
 "Lv1 — Quests: colors each face's power for that job (red low to gold high), shows the exact gold (not a range), and recommends the best-loot quest of good chance or better. Contest: reads the odds as they walk it, good chance, even, bloody, or grave. Road and events: a one-line hint of what each choice does.",
 "Lv2 — Quests: adds the power bar, auto-picks and reserves the party across quests, and lists the items that will drop with their value. Contest: adds the power bar and opens the rival's two best faces, tappable. Road and events: ranges (XP, gold, damage).",
 "Lv3 — Quests: shows item stats (attack, defense, heal) and uses leftover faces to push more quests to good chance or better. Contest: shows your power over their power and lets you pick your two. Road and events: percentages and exact amounts.",
@@ -1931,6 +1935,7 @@ function openBldHelp(k){
     <p class="tiny">${(h&&h.how)||b.desc}</p>
     <h4>Levels</h4>
     ${(h&&h.lv||[]).map((t,i)=>{const n=+((t.match(/^Lv(\d+)/)||[])[1]||i+1);return `<p class="tiny"${n===lv?" style=\"color:var(--gold)\"":""}>${t}${n===lv?" · you are here":""}</p>`;}).join("")||`<p class="tiny">${b.desc}</p>`}
+    ${k==="seer"?`<h4>🏴 Rival Guild ledger</h4>${RIVAL_SEER.map((t,n)=>`<p class="tiny"${n===lv?" style=\"color:var(--gold)\"":""}>${t}${n===lv?" · you are here":""}</p>`).join("")}`:""}
     <button type="button" class="act" id="bldHelpClose" style="width:100%;margin-top:10px">Close</button>`;
   const modal=document.getElementById("modal");
   modal.classList.add("show"); modal.style.display="flex"; modal.style.pointerEvents="auto";
@@ -6799,21 +6804,68 @@ function rivalNote(r, line){
   r.log.unshift("Day "+S.day+": "+line);
   if(r.log.length>60) r.log.pop();
 }
-function openRivalHall(){
+const RIVAL_SEER = [
+  "Lv0 — rumours only: their name and a vague word on whether they are ahead or behind.",
+  "Lv1 — their exact Renown, number of faces, Barracks level and bunks, and their last 3 log lines.",
+  "Lv2 — their full roster: each face's class, name, level, and whether they are ready, wounded or out.",
+  "Lv3 — each face's PWR and their best pair, their gold, their Barracks build, and the full daily log.",
+  "Lv4 — everything, plus their next move: when they seal their next writ and what they are saving gold for."
+];
+function rivalSeerLine(n){ const t = RIVAL_SEER[Math.max(0,Math.min(4,n))]||""; return t.replace(/^Lv\d+\s*[—-]\s*/,""); }
+function rivalBtnHtml(){
+  const r = ensureRival(), lv = seerLv();
+  const nm = String(r.name||"the rival guild").replace(/[<>&"]/g,"");
+  return `<button type="button" class="gm-rivalbtn" data-rivalhall="1"><span class="rb-flag">🏴</span><span class="rb-t">Rival Guild<small>${nm} · ${lv?"Seer Lv "+lv:"rumours only"}</small></span><span class="rb-eye">👁️ ${lv}/${BUILDINGS.seer.max}</span></button>`;
+}
+function rivalNextMove(r){
+  const out = [];
+  if(r.nextWrit){ const d = Math.max(0, r.nextWrit-(S.day||1)); out.push(d? `Seals their next writ in ${d} day${d===1?"":"s"} (Day ${r.nextWrit}).` : "Seals a writ at the next dawn."); }
+  if(r.braise) out.push(`Barracks Lv ${r.braise.to} finishes in ${r.braise.left} day${r.braise.left===1?"":"s"}.`);
+  const live = (r.faces||[]).filter(f=>f&&f.status!=="dead");
+  const wage = live.reduce((n,f)=>n+dayFee(f),0), reserve = 5*Math.max(6,wage);
+  const hire = 2*(20+((r.faces||[]).length*8));
+  if((r.faces||[]).length < (r.bunks||0)) out.push(`Saving to hire: needs ${hire+reserve} gold (has ${r.gold||0}).`);
+  else if(!r.braise && (r.blv||1) < BUILDINGS.barracks.max){ const c = BUILDINGS.barracks.base*((r.blv||1)+1); out.push(`Beds are full. Saving ${c+reserve} gold to raise Barracks Lv ${(r.blv||1)+1} (has ${r.gold||0}).`); }
+  else if((r.faces||[]).length >= (r.bunks||0)) out.push("Beds are full. No hire planned.");
+  return out;
+}
+function openRivalHall(full){
   try {
   const r = ensureRival();
   const sheet = document.getElementById("sheet");
   const modal = document.getElementById("modal");
   if(!sheet||!modal) return;
-  const faces = (r.faces||[]).map(f=>`<p>${CLASSES[f.cls]?CLASSES[f.cls].icon:"•"} ${f.name||f.cls} · Lv${f.lv||1} · ${f.status||"ready"} · PWR ${rivalPower(f)}${f.away?" · out "+(f.left||0)+"d":""}</p>`).join("") || "<p class='tiny'>No faces.</p>";
-  const log = (r.log||[]).slice(0,20).map(x=>`<p class="tiny">${x}</p>`).join("") || "<p class='tiny'>No log yet. End a day.</p>";
-  sheet.innerHTML = `<h3>${r.name||"Rival"}</h3>
-    <p>Renown ${r.renown||0} · Gold ${r.gold||0} · Barracks Lv ${r.blv||1}${r.braise?" (→"+r.braise.to+", "+r.braise.left+"d)":""} · Bunks ${r.bunks||0} · Faces ${(r.faces||[]).length}</p>
-    <h4>Roster</h4>${faces}
-    <h4>Daily log</h4>${log}
-    <button class="ghost" id="btnCloseRival" style="margin-top:8px">Close</button>`;
+  const lv = full===true ? 4 : seerLv(), mx = BUILDINGS.seer.max;
+  const lock = (n, what) => `<p class="tiny rv-lock">🔒 Upgrade the Seer to Lv ${n} to ${what}.</p>`;
+  const them = r.renown||0, us = S.renown||0;
+  const live = (r.faces||[]).filter(f=>f&&f.status!=="dead");
+  let html = `<h3>🏴 ${r.name||"Rival"}</h3>
+    <p class="tiny">👁️ ${full===true?"Debug: full view":lv?"Seer Lv "+lv+"/"+mx+" reads them":"No Seer yet. Only tavern talk"}.</p>`;
+  if(lv<1){
+    const word = them>us+3 ? "they are ahead of you" : them<us-3 ? "they are behind you" : "you and they are close";
+    const size = live.length<=3 ? "a small crew" : live.length<=6 ? "a growing crew" : "a full hall";
+    html += `<h4>Rumours</h4><p class="tiny">Tavern talk says ${word}. They keep ${size}.</p>${lock(1,"learn their Renown and size")}`;
+  } else {
+    html += `<h4>Standing</h4><p>Renown ${them} (you ${us}) · Faces ${(r.faces||[]).length} · Barracks Lv ${r.blv||1} · Bunks ${r.bunks||0}</p>`;
+    if(lv>=3) html += `<p>Gold ${r.gold||0} · Best pair PWR ${rivalPairPower()}${r.braise?" · Barracks → Lv "+r.braise.to+", "+r.braise.left+"d":""}</p>`;
+    else html += lock(3,"see their gold, power and builds");
+  }
+  html += `<h4>Roster</h4>`;
+  if(lv>=2) html += (r.faces||[]).map(f=>`<p>${CLASSES[f.cls]?CLASSES[f.cls].icon:"•"} ${f.name||f.cls} · Lv${f.lv||1} · ${f.status||"ready"}${lv>=3?" · PWR "+rivalPower(f):""}${f.away?" · out "+(f.left||0)+"d":""}</p>`).join("") || "<p class='tiny'>No faces.</p>";
+  else html += lock(2,"learn their roster");
+  html += `<h4>Next move</h4>`;
+  if(lv>=4){ const nm = rivalNextMove(r); html += nm.map(x=>`<p class="tiny">${x}</p>`).join("")||"<p class='tiny'>Nothing planned.</p>"; }
+  else html += lock(4,"see their next move");
+  html += `<h4>Daily log</h4>`;
+  if(lv>=1){
+    const n = lv>=3 ? 20 : 3;
+    html += (r.log||[]).slice(0,n).map(x=>`<p class="tiny">${x}</p>`).join("") || "<p class='tiny'>No log yet. End a day.</p>";
+    if(lv<3) html += lock(3,"read their full daily log");
+  } else html += lock(1,"read their daily log");
+  sheet.innerHTML = html + `<button class="ghost" id="btnCloseRival" style="margin-top:8px;width:100%">Close</button>`;
   modal.classList.add("show");
   modal.style.display = "flex";
+  sheet.scrollTop = 0; modal.scrollTop = 0;
   document.getElementById("btnCloseRival").onclick=()=>{ modal.classList.remove("show"); modal.style.display="none"; };
   } catch(e){ toast("Rival: "+e.message); }
 }
@@ -11242,6 +11294,7 @@ function openLotMenu(id){
       <div class="gm-nn"><div>${mapThumb(L.art,nowStage,fr,tw)}<span class="tiny">${lv?"Now · Lv "+lv:nowStage?"Now · "+(L.lv0n||"not built yet"):"Now · empty lot"}</span></div>${lv<b.max?`<div>${mapThumb(L.art,(r?"build":"lv")+Math.min(5,nxt),fr,tw)}<span class="tiny">${r?"Building · Lv "+nxt:"Next · Lv "+nxt}</span></div>`:""}</div>
       <p class="tiny"><b>Now:</b> ${lv ? (bldLvLine(k,lv)||b.desc) : "Nothing yet. "+b.desc}</p>
       ${lv<b.max?`<p class="tiny"><b>Next · Lv ${nxt}:</b> ${bldLvLine(k,nxt)||b.desc}</p>`:`<p class="tiny" style="color:var(--gold)">Fully raised.</p>`}
+      ${k==="seer"?`<p class="tiny">🏴 <b>Rival ledger now:</b> ${rivalSeerLine(lv)}${lv<b.max?`<br>🏴 <b>Lv ${nxt} reveals:</b> ${rivalSeerLine(nxt)}`:""}</p>`:""}
       ${r?`<p class="tiny" style="color:var(--gold);margin-bottom:0">🔨 Under construction · Lv ${r.to} · ${r.left||0}d left</p><div class="cdbar"><i style="width:${pct}%"></i></div>`:""}
       ${(S.raiseQ||[]).filter(j=>j.k===k).map(j=>`<p class="tiny">Queued · Lv ${j.to} (paid)</p>`).join("")}
       ${plv<b.max?`<p class="tiny" style="margin:6px 0 0">${plv>lv?"After that, Lv "+(plv+1):"Lv "+(plv+1)} costs ${gp(b.base*(plv+1))} and takes ${raiseDays(plv+1)} days. Purse ${gp(S.gold||0)}${bankLv()?" · vault "+gp(S.deposit||0):""}.</p>`:""}
@@ -11272,7 +11325,8 @@ function hallView(){
     ${(S.pendingLoot&&S.pendingLoot.length)?`<p class="ok">${S.pendingLoot.length} find${S.pendingLoot.length>1?"s":""} waiting. <button class="ghost" data-finds="1">Keep or sell</button></p>`:""}
     </div>
     <div class="card" style="padding:6px"><div class="gm-hero"><img src="${MAP_DIR}hero.jpg" alt="The guild grounds">
-      <button type="button" class="act gm-herobtn" data-hallbuilds="1">Buildings &amp; Upgrades</button></div></div>`;
+      <button type="button" class="act gm-herobtn" data-hallbuilds="1">Buildings &amp; Upgrades</button></div>
+      ${rivalBtnHtml()}</div>`;
 }
 
 function personLine(p){
@@ -11528,6 +11582,7 @@ function tavernView(){
 
 function bindCards(){
   document.querySelectorAll("[data-hallbuilds]").forEach(b=>b.onclick=()=>openHallBuilds());
+  document.querySelectorAll("[data-rivalhall]").forEach(b=>b.onclick=()=>openRivalHall());
   document.querySelectorAll("[data-hallback]").forEach(b=>b.onclick=()=>closeHallBuilds());
   document.querySelectorAll("[data-hallmap]").forEach(b=>b.onclick=()=>{ hallBuilds="map"; render(); });
   document.querySelectorAll("[data-hallist]").forEach(b=>b.onclick=()=>{ hallBuilds="list"; render(); try{ document.getElementById("view").scrollTo(0,0); }catch(e){} });
@@ -12573,6 +12628,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-19", t:"Rival Guild: the 🏴 icon is gone from the top bar. A Rival Guild button now sits under the guild map on the Guild tab. What the ledger shows depends on your Seer: Lv0 rumours only (name and a vague hint), Lv1 Renown, size, Barracks and the last 3 log lines, Lv2 the full roster, Lv3 PWR, best pair, gold, builds and the full log, Lv4 everything plus their next move. Locked parts say which Seer level opens them, and the Seer menu says what its next level reveals."},
   {d:"2026-11-18", t:"Guild map: before the Seer is built, lot 7 shows a fortuneteller's booth."},
   {d:"2026-11-18", t:"Guild map: before the Courier Stable is built, lot 2 shows a small horse pen."},
   {d:"2026-11-18", t:"Guild map: before the Chapel is built, lot 9 shows a small wooden bell tower."},
@@ -13724,7 +13780,7 @@ function openDbg(keepUp){
     <button type="button" class="ghost" id="dbgClose" style="width:100%;margin-top:10px">Close</button>`;
   const modal=document.getElementById("modal");
   modal.classList.add("show"); modal.style.display="flex";
-  document.getElementById("dbgRival").onclick=()=>openRivalHall();
+  document.getElementById("dbgRival").onclick=()=>openRivalHall(true);
   document.getElementById("dbgGold").onclick=()=>{
     S.gold += 1000;
     log("DEBUG +1000 gold.");
@@ -13848,8 +13904,6 @@ document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{tab=b.dataset.
 document.getElementById("btnRecruit").onclick=recruit;
 document.getElementById("btnLog").onclick=openLedger;
 document.getElementById("btnProf").onclick=openProfiles;
-const _rivBtn = document.getElementById("btnRival");
-if(_rivBtn) _rivBtn.onclick = openRivalHall;
 const _dbgBtn = document.getElementById("btnDbg");
 if(_dbgBtn){
   if(typeof DEBUG_CHEATS!=="undefined" && DEBUG_CHEATS) _dbgBtn.onclick=openDbg;
