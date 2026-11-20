@@ -10375,37 +10375,16 @@ function openProfiles(){
     <div style="display:flex;gap:8px;margin:8px 0"><button type="button" class="act" id="btnProfSave" style="flex:1">💾 Save game</button><button type="button" class="act" id="btnProfLoad" style="flex:1">📂 Load game</button></div>
     ${rows}
     ${roster}
-    <h3 style="margin-top:14px">Save code</h3>
-    <p class="tiny">Copies the guild, then opens the share sheet. Tap Notes. A webpage cannot write into Notes by itself.</p>
-    <p class="tiny">On the phone: tap Paste from Notes. If that is blocked, tap the box, hold, and choose Paste, then Apply.</p>
-    <textarea id="hallCode" rows="6" style="width:100%;box-sizing:border-box;font-size:16px;background:#1a1612;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px"></textarea>
-    <button type="button" class="act" id="btnPasteHall" style="width:100%;margin-top:8px">Paste from Notes</button>
-    <button type="button" class="act" id="btnCopyHall" style="width:100%;margin-top:8px">Copy and share to Notes</button>
-    <button type="button" class="ghost" id="btnApplyHall" style="width:100%;margin-top:8px">Apply pasted code</button>
+    <h3 style="margin-top:14px">Manage this guild</h3>
+    <p class="tiny">Backup lives in ⚙ Settings.</p>
     <button type="button" class="act" id="btnNewProf" style="width:100%;margin-top:8px">New guild</button>
     <button type="button" class="ghost" id="btnRenameProf" style="width:100%;margin-top:8px">Rename this guild</button>
     <button type="button" class="ghost" id="btnRestartProf" style="width:100%;margin-top:8px;border-color:var(--bad);color:var(--bad)">Restart this guild</button>
     <button type="button" class="ghost" id="btnCloseProf" style="width:100%;margin-top:8px">Close</button>`;
   const modal=document.getElementById("modal");
   modal.classList.add("show"); modal.style.display="flex";
-  const box=document.getElementById("hallCode");
-  if(box) box.value = hallCode();
-  document.getElementById("btnCopyHall").onclick=copyHallCode;
   document.getElementById("btnProfSave").onclick=openSaveSheet;
   document.getElementById("btnProfLoad").onclick=openLoadSheet;
-  const pasteBtn=document.getElementById("btnPasteHall");
-  if(pasteBtn) pasteBtn.onclick=async()=>{
-    try {
-      const text = await navigator.clipboard.readText();
-      const box=document.getElementById("hallCode");
-      if(box) box.value=text||"";
-      if(text) applyHallCode(text);
-      else toast("Clipboard was empty. Hold in the box and choose Paste.");
-    } catch(e) {
-      toast("Phone blocked the paste. Tap the box, hold, Paste, then Apply.");
-    }
-  };
-  document.getElementById("btnApplyHall").onclick=()=>applyHallCode((document.getElementById("hallCode")||{}).value);
   document.getElementById("btnNewProf").onclick=createProfile;
   document.getElementById("btnRenameProf").onclick=renameProfile;
   document.getElementById("btnRestartProf").onclick=askRestart;
@@ -10436,7 +10415,7 @@ function openSaveSheet(){
   };
   document.getElementById("svClose").onclick=closeModal;
 }
-function confirmLoadCode(raw){
+function confirmLoadCode(raw, back){
   let o=null;
   try { o = JSON.parse(String(raw||"").trim()); } catch(e){ return toast("That is not a Writ & Steel save."); }
   if(!o || typeof o!=="object" || !Array.isArray(o.people)) return toast("That save has no roster.");
@@ -10445,7 +10424,7 @@ function confirmLoadCode(raw){
     <p>Backup: Day ${o.day||1} · ${gp(o.gold||0)} · ${alive} adventurers.</p>
     <p class="tiny" style="color:var(--bad)">It replaces ${profileName()} (Day ${S.day}). Save a backup first if you want to keep it.</p>
     <div style="display:flex;gap:8px;margin-top:8px"><button type="button" class="ghost" id="ldNo" style="flex:1">Cancel</button><button type="button" class="act" id="ldYes" style="flex:1">Load Day ${o.day||1}</button></div>`;
-  document.getElementById("ldNo").onclick=openLoadSheet;
+  document.getElementById("ldNo").onclick=back||openLoadSheet;
   document.getElementById("ldYes").onclick=()=>applyHallCode(raw);
 }
 function openLoadSheet(){
@@ -12383,6 +12362,14 @@ function openSettings(){
   document.getElementById("sheet").innerHTML = `
     <h3>⚙ Settings</h3>
     <p class="tiny">Saved on this phone with the link.</p>
+    <p style="margin:10px 0 4px"><b>Backup</b></p>
+    <p class="tiny" style="margin:0 0 6px">Your guild is saved only on this phone. Back up to Notes now and then so you can restore it.</p>
+    <div style="display:flex;gap:8px"><button type="button" class="act" id="bkSave" style="flex:1">Back up to Notes</button><button type="button" class="ghost" id="bkRestore" style="flex:1">Restore</button></div>
+    <div id="bkPaste" style="display:none;margin-top:8px">
+      <p class="tiny" style="margin:0 0 4px">Tap the box, hold, choose Paste, then Apply.</p>
+      <textarea id="hallCode" rows="4" style="width:100%;box-sizing:border-box;font-size:16px;background:#1a1612;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px"></textarea>
+      <button type="button" class="act" id="bkApply" style="width:100%;margin-top:6px">Apply</button>
+    </div>
     <p style="margin:10px 0"><b>Font</b> · <span id="fontVal">${cur}px</span></p>
     <input id="fontSlide" type="range" min="14" max="22" step="1" value="${cur}" style="width:100%">
     <div style="display:flex;gap:8px;margin-top:8px">
@@ -12435,6 +12422,15 @@ function openSettings(){
     try { retuneEpic(); save(); } catch(e){}
   };
   document.getElementById("setClose").onclick=closeModal;
+  document.getElementById("bkSave").onclick=copyHallCode;
+  const showPaste=msg=>{ const w=document.getElementById("bkPaste"); if(w) w.style.display="block"; const bx=document.getElementById("hallCode"); if(bx){ bx.value=""; bx.focus(); } if(msg) toast(msg); };
+  document.getElementById("bkRestore").onclick=async()=>{
+    let t="";
+    try { t = (navigator.clipboard && navigator.clipboard.readText) ? await navigator.clipboard.readText() : ""; } catch(e){ t=""; }
+    if(t && String(t).trim().charAt(0)==="{") return confirmLoadCode(t, openSettings);
+    showPaste(t ? "That is not a guild code. Paste it in the box." : "");
+  };
+  document.getElementById("bkApply").onclick=()=>confirmLoadCode((document.getElementById("hallCode")||{}).value, openSettings);
 }
 let helpTab = "play";
 function helpWhoWields(w){
@@ -12665,6 +12661,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-20", t:"Backup moved to ⚙ Settings: two buttons, Back up to Notes and Restore. Restore reads your clipboard if it can, otherwise shows a paste box, and always asks before it replaces the guild. The 👤 Guilds sheet keeps Save game, Load game, New guild, Rename and Restart. Old guild codes still restore."},
   {d:"2026-11-20", t:"Armory tab: the Armory card now shows the armory front (door, guards, forge, tower and weapon rack) with the Build/Raise Racks button under it, styled like the other building cards."},
   {d:"2026-11-20", t:"Merchant: a new Outfitter card at the top shows the market front (clock tower, door and stalls) with the Build/Raise Outfitter button under it, styled like the Copper Tap, Barracks and Seer buttons."},
   {d:"2026-11-20", t:"Quests: a new Seer card above Available quests shows the Seer tower with the Build/Raise Seer button under it, styled like the Barracks and Copper Tap buttons. While a building is raising with its next level queued, these picture buttons now say so (Raising · Nd left · Lv N queued). A building at Lv 0 says Build instead of Raise."},
