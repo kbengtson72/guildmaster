@@ -10359,7 +10359,6 @@ function openProfiles(){
   const alive = (S.people||[]).filter(p=>p.status!=="dead");
   const dead = (S.people||[]).filter(p=>p.status==="dead");
   const roster = `<h3 style="margin-top:14px">This guild's roster</h3>
-    <p class="tiny">${alive.length} living${dead.length?" · "+dead.length+" fallen":""} · cap ${cap()}</p>
     ${alive.map(p=>`<div class="card cls-${CLASSES[p.cls].tag}${p.hero?" hero":""}${isFlawedOnly(p)?" flawed":isElite(p)?" elite":isGifted(p)?" gifted":""}" data-lookprof="${p.id}" style="margin:6px 0">
       <div class="row">
         <div class="who">${face(p)}<div class="names">${nameHtml(p)}${mottoHtml(p)}
@@ -12660,6 +12659,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-20", t:"👤 Guilds: the living / cap count under This guild's roster is gone."},
   {d:"2026-11-20", t:"👤 Guilds: the intro paragraph at the top is gone."},
   {d:"2026-11-20", t:"Backup moved to ⚙ Settings: two buttons, Back up to Notes and Restore. Restore reads your clipboard if it can, otherwise shows a paste box, and always asks before it replaces the guild. The 👤 Guilds sheet keeps Save game, Load game, New guild, Rename and Restart. Old guild codes still restore."},
   {d:"2026-11-20", t:"Armory tab: the Armory card now shows the armory front (door, guards, forge, tower and weapon rack) with the Build/Raise Racks button under it, styled like the other building cards."},
