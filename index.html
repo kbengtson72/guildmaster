@@ -11368,7 +11368,10 @@ function rosterView(){
 function boardView(){
   const ready = S.people.filter(p=>p.status==="ready");
   const roster = `${writCard()}
-    <div class="card">${raiseOffer("seer")}<h3>Available quests</h3>
+    <div class="card"><h3>👁️ The Seer</h3>
+    <div class="gm-hero" style="margin-top:6px"><img src="${MAP_DIR}seer.jpg" alt="The Seer" width="585" height="390" style="height:auto;aspect-ratio:3/2"></div>
+    ${raiseOfferBtn("seer")}</div>
+    <div class="card"><h3>Available quests</h3>
     <p class="tiny">Quest board holds ${5+Math.min(2,Math.floor((S.renown||0)/15))+2*(S.buildings.briefs||0)} jobs: 5 base, +${Math.min(2,Math.floor((S.renown||0)/15))} from Renown (max +2), +${2*(S.buildings.briefs||0)} from Sealed Briefs Lv ${S.buildings.briefs||0} (+2 per level).</p>
     ${ready.length ? ready.map(p=>`<div class="row${isFlawedOnly(p)?" flawed":isElite(p)?" elite":isGifted(p)?" gifted":""}" data-person="${p.id}" style="margin:6px 0;cursor:pointer">
       <div class="who">${face(p)}<div class="names">${nameHtml(p,"strong")}${p.hero?'<span class="tiny" style="color:#b06bff"> ★ Hero</span>':""}${mottoHtml(p)}
@@ -11536,19 +11539,21 @@ function raiseOfferBtn(key){
   const b = BUILDINGS[key];
   if(!b) return "";
   const lv = plannedLv(key);
-  if(lv>=b.max) return `<p class="tiny">${b.n} is maxed (Lv ${b.max}).</p>`;
-  const cost = b.base * (lv+1);
-  const days = raiseDays(lv+1);
   const busy = S.raise && S.raise.k===key;
   const queued = (S.raiseQ||[]).some(j=>j.k===key);
+  if(lv>=b.max && !busy && !queued) return `<p class="tiny">${b.n} is maxed (Lv ${b.max}).</p>`;
+  const cost = b.base * (lv+1);
+  const days = raiseDays(lv+1);
   const canPay = funds() >= cost;
-  const label = busy ? ("Raising · "+S.raise.left+"d left") : queued ? ("Queued · next "+gp(cost)+" · "+days+"d") : (!canPay ? ("Not enough gold · "+b.n+" Lv "+(lv+1)+" · "+gp(cost)) : ("Raise "+b.n+" to Lv "+(lv+1)+" · "+gp(cost)+" · "+days+"d"));
+  const qTo = queued ? Math.max.apply(null, (S.raiseQ||[]).filter(j=>j.k===key).map(j=>j.to)) : 0;
+  const verb = (S.buildings[key]||0)===0 && lv===0 ? "Build" : "Raise";
+  const label = busy ? ("Raising · "+S.raise.left+"d left"+(queued?" · Lv "+qTo+" queued":"")) : queued ? (lv>=b.max ? "Queued · Lv "+qTo : "Queued · next "+gp(cost)+" · "+days+"d") : (!canPay ? ("Not enough gold · "+b.n+" Lv "+(lv+1)+" · "+gp(cost)) : (verb+" "+b.n+" to Lv "+(lv+1)+" · "+gp(cost)+" · "+days+"d"));
   const parts = label.split(" · ");
   let title = parts.shift();
-  const m = title.match(/^(Raise .+?) (to Lv \d+)$/);
+  const m = title.match(/^((?:Raise|Build) .+?) (to Lv \d+)$/);
   if(m){ title = m[1]; parts.unshift(m[2]); }
   const sub = parts.join(" · ");
-  return `<button type="button" class="gm-rivalbtn" data-up="${key}" ${(!busy&&!queued&&!canPay)?"disabled":""}><span class="rb-flag">${BLD_ICON[key]||"🔨"}</span><span class="rb-t">${title}<small>${sub}</small></span><span class="rb-eye">Lv ${S.buildings[key]||0}/${b.max}</span></button>`;
+  return `<button type="button" class="gm-rivalbtn" data-up="${key}" ${(!busy&&!queued&&!canPay)||lv>=b.max?"disabled":""}><span class="rb-flag">${BLD_ICON[key]||"🔨"}</span><span class="rb-t">${title}<small>${sub}</small></span><span class="rb-eye">Lv ${S.buildings[key]||0}/${b.max}</span></button>`;
 }
 function vaultView(){
   if(!S.vault) S.vault = [];
@@ -12658,6 +12663,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-20", t:"Quests: a new Seer card above Available quests shows the Seer tower with the Build/Raise Seer button under it, styled like the Barracks and Copper Tap buttons. While a building is raising with its next level queued, these picture buttons now say so (Raising · Nd left · Lv N queued). A building at Lv 0 says Build instead of Raise."},
   {d:"2026-11-20", t:"Adventurers: the Roster card now shows the Barracks front (closer on the gate and guards) with the Raise Barracks button under it, styled like the Copper Tap button. When Barracks is maxed the picture stays with a maxed line."},
   {d:"2026-11-19", t:"Tavern: the Copper Tap card now shows the tavern front (closer on the door, sign in view) with the Raise Notice Board button under it, styled like the Guild tab buttons. The long description is gone."},
   {d:"2026-11-19", t:"Guild tab: Buildings & Upgrades is now a button in the same style as Rival Guild and Ledger, stacked first under the grounds picture, so the whole picture shows. It shows the build in progress (or No build running) and how many upgrades you can afford. Tapping the picture still opens the map too."},
