@@ -11487,7 +11487,9 @@ function shopView(){
   if(!S.shop) S.shop = [];
   const ready = (S.people||[]).filter(p=>p.status!=="dead" && p.status!=="away");
   const away = (S.people||[]).filter(p=>p.status==="away");
-  const glutLine = raiseOffer("armory") + ((S.glutUntil||0)>S.day ? `<p class="ok">Market glut · ${S.glutUntil-S.day}d · 20% off</p>` : "");
+  const glutLine = `<div class="card"><h3>⚒️ The Outfitter</h3>
+    <div class="gm-hero" style="margin-top:6px"><img src="${MAP_DIR}merchant.jpg" alt="The Outfitter" width="585" height="390" style="height:auto;aspect-ratio:3/2"></div>
+    ${raiseOfferBtn("armory")}</div>` + ((S.glutUntil||0)>S.day ? `<p class="ok">Market glut · ${S.glutUntil-S.day}d · 20% off</p>` : "");
   const cats = [
     {id:"weapon", label:"Weapons", icon:"⚔️"},
     {id:"armor", label:"Armor", icon:"🛡️"},
@@ -12663,6 +12665,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-20", t:"Merchant: a new Outfitter card at the top shows the market front (clock tower, door and stalls) with the Build/Raise Outfitter button under it, styled like the Copper Tap, Barracks and Seer buttons."},
   {d:"2026-11-20", t:"Quests: a new Seer card above Available quests shows the Seer tower with the Build/Raise Seer button under it, styled like the Barracks and Copper Tap buttons. While a building is raising with its next level queued, these picture buttons now say so (Raising · Nd left · Lv N queued). A building at Lv 0 says Build instead of Raise."},
   {d:"2026-11-20", t:"Adventurers: the Roster card now shows the Barracks front (closer on the gate and guards) with the Raise Barracks button under it, styled like the Copper Tap button. When Barracks is maxed the picture stays with a maxed line."},
   {d:"2026-11-19", t:"Tavern: the Copper Tap card now shows the tavern front (closer on the door, sign in view) with the Raise Notice Board button under it, styled like the Guild tab buttons. The long description is gone."},
