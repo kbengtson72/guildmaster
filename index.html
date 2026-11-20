@@ -10371,7 +10371,6 @@ function openProfiles(){
     ${dead.map(p=>`<p class="tiny">✝ ${p.name} · ${p.cls}</p>`).join("")}`;
   document.getElementById("sheet").innerHTML = `
     <h3>👤 Guilds</h3>
-    <p class="tiny">Each guild is its own save. Same phone, same link. New guilds get a random name. Tap the guild name at the top of the screen (or Rename below) to change it.</p>
     <div style="display:flex;gap:8px;margin:8px 0"><button type="button" class="act" id="btnProfSave" style="flex:1">💾 Save game</button><button type="button" class="act" id="btnProfLoad" style="flex:1">📂 Load game</button></div>
     ${rows}
     ${roster}
@@ -12661,6 +12660,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-20", t:"👤 Guilds: the intro paragraph at the top is gone."},
   {d:"2026-11-20", t:"Backup moved to ⚙ Settings: two buttons, Back up to Notes and Restore. Restore reads your clipboard if it can, otherwise shows a paste box, and always asks before it replaces the guild. The 👤 Guilds sheet keeps Save game, Load game, New guild, Rename and Restart. Old guild codes still restore."},
   {d:"2026-11-20", t:"Armory tab: the Armory card now shows the armory front (door, guards, forge, tower and weapon rack) with the Build/Raise Racks button under it, styled like the other building cards."},
   {d:"2026-11-20", t:"Merchant: a new Outfitter card at the top shows the market front (clock tower, door and stalls) with the Build/Raise Outfitter button under it, styled like the Copper Tap, Barracks and Seer buttons."},
