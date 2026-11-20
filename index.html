@@ -11564,8 +11564,8 @@ function vaultView(){
   const awayNote = !ready.length && away.length
     ? `<p style="margin:8px 0 0;color:#e0b84a;font-weight:600">⚠ Everyone is out on a job. Only adventurers at home can be equipped from the Armory. Come back when they return.</p>`
     : away.length ? `<p class="tiny">Only adventurers at home can be equipped. ${away.length} out on a job: ${away.map(p=>p.name.split(" ")[0]).join(", ")}.</p>` : "";
-  if(!S.vault.length) return `<div class="card"><h3>Armory</h3><p class="muted">Empty racks (${vaultCap()} slots). Buy from the Merchant.</p>${raiseOffer("racks")}</div>`;
-  return `<div class="card"><h3>Armory</h3>${raiseOffer("racks")}<p class="tiny">${S.vault.length}/${vaultCap()} on the rack. Equip someone home, or sell for half price. Upgrade Racks for more slots.</p>${awayNote}</div>
+  if(!S.vault.length) return `<div class="card"><h3>Armory</h3><div class="gm-hero" style="margin-top:6px"><img src="${MAP_DIR}armory.jpg" alt="The Armory" width="585" height="390" style="height:auto;aspect-ratio:3/2"></div>${raiseOfferBtn("racks")}<p class="muted">Empty racks (${vaultCap()} slots). Buy from the Merchant.</p></div>`;
+  return `<div class="card"><h3>Armory</h3><div class="gm-hero" style="margin-top:6px"><img src="${MAP_DIR}armory.jpg" alt="The Armory" width="585" height="390" style="height:auto;aspect-ratio:3/2"></div>${raiseOfferBtn("racks")}<p class="tiny">${S.vault.length}/${vaultCap()} on the rack. Equip someone home, or sell for half price. Upgrade Racks for more slots.</p>${awayNote}</div>
     ${(()=>{
       const acats=[{id:"weapon",label:"Weapons",icon:"⚔️"},{id:"armor",label:"Armor",icon:"🛡️"},{id:"food",label:"Consumables",icon:"🍖"},{id:"kit",label:"Kits",icon:"🧰"},{id:"loot",label:"Loot",icon:"💰"}];
       const cnt=k=>S.vault.filter(it=>armTab(it)===k).length;
@@ -12665,6 +12665,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-20", t:"Armory tab: the Armory card now shows the armory front (door, guards, forge, tower and weapon rack) with the Build/Raise Racks button under it, styled like the other building cards."},
   {d:"2026-11-20", t:"Merchant: a new Outfitter card at the top shows the market front (clock tower, door and stalls) with the Build/Raise Outfitter button under it, styled like the Copper Tap, Barracks and Seer buttons."},
   {d:"2026-11-20", t:"Quests: a new Seer card above Available quests shows the Seer tower with the Build/Raise Seer button under it, styled like the Barracks and Copper Tap buttons. While a building is raising with its next level queued, these picture buttons now say so (Raising · Nd left · Lv N queued). A building at Lv 0 says Build instead of Raise."},
   {d:"2026-11-20", t:"Adventurers: the Roster card now shows the Barracks front (closer on the gate and guards) with the Raise Barracks button under it, styled like the Copper Tap button. When Barracks is maxed the picture stays with a maxed line."},
