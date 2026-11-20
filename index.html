@@ -11358,7 +11358,9 @@ function personLine(p){
 }
 
 function rosterView(){
-  const head = `<div class="card"><h3>Roster ${livingRoster().length}/${cap()}</h3>${raiseOffer("barracks")}</div>`;
+  const head = `<div class="card"><h3>Roster ${livingRoster().length}/${cap()}</h3>
+    <div class="gm-hero" style="margin-top:6px"><img src="${MAP_DIR}barracks.jpg" alt="The Barracks" width="585" height="390" style="height:auto;aspect-ratio:3/2"></div>
+    ${raiseOfferBtn("barracks")}</div>`;
   if(!S.people.length) return head + `<div class="card"><p class="muted">The benches are empty. Recruit someone.</p></div>`;
   return head + byPower(S.people).map(personLine).join("");
 }
@@ -12656,6 +12658,7 @@ function helpPage(id){
 }
 
 const PATCH_LOG = [
+  {d:"2026-11-20", t:"Adventurers: the Roster card now shows the Barracks front (closer on the gate and guards) with the Raise Barracks button under it, styled like the Copper Tap button. When Barracks is maxed the picture stays with a maxed line."},
   {d:"2026-11-19", t:"Tavern: the Copper Tap card now shows the tavern front (closer on the door, sign in view) with the Raise Notice Board button under it, styled like the Guild tab buttons. The long description is gone."},
   {d:"2026-11-19", t:"Guild tab: Buildings & Upgrades is now a button in the same style as Rival Guild and Ledger, stacked first under the grounds picture, so the whole picture shows. It shows the build in progress (or No build running) and how many upgrades you can afford. Tapping the picture still opens the map too."},
   {d:"2026-11-19", t:"Ledger: the 📒 circle is gone from the top bar. A Ledger button now sits under the Rival Guild button on the Guild tab, showing the latest entry and how many entries today. It opens the same ledger."},
